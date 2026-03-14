@@ -23,21 +23,19 @@ workflow SCPOLASEQ {
     if (!params.genome_fasta) error "Missing required parameter: --genome_fasta"
     if (!params.gtf)          error "Missing required parameter: --gtf"
 
-    def nofile = file("${projectDir}/assets/NO_FILE")
-
     // ── Stage 0 — Input harmonization + Reference preparation ─────────────────
     INPUT_HARMONIZATION(
         file(params.input, checkIfExists: true),
-        params.cell_metadata        ? file(params.cell_metadata,        checkIfExists: true) : nofile,
-        params.cluster_assignments  ? file(params.cluster_assignments,  checkIfExists: true) : nofile,
-        params.cell_type_labels     ? file(params.cell_type_labels,     checkIfExists: true) : nofile
+        params.cell_metadata        ? file(params.cell_metadata,        checkIfExists: true) : file("${projectDir}/assets/NO_FILE_CELL_METADATA"),
+        params.cluster_assignments  ? file(params.cluster_assignments,  checkIfExists: true) : file("${projectDir}/assets/NO_FILE_CLUSTER_ASSIGNMENTS"),
+        params.cell_type_labels     ? file(params.cell_type_labels,     checkIfExists: true) : file("${projectDir}/assets/NO_FILE_CELL_TYPE_LABELS")
     )
 
     REFERENCE_PREPARE(
         file(params.genome_fasta, checkIfExists: true),
         file(params.gtf,          checkIfExists: true),
-        params.known_polya       ? file(params.known_polya,       checkIfExists: true) : nofile,
-        params.priming_blacklist ? file(params.priming_blacklist, checkIfExists: true) : nofile
+        params.known_polya       ? file(params.known_polya,       checkIfExists: true) : file("${projectDir}/assets/NO_FILE"),
+        params.priming_blacklist ? file(params.priming_blacklist, checkIfExists: true) : file("${projectDir}/assets/NO_FILE_PRIMING_BLACKLIST")
     )
 
     // ── Stage 1 — Initial alignment (STARsolo, CB/UB tag preservation) ────────

@@ -13,7 +13,7 @@ process PREPARE_REFERENCE_BUNDLE {
     path priming_blacklist
 
     output:
-    tuple val(['reference_id': 'primary']), path("star_index"), path("reference.annotation.gtf"), path("reference.genome.fa"), path("reference.chrom.sizes"), path("known_polya.reference.tsv"), path("priming_blacklist.reference.bed"), emit: reference_meta
+    tuple val("primary"), path("star_index"), path("reference.annotation.gtf"), path("reference.genome.fa"), path("reference.chrom.sizes"), path("known_polya.reference.tsv"), path("priming_blacklist.reference.bed"), emit: reference_meta
     path "reference_manifest.json", emit: manifest
     path "reference.annotation.gtf", emit: gtf
     path "reference.genome.fa", emit: fasta
