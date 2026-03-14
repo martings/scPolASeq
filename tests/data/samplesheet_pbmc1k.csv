@@ -1,0 +1,3 @@
+sample_id,library_id,protocol,chemistry,condition,replicate_id,fastq_r1,fastq_r2,barcode_whitelist
+pbmc_1k_v3,pbmc_1k_v3_L001,10x_3p,10xv3,healthy,rep1,/cluster/datasets/pbmc1k/fastqs/pbmc_1k_v3_S1_L001_R1_001.fastq.gz,/cluster/datasets/pbmc1k/fastqs/pbmc_1k_v3_S1_L001_R2_001.fastq.gz,/cluster/datasets/10x_whitelists/3M-february-2018.txt
+pbmc_1k_v3,pbmc_1k_v3_L002,10x_3p,10xv3,healthy,rep1,/cluster/datasets/pbmc1k/fastqs/pbmc_1k_v3_S1_L002_R1_001.fastq.gz,/cluster/datasets/pbmc1k/fastqs/pbmc_1k_v3_S1_L002_R2_001.fastq.gz,/cluster/datasets/10x_whitelists/3M-february-2018.txt
