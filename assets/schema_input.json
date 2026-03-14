@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "scPolASeq input samplesheet",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "sample_id",
+      "library_id",
+      "protocol",
+      "chemistry",
+      "condition"
+    ],
+    "properties": {
+      "sample_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "library_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "protocol": {
+        "enum": [
+          "10x_3p",
+          "10x_5p",
+          "bam_only"
+        ]
+      },
+      "chemistry": {
+        "type": "string"
+      },
+      "condition": {
+        "type": "string"
+      },
+      "replicate_id": {
+        "type": "string"
+      },
+      "fastq_r1": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "fastq_r2": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "bam": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "matrix_path": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "barcode_whitelist": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
+    "oneOf": [
+      {
+        "required": [
+          "fastq_r1",
+          "fastq_r2"
+        ]
+      },
+      {
+        "required": [
+          "bam"
+        ]
+      }
+    ]
+  }
+}

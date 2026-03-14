@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "scPolASeq canonical cell metadata",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "sample_id"
+    ],
+    "properties": {
+      "sample_id": {
+        "type": "string"
+      },
+      "barcode_raw": {
+        "type": "string"
+      },
+      "barcode_corrected": {
+        "type": "string"
+      },
+      "cell_id": {
+        "type": "string"
+      },
+      "cluster_id": {
+        "type": "string"
+      },
+      "cell_type": {
+        "type": "string"
+      },
+      "condition": {
+        "type": "string"
+      },
+      "batch": {
+        "type": "string"
+      },
+      "label_source": {
+        "type": "string"
+      }
+    }
+  }
+}

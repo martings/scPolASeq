@@ -1,0 +1,5 @@
+hub scPolASeq
+shortLabel scPolASeq
+longLabel scPolASeq grouped APA coverage
+genomesFile genomes.txt
+email placeholder@example.org

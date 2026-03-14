@@ -1,0 +1,7 @@
+title: "scPolASeq QC"
+subtitle: "Single-cell APA reconstruction and quantification"
+report_header_info:
+  - Workflow: "scPolASeq"
+  - Focus: "Cell barcode / UMI aware APA analysis"
+custom_logo_title: "scPolASeq"
+show_analysis_paths: false

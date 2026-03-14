@@ -1,0 +1,3 @@
+sample_id	barcode_raw	barcode_corrected	cell_id	cluster_id	cell_type	condition	batch	label_source
+TESTA	TESTA-CELL001	TESTA-CELL001	TESTA:TESTA-CELL001	cluster_1	epithelial	treated	batch1	external_metadata
+TESTA	TESTA-CELL002	TESTA-CELL002	TESTA:TESTA-CELL002	cluster_2	immune	treated	batch1	external_metadata

@@ -1,0 +1,15 @@
+.nextflow*
+.nf-test*
+.DS_Store
+work/
+results/
+.pytest_cache/
+.mypy_cache/
+*.pyc
+__pycache__/
+.snakemake/
+*.html
+*.trace
+*.timeline
+*.report
+*.dag.*

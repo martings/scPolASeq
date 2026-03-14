@@ -1,0 +1,9 @@
+name: scpolaseq-alignment
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.11
+  - star=2.7.11b
+  - samtools=1.21
+  - pysam=0.22.1

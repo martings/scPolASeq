@@ -1,0 +1,2 @@
+sample_id,library_id,protocol,chemistry,condition,replicate_id,fastq_r1,fastq_r2,bam,matrix_path,barcode_whitelist
+TESTA,LIBA,bam_only,tagged_bam,treated,rep1,,,tests/data/placeholder_input.bam,,tests/data/barcodes.tsv

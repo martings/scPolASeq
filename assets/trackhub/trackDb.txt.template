@@ -1,0 +1,7 @@
+track __TRACK_NAME__
+type bigWig
+shortLabel __TRACK_SHORT__
+longLabel __TRACK_LONG__
+bigDataUrl __BIGWIG_URL__
+visibility full
+maxHeightPixels 100:60:8

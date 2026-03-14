@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "title": "scPolASeq pipeline parameters",
+  "type": "object",
+  "definitions": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "properties": {
+        "input": {
+          "type": "string",
+          "description": "Canonical samplesheet CSV."
+        },
+        "genome_fasta": {
+          "type": "string",
+          "description": "Reference genome FASTA."
+        },
+        "gtf": {
+          "type": "string",
+          "description": "Reference annotation GTF."
+        },
+        "known_polya": {
+          "type": "string",
+          "description": "Optional known polyA atlas or PAS reference."
+        },
+        "priming_blacklist": {
+          "type": "string",
+          "description": "Optional internal priming blacklist."
+        },
+        "cell_metadata": {
+          "type": "string",
+          "description": "Optional canonical cell metadata TSV."
+        },
+        "cluster_assignments": {
+          "type": "string",
+          "description": "Optional barcode-to-cluster TSV."
+        },
+        "cell_type_labels": {
+          "type": "string",
+          "description": "Optional barcode-to-cell-type TSV."
+        },
+        "outdir": {
+          "type": "string",
+          "default": "results"
+        }
+      },
+      "required": [
+        "input",
+        "genome_fasta",
+        "gtf"
+      ]
+    },
+    "workflow_options": {
+      "title": "Workflow options",
+      "type": "object",
+      "properties": {
+        "run_mode": {
+          "type": "string",
+          "enum": [
+            "full",
+            "from_bam",
+            "feedback"
+          ],
+          "default": "full"
+        },
+        "aligner": {
+          "type": "string",
+          "enum": [
+            "starsolo",
+            "star",
+            "gpu_placeholder"
+          ],
+          "default": "starsolo"
+        },
+        "protocol_mode": {
+          "type": "string",
+          "enum": [
+            "10x_3p",
+            "10x_5p"
+          ],
+          "default": "10x_3p"
+        },
+        "enable_internal_clustering": {
+          "type": "boolean",
+          "default": true
+        },
+        "grouping_levels": {
+          "type": "string",
+          "default": "cluster,cell_type,sample_condition_celltype"
+        },
+        "emit_group_bams": {
+          "type": "boolean",
+          "default": false
+        },
+        "emit_bigwigs": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$ref": "#/definitions/input_output_options"
+    },
+    {
+      "$ref": "#/definitions/workflow_options"
+    }
+  ]
+}

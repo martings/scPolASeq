@@ -1,0 +1,91 @@
+{
+  "name": "scPolASeq",
+  "repository_type": "pipeline",
+  "repos": {
+    "https://github.com/nf-core/modules.git": {
+      "modules": {
+        "nf-core": {
+          "star/genomegenerate": {
+            "git_sha": "local-reference"
+          },
+          "star/align": {
+            "git_sha": "local-reference"
+          },
+          "star/starsolo": {
+            "git_sha": "local-reference"
+          },
+          "samtools/index": {
+            "git_sha": "local-reference"
+          },
+          "samtools/sort": {
+            "git_sha": "local-reference"
+          },
+          "samtools/view": {
+            "git_sha": "local-reference"
+          },
+          "samtools/stats": {
+            "git_sha": "local-reference"
+          },
+          "samtools/idxstats": {
+            "git_sha": "local-reference"
+          },
+          "samtools/flagstat": {
+            "git_sha": "local-reference"
+          },
+          "samtools/faidx": {
+            "git_sha": "local-reference"
+          },
+          "samtools/dict": {
+            "git_sha": "local-reference"
+          },
+          "bedtools/genomecov": {
+            "git_sha": "local-reference"
+          },
+          "bedtools/intersect": {
+            "git_sha": "local-reference"
+          },
+          "bedtools/groupby": {
+            "git_sha": "local-reference"
+          },
+          "bedtools/merge": {
+            "git_sha": "local-reference"
+          },
+          "bedtools/bamtobed": {
+            "git_sha": "local-reference"
+          },
+          "ucsc/bedclip": {
+            "git_sha": "local-reference"
+          },
+          "ucsc/bedgraphtobigwig": {
+            "git_sha": "local-reference"
+          },
+          "multiqc": {
+            "git_sha": "local-reference"
+          },
+          "gffread": {
+            "git_sha": "local-reference"
+          },
+          "fastqc": {
+            "git_sha": "local-reference"
+          },
+          "fastp": {
+            "git_sha": "local-reference"
+          },
+          "trimgalore": {
+            "git_sha": "local-reference"
+          },
+          "umitools/extract": {
+            "git_sha": "local-reference"
+          }
+        }
+      },
+      "subworkflows": {
+        "nf-core": {
+          "bedgraph_bedclip_bedgraphtobigwig": {
+            "git_sha": "local-reference"
+          }
+        }
+      }
+    }
+  }
+}

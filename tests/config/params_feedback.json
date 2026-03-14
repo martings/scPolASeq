@@ -1,0 +1,14 @@
+{
+  "input": "tests/data/samplesheet_feedback.csv",
+  "genome_fasta": "tests/data/reference.fa",
+  "gtf": "tests/data/reference.gtf",
+  "known_polya": "tests/data/known_polya.tsv",
+  "priming_blacklist": "tests/data/priming_blacklist.bed",
+  "cell_metadata": "tests/data/cell_metadata.tsv",
+  "run_mode": "feedback",
+  "aligner": "starsolo",
+  "protocol_mode": "10x_3p",
+  "emit_group_bams": true,
+  "emit_bigwigs": true,
+  "outdir": "tests/results/feedback"
+}
