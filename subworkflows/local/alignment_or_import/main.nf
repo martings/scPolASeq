@@ -46,9 +46,7 @@ workflow ALIGN_OR_IMPORT_SC {
             run_mode == 'full' && reads.size() >= 2
         }
         .combine(reference_bundle)
-        .map { sample_row, reference_row ->
-            def (meta, reads, bam, matrix, whitelist) = sample_row
-            def (reference_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist) = reference_row
+        .map { meta, reads, bam, matrix, whitelist, reference_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist ->
             tuple(meta, reads, whitelist, star_index, gtf, meta.protocol)
         }
         .set { ch_fastq }

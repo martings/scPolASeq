@@ -10,7 +10,7 @@ process APA_FEATURE_EXTRACTION {
 
     input:
     path site_catalog
-    path bedgraphs          // collected: all *.bedGraph files
+    path bedgraphs, stageAs: '?/*'  // collected: all *.bedGraph files, staged in unique subdirs
     path cell_annotations
     path known_polya
 
@@ -23,6 +23,7 @@ process APA_FEATURE_EXTRACTION {
     python ${projectDir}/bin/apa_feature_extraction.py \\
         --site-catalog     ${site_catalog}     \\
         --bedgraph-dir     .                   \\
+        --bedgraph-glob    '**/*.bedGraph'      \\
         --cell-annotations ${cell_annotations} \\
         --known-polya      ${known_polya}       \\
         --out-features     apa_features.tsv     \\

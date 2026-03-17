@@ -31,6 +31,8 @@ def parse_args():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--site-catalog",     required=True)
     p.add_argument("--bedgraph-dir",     required=True)
+    p.add_argument("--bedgraph-glob",    default="*.bedGraph",
+                   help="Glob pattern for bedGraph files relative to --bedgraph-dir (supports **/)")
     p.add_argument("--cell-annotations", required=True)
     p.add_argument("--known-polya",      required=True)
     p.add_argument("--out-features",     required=True)
@@ -150,9 +152,14 @@ def main():
         group_levels = ["cluster"]
     log.info(f"Group levels: {group_levels}")
 
-    # Discover bedGraph files
-    fwd_files = glob.glob(os.path.join(args.bedgraph_dir, "*.fwd.bedGraph"))
-    rev_files = glob.glob(os.path.join(args.bedgraph_dir, "*.rev.bedGraph"))
+    # Discover bedGraph files (supports stageAs '?/*' subdirectory layout)
+    bg_pattern = args.bedgraph_glob if hasattr(args, 'bedgraph_glob') else '*.bedGraph'
+    fwd_files = glob.glob(os.path.join(args.bedgraph_dir, '**', '*.fwd.bedGraph'), recursive=True)
+    rev_files = glob.glob(os.path.join(args.bedgraph_dir, '**', '*.rev.bedGraph'), recursive=True)
+    # also check flat layout for backwards compatibility
+    if not fwd_files:
+        fwd_files = glob.glob(os.path.join(args.bedgraph_dir, '*.fwd.bedGraph'))
+        rev_files = glob.glob(os.path.join(args.bedgraph_dir, '*.rev.bedGraph'))
     log.info(f"bedGraph files — fwd: {len(fwd_files)}, rev: {len(rev_files)}")
 
     # Load into memory keyed by (group_id, strand)

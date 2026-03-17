@@ -15,14 +15,8 @@ workflow FEEDBACK_RECONSTRUCT {
     bam_bundle
         .join(barcode_registry)
         .combine(group_map)
-        .map { joined_row, group_map_file ->
-            tuple(joined_row, group_map_file)
-        }
         .combine(reference_bundle)
-        .map { left_row, reference_row ->
-            def (joined_row, group_map_file) = left_row
-            def (meta, bam, bai, registry) = joined_row
-            def (reference_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist) = reference_row
+        .map { meta, bam, bai, registry, group_map_file, reference_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist ->
             tuple(meta, bam, bai, registry, group_map_file, chrom_sizes, emit_bigwigs)
         }
         .set { ch_coverage_input }
@@ -35,8 +29,7 @@ workflow FEEDBACK_RECONSTRUCT {
     if (emit_group_bams) {
         bam_bundle
             .combine(group_map)
-            .map { bam_row, group_map_file ->
-                def (meta, bam, bai) = bam_row
+            .map { meta, bam, bai, group_map_file ->
                 tuple(meta, group_map_file)
             }
             .set { ch_group_bam_input }

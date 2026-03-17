@@ -26,7 +26,7 @@ process VALIDATE_INPUTS {
 
     stub:
     """
-    touch samplesheet.validated.csv
+    cp ${samplesheet} samplesheet.validated.csv
     echo "{}" > input_manifest.json
     """
 }

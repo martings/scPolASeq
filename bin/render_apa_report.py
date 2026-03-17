@@ -30,6 +30,8 @@ def main() -> None:
     parser.add_argument("--apa-stats", required=True)
     parser.add_argument("--track-paths", nargs="*")
     parser.add_argument("--qc-paths", nargs="*")
+    parser.add_argument("--track-dir")
+    parser.add_argument("--qc-dir")
     parser.add_argument("--out-html", required=True)
     parser.add_argument("--out-plots", required=True)
     parser.add_argument("--out-summary", required=True)
@@ -37,6 +39,11 @@ def main() -> None:
 
     track_paths = flatten_paths(args.track_paths or [])
     qc_paths = flatten_paths(args.qc_paths or [])
+    # Also support directory-based discovery (stageAs subdirectory layout)
+    if args.track_dir and Path(args.track_dir).is_dir():
+        track_paths += sorted(str(p) for p in Path(args.track_dir).rglob('*') if p.is_file())
+    if args.qc_dir and Path(args.qc_dir).is_dir():
+        qc_paths += sorted(str(p) for p in Path(args.qc_dir).rglob('*') if p.is_file())
 
     plots_dir = Path(args.out_plots)
     plots_dir.mkdir(parents=True, exist_ok=True)

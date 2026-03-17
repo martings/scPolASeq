@@ -10,8 +10,8 @@ process RENDER_APA_REPORT {
     path site_catalog
     path apa_usage
     path apa_stats
-    path track_paths
-    path qc_paths
+    path track_paths, stageAs: 'tracks/?/*'
+    path qc_paths,    stageAs: 'qc/?/*'
 
     output:
     path "scpolaseq_report.html", emit: report
@@ -26,8 +26,8 @@ process RENDER_APA_REPORT {
         --site-catalog ${site_catalog} \\
         --apa-usage ${apa_usage} \\
         --apa-stats ${apa_stats} \\
-        --track-paths ${trackArgs} \\
-        --qc-paths ${qcArgs} \\
+        --track-dir tracks \\
+        --qc-dir qc \\
         --out-html scpolaseq_report.html \\
         --out-plots report_plots \\
         --out-summary report_summary.tsv

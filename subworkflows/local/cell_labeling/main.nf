@@ -12,14 +12,13 @@ workflow CELL_LABELING_SC {
     main:
     matrix_bundle
         .combine(cell_metadata)
-        .map { matrix_row, metadata_file ->
-            def (meta, matrix_dir) = matrix_row
+        .map { meta, matrix_dir, metadata_file ->
             tuple(meta, matrix_dir, metadata_file, enable_internal_clustering)
         }
         .set { ch_cluster_input }
 
     SCANPY_CLUSTER_SC(ch_cluster_input)
-    BUILD_GROUP_MAP(SCANPY_CLUSTER_SC.out.cell_annotations.collect(), grouping_levels)
+    BUILD_GROUP_MAP(SCANPY_CLUSTER_SC.out.cell_annotations.map { meta, tsv -> tsv }.collect(), grouping_levels)
     WRITE_LABEL_MANIFESTS(BUILD_GROUP_MAP.out.group_map, Channel.value('labels'))
 
     emit:
