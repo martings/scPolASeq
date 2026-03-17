@@ -42,7 +42,7 @@ process IMPORT_VALIDATE_SC {
 
     stub:
     """
-    cp ${bam} ${meta.library_id}.Aligned.sortedByCoord.out.bam
+    touch ${meta.library_id}.Aligned.sortedByCoord.out.bam
     touch ${meta.library_id}.Aligned.sortedByCoord.out.bam.bai
     mkdir -p ${meta.library_id}.matrix_bundle
     printf "sample_id\\tlibrary_id\\tbarcode_raw\\tbarcode_corrected\\tsource\\n${meta.sample_id}\\t${meta.library_id}\\t${meta.sample_id}-CELL001\\t${meta.sample_id}-CELL001\\tstub\\n" > ${meta.library_id}.barcode_registry.tsv

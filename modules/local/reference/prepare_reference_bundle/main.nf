@@ -49,8 +49,8 @@ process PREPARE_REFERENCE_BUNDLE {
 
     stub:
     """
-    cp ${genome_fasta} reference.genome.fa
-    cp ${gtf} reference.annotation.gtf
+    touch reference.genome.fa
+    touch reference.annotation.gtf
     touch reference.genome.fa.fai
     touch reference.genome.dict
     touch reference.chrom.sizes

@@ -26,7 +26,7 @@ process INTERNAL_PRIMING_FILTER {
 
     stub:
     """
-    cp ${site_catalog} site_catalog.filtered.tsv
+    touch site_catalog.filtered.tsv
     printf "total_sites\\tflagged_sites\\n1\\t0\\n" > priming_filter_metrics.tsv
     """
 }
