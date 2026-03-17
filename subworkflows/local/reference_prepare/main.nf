@@ -14,7 +14,8 @@ workflow REFERENCE_PREPARE {
 
     PREPARE_REFERENCE_BUNDLE.out.reference_meta
         .combine(BUILD_TERMINAL_EXON_CATALOG.out.terminal_exons)
-        .map { meta, star_index, normalized_gtf, fasta, chrom_sizes, atlas, blacklist, terminal_exons ->
+        .map { reference_row, terminal_exons ->
+            def (meta, star_index, normalized_gtf, fasta, chrom_sizes, atlas, blacklist) = reference_row
             tuple(meta, star_index, normalized_gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist)
         }
         .set { ch_reference_bundle }

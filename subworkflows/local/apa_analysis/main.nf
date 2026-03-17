@@ -21,7 +21,8 @@ workflow APA_ANALYSIS_SC {
 
     CANDIDATE_SITES_ANNOTATION_GUIDED.out.site_catalog
         .combine(reference_bundle)
-        .map { site_catalog, reference_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist ->
+        .map { site_catalog, reference_row ->
+            def (reference_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist) = reference_row
             tuple(site_catalog, fasta, blacklist)
         }
         .set { ch_priming_input }

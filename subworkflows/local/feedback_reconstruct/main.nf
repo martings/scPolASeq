@@ -15,9 +15,14 @@ workflow FEEDBACK_RECONSTRUCT {
     bam_bundle
         .join(barcode_registry)
         .combine(group_map)
+        .map { joined_row, group_map_file ->
+            tuple(joined_row, group_map_file)
+        }
         .combine(reference_bundle)
-        .map { meta, bam, bai, registry, group_map_file,
-               reference_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist ->
+        .map { left_row, reference_row ->
+            def (joined_row, group_map_file) = left_row
+            def (meta, bam, bai, registry) = joined_row
+            def (reference_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist) = reference_row
             tuple(meta, bam, bai, registry, group_map_file, chrom_sizes, emit_bigwigs)
         }
         .set { ch_coverage_input }
