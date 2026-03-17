@@ -28,8 +28,21 @@ process BUILD_GROUP_MAP {
 
     stub:
     """
-    printf "sample_id\\tbarcode_raw\\tbarcode_corrected\\tcell_id\\tcluster_id\\tcell_type\\tcondition\\tbatch\\tlabel_source\\n" > cell_annotations.tsv
-    printf "sample_id\\tbarcode_corrected\\tgroup_level\\tgroup_id\\n" > group_map.tsv
-    printf "group_level\\tgroup_id\\tn_barcodes\\n" > group_summary.tsv
+    printf "sample_id\\tbarcode_raw\\tbarcode_corrected\\tcell_id\\tcluster_id\\tcell_type\\tcondition\\tbatch\\tlabel_source\\n" \\
+        > cell_annotations.tsv
+    printf "pbmc_1k_v3\\tpbmc_1k_v3_L001-CELL001\\tpbmc_1k_v3_L001-CELL001\\tpbmc_1k_v3:pbmc_1k_v3_L001-CELL001\\tcluster_1\\tunlabeled\\t\\t\\tstub\\n" \\
+        >> cell_annotations.tsv
+    printf "pbmc_1k_v3\\tpbmc_1k_v3_L002-CELL001\\tpbmc_1k_v3_L002-CELL001\\tpbmc_1k_v3:pbmc_1k_v3_L002-CELL001\\tcluster_2\\tunlabeled\\t\\t\\tstub\\n" \\
+        >> cell_annotations.tsv
+    printf "sample_id\\tbarcode_corrected\\tgroup_level\\tgroup_id\\n" \\
+        > group_map.tsv
+    printf "pbmc_1k_v3\\tpbmc_1k_v3_L001-CELL001\\tcluster\\tcluster_1\\n" \\
+        >> group_map.tsv
+    printf "pbmc_1k_v3\\tpbmc_1k_v3_L002-CELL001\\tcluster\\tcluster_2\\n" \\
+        >> group_map.tsv
+    printf "group_level\\tgroup_id\\tn_barcodes\\n" \\
+        > group_summary.tsv
+    printf "cluster\\tcluster_1\\t1\\n" >> group_summary.tsv
+    printf "cluster\\tcluster_2\\t1\\n" >> group_summary.tsv
     """
 }

@@ -39,6 +39,10 @@ process APA_FEATURE_EXTRACTION {
         >> apa_features.tsv
     printf "geneA:chr1:2500:+\tcluster\tcluster_1\t30.0\t28.0\t25.0\t5.1\t0.55\t0\t10\t3\n"  \
         >> apa_features.tsv
+    printf "geneA:chr1:1000:+\tcluster\tcluster_2\t40.0\t35.0\t15.0\t7.2\t0.65\t150\t10\t3\n" \
+        >> apa_features.tsv
+    printf "geneA:chr1:2500:+\tcluster\tcluster_2\t55.0\t50.0\t8.0\t9.3\t0.88\t0\t14\t3\n"  \
+        >> apa_features.tsv
     echo "Feature extraction complete (stub)" > feature_extraction.log
     """
 }

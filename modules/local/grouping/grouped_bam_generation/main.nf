@@ -36,14 +36,12 @@ process GROUPED_BAM_GENERATION {
     """
 
     stub:
+    def stub_gid = meta.library_id.contains('L001') ? 'cluster_1' : 'cluster_2'
     """
-    touch group_1.grouped.bam group_1.grouped.bam.bai
-    touch group_2.grouped.bam group_2.grouped.bam.bai
+    touch ${stub_gid}.grouped.bam ${stub_gid}.grouped.bam.bai
     printf "group_level\tgroup_id\tbam_file\tn_reads\n" \
         >  ${meta.library_id}.${group_level}.grouping_manifest.tsv
-    printf "${group_level}\tgroup_1\tgroup_1.grouped.bam\t100\n" \
-        >> ${meta.library_id}.${group_level}.grouping_manifest.tsv
-    printf "${group_level}\tgroup_2\tgroup_2.grouped.bam\t80\n"  \
+    printf "${group_level}\t${stub_gid}\t${stub_gid}.grouped.bam\t100\n" \
         >> ${meta.library_id}.${group_level}.grouping_manifest.tsv
     """
 }

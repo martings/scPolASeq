@@ -66,10 +66,10 @@ process STARSOLO_ALIGN_SC {
     touch ${meta.library_id}.Aligned.sortedByCoord.out.bam
     touch ${meta.library_id}.Aligned.sortedByCoord.out.bam.bai
     touch ${meta.library_id}.Log.final.out
-    echo "${meta.sample_id}-CELL001" > ${meta.library_id}.Solo.out/Gene/barcodes.tsv
+    echo "${meta.library_id}-CELL001" > ${meta.library_id}.Solo.out/Gene/barcodes.tsv
     touch ${meta.library_id}.Solo.out/Gene/matrix.mtx
     touch ${meta.library_id}.Solo.out/Gene/features.tsv
-    printf "sample_id\\tlibrary_id\\tbarcode_raw\\tbarcode_corrected\\tsource\\n${meta.sample_id}\\t${meta.library_id}\\t${meta.sample_id}-CELL001\\t${meta.sample_id}-CELL001\\tstub\\n" > ${meta.library_id}.barcode_registry.tsv
+    printf "sample_id\\tlibrary_id\\tbarcode_raw\\tbarcode_corrected\\tsource\\n${meta.sample_id}\\t${meta.library_id}\\t${meta.library_id}-CELL001\\t${meta.library_id}-CELL001\\tstub\\n" > ${meta.library_id}.barcode_registry.tsv
     printf "manifest_name\\tinput_table\\trows\\n${meta.library_id}.alignment\\t${meta.library_id}.barcode_registry.tsv\\t1\\n" > ${meta.library_id}.alignment_manifest.tsv
     """
 }

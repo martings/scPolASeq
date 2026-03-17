@@ -31,7 +31,7 @@ process SCANPY_CLUSTER_SC {
 
     stub:
     """
-    printf "sample_id\\tbarcode_raw\\tbarcode_corrected\\tcell_id\\tcluster_id\\tcell_type\\tcondition\\tbatch\\tlabel_source\\n${meta.sample_id}\\t${meta.sample_id}-CELL001\\t${meta.sample_id}-CELL001\\t${meta.sample_id}:${meta.sample_id}-CELL001\\tcluster_1\\tunlabeled\\t\\t\\tstub\\n" > ${meta.library_id}.cell_annotations.tsv
+    printf "sample_id\\tbarcode_raw\\tbarcode_corrected\\tcell_id\\tcluster_id\\tcell_type\\tcondition\\tbatch\\tlabel_source\\n${meta.sample_id}\\t${meta.library_id}-CELL001\\t${meta.library_id}-CELL001\\t${meta.sample_id}:${meta.library_id}-CELL001\\t${meta.library_id.contains('L001') ? 'cluster_1' : 'cluster_2'}\\tunlabeled\\t\\t\\tstub\\n" > ${meta.library_id}.cell_annotations.tsv
     printf "sample_id\\tlibrary_id\\tn_cells\\tclustering_mode\\n${meta.sample_id}\\t${meta.library_id}\\t1\\tstub\\n" > ${meta.library_id}.cluster_report.tsv
     echo "{}" > ${meta.library_id}.clustered.h5ad
     """
