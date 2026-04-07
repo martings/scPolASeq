@@ -4,6 +4,7 @@ process PREPARE_REFERENCE_BUNDLE {
     label 'process_python'
 
     conda "${projectDir}/envs/alignment.yml"
+    container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-alignment.sif" : null
     publishDir "${params.outdir}/reference", mode: params.publish_dir_mode
 
     input:

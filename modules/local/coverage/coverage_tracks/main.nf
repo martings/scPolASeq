@@ -5,6 +5,7 @@ process COVERAGE_TRACKS {
     label 'process_medium'
 
     conda "${projectDir}/envs/alignment.yml"
+    container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-alignment.sif" : null
     publishDir "${params.outdir}/coverage/${group_level}", mode: params.publish_dir_mode, pattern: "*.bedGraph"
     publishDir "${params.outdir}/coverage/${group_level}", mode: params.publish_dir_mode, pattern: "*.bw"
 

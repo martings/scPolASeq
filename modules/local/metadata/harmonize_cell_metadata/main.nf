@@ -4,6 +4,7 @@ process HARMONIZE_CELL_METADATA {
     label 'process_python'
 
     conda "${projectDir}/envs/python.yml"
+    container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-python.sif" : null
     publishDir "${params.outdir}/labels", mode: params.publish_dir_mode, pattern: "cell_metadata.harmonized.tsv"
     publishDir "${params.outdir}/provenance", mode: params.publish_dir_mode, pattern: "cell_metadata_manifest.json"
 

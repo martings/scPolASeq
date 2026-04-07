@@ -3,6 +3,7 @@ process STARSOLO_ALIGN_SC {
     label 'process_high'
 
     conda "${projectDir}/envs/alignment.yml"
+    container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-alignment.sif" : null
     publishDir "${params.outdir}/alignment", mode: params.publish_dir_mode, pattern: "*.bam"
     publishDir "${params.outdir}/alignment", mode: params.publish_dir_mode, pattern: "*.bai"
     publishDir "${params.outdir}/alignment", mode: params.publish_dir_mode, pattern: "*.Solo.out"

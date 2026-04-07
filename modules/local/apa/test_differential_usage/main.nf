@@ -4,6 +4,7 @@ process APA_TEST_DIFFERENTIAL_USAGE {
     label 'process_r'
 
     conda "${projectDir}/envs/r.yml"
+    container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-r.sif" : null
     publishDir "${params.outdir}/apa", mode: params.publish_dir_mode, pattern: "apa_stats.tsv"
     publishDir "${params.outdir}/apa", mode: params.publish_dir_mode, pattern: "model_summary.tsv"
 

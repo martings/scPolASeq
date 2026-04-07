@@ -3,6 +3,7 @@ process IMPORT_VALIDATE_SC {
     label 'process_medium'
 
     conda "${projectDir}/envs/alignment.yml"
+    container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-alignment.sif" : null
     publishDir "${params.outdir}/alignment", mode: params.publish_dir_mode, pattern: "*.bam"
     publishDir "${params.outdir}/alignment", mode: params.publish_dir_mode, pattern: "*.bai"
     publishDir "${params.outdir}/provenance", mode: params.publish_dir_mode, pattern: "*.barcode_registry.tsv"

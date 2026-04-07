@@ -4,6 +4,7 @@ process SCANPY_CLUSTER_SC {
     label 'process_python'
 
     conda "${projectDir}/envs/clustering.yml"
+    container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-clustering.sif" : null
     publishDir "${params.outdir}/labels", mode: params.publish_dir_mode, pattern: "*.cell_annotations.tsv"
     publishDir "${params.outdir}/labels", mode: params.publish_dir_mode, pattern: "*.cluster_report.tsv"
     publishDir "${params.outdir}/labels", mode: params.publish_dir_mode, pattern: "*.clustered.h5ad"

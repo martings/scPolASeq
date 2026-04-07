@@ -1,0 +1,21 @@
+Bootstrap: docker
+From: mambaorg/micromamba:1.5.10-jammy
+
+%labels
+    maintainer  scPolASeq
+    description "Python env: pysam, pandas, numpy, scikit-learn"
+    env_source  envs/python.yml
+
+%post
+    micromamba install -y -n base \
+        -c conda-forge -c bioconda \
+        python=3.11 \
+        pysam=0.22.1 \
+        pandas=2.2.3 \
+        "numpy>=1.26" \
+        "scikit-learn>=1.4" && \
+    micromamba clean --all -y
+
+%environment
+    export PATH=/opt/conda/bin:$PATH
+    export MAMBA_NO_BANNER=1

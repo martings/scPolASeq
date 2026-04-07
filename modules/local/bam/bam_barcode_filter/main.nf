@@ -5,6 +5,7 @@ process BAM_BARCODE_FILTER {
     label 'process_medium'
 
     conda "${projectDir}/envs/python.yml"
+    container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-python.sif" : null
     publishDir "${params.outdir}/filtered_bam", mode: params.publish_dir_mode, pattern: "*.filtered.bam"
     publishDir "${params.outdir}/filtered_bam", mode: params.publish_dir_mode, pattern: "*.filtered.bam.bai"
     publishDir "${params.outdir}/qc",           mode: params.publish_dir_mode, pattern: "*.barcode_filter_stats.tsv"

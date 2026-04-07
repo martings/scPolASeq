@@ -4,6 +4,7 @@ process BUILD_GROUP_MAP {
     label 'process_python'
 
     conda "${projectDir}/envs/python.yml"
+    container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-python.sif" : null
     publishDir "${params.outdir}/labels", mode: params.publish_dir_mode
 
     input:

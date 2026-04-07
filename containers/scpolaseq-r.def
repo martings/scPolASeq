@@ -1,0 +1,20 @@
+Bootstrap: docker
+From: mambaorg/micromamba:1.5.10-jammy
+
+%labels
+    maintainer  scPolASeq
+    description "R env: r-base 4.3, r-data.table, r-jsonlite, r-optparse"
+    env_source  envs/r.yml
+
+%post
+    micromamba install -y -n base \
+        -c conda-forge -c bioconda \
+        r-base=4.3 \
+        r-data.table=1.15.4 \
+        r-jsonlite=1.8.8 \
+        r-optparse=1.7.5 && \
+    micromamba clean --all -y
+
+%environment
+    export PATH=/opt/conda/bin:$PATH
+    export MAMBA_NO_BANNER=1

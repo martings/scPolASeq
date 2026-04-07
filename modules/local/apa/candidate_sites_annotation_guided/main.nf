@@ -4,6 +4,7 @@ process CANDIDATE_SITES_ANNOTATION_GUIDED {
     label 'process_python'
 
     conda "${projectDir}/envs/python.yml"
+    container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-python.sif" : null
     publishDir "${params.outdir}/apa", mode: params.publish_dir_mode, pattern: "site_catalog*"
 
     input:

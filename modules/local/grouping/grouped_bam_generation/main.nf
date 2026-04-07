@@ -6,6 +6,7 @@ process GROUPED_BAM_GENERATION {
     label 'process_medium'
 
     conda "${projectDir}/envs/alignment.yml"
+    container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-alignment.sif" : null
     publishDir "${params.outdir}/grouped_bam/${group_level}", mode: params.publish_dir_mode, pattern: "*.grouped.bam"
     publishDir "${params.outdir}/grouped_bam/${group_level}", mode: params.publish_dir_mode, pattern: "*.grouped.bam.bai"
 
