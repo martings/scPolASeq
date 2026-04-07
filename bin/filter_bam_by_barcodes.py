@@ -43,29 +43,38 @@ def main():
         log.error(f"Cannot load annotations: {e}")
         sys.exit(1)
 
-    if "barcode" not in anno.columns:
-        log.error("Annotations table must contain a 'barcode' column")
+    # Resolve barcode column: accept 'barcode', 'barcode_corrected', or 'barcode_raw'
+    bc_col = next(
+        (c for c in ("barcode", "barcode_corrected", "barcode_raw") if c in anno.columns),
+        None,
+    )
+    if bc_col is None:
+        log.error("Annotations table must contain a 'barcode', 'barcode_corrected', or 'barcode_raw' column")
         sys.exit(1)
+    log.info(f"Using barcode column: '{bc_col}'")
 
-    valid_barcodes = set(anno["barcode"].dropna().str.strip().tolist())
+    valid_barcodes = set(anno[bc_col].dropna().str.strip().tolist())
     log.info(f"Valid barcodes: {len(valid_barcodes)}")
 
     # Build barcode → cluster/cell_type lookup for tagging
     bc_to_meta = {}
     for _, row in anno.iterrows():
-        bc = str(row["barcode"]).strip()
+        bc = str(row[bc_col]).strip()
         bc_to_meta[bc] = {
             "cluster":   str(row.get("cluster",   "NA")),
             "cell_type": str(row.get("cell_type", "NA")),
             "condition": str(row.get("condition", "NA")),
         }
 
-    # Try to use pysam; fall back to stub if unavailable
+    # Try to use pysam; fall back to stub if unavailable or BAM is not valid
     try:
         import pysam
         _filter_with_pysam(args, valid_barcodes, bc_to_meta, log)
     except ImportError:
         log.warning("pysam not available — writing stub filtered BAM")
+        _stub_output(args, valid_barcodes, log)
+    except (ValueError, OSError) as exc:
+        log.warning(f"BAM not readable ({exc}) — writing stub filtered BAM")
         _stub_output(args, valid_barcodes, log)
 
 

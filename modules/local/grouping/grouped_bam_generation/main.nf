@@ -21,6 +21,7 @@ process GROUPED_BAM_GENERATION {
     python ${projectDir}/bin/write_group_bams.py \\
         --bam           ${filtered_bam} \\
         --group-map     ${group_map} \\
+        --sample-id     ${meta.sample_id} \\
         --group-level   ${group_level} \\
         --out-dir       . \\
         --out-manifest  ${meta.library_id}.${group_level}.grouping_manifest.tsv

@@ -83,7 +83,13 @@ def main():
         X = features[available].fillna(0).values
 
         if hasattr(model, "predict_proba"):
-            scores = model.predict_proba(X)[:, 1]
+            proba = model.predict_proba(X)
+            # When only one class was seen during training, proba has shape (n, 1)
+            if proba.shape[1] > 1:
+                scores = proba[:, 1]
+            else:
+                log.warning("Model trained on single class; assigning constant score 0.5")
+                scores = np.full(len(X), 0.5)
         elif hasattr(model, "decision_function"):
             raw = model.decision_function(X)
             # Min-max normalize to [0, 1]

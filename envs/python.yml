@@ -6,3 +6,5 @@ dependencies:
   - python=3.11
   - pysam=0.22.1
   - pandas=2.2.3
+  - numpy>=1.26
+  - scikit-learn>=1.4
