@@ -3,6 +3,7 @@
 .DS_Store
 work/
 results/
+tests/results*/
 .pytest_cache/
 .mypy_cache/
 *.pyc

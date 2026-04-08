@@ -26,12 +26,13 @@ workflow APA_CORE {
     apa_min_pdui_delta                 // val: minimum |delta PDUI| threshold
     apa_model_type                     // val: model type selector
     apa_model_group_level              // val: group level used by training and prediction
-    enable_single_cell_apa_projection  // val: boolean toggle
-    enable_pas_reference_build         // val: boolean toggle
-    enable_sierra_quant                // val: boolean toggle
-    enable_pas_scoring                 // val: boolean toggle
 
     main:
+    def do_single_cell_projection = params.enable_single_cell_apa_projection.toString().toBoolean()
+    def do_pas_reference_build = params.enable_pas_reference_build.toString().toBoolean()
+    def do_sierra_quant = params.enable_sierra_quant.toString().toBoolean()
+    def do_pas_scoring = params.enable_pas_scoring.toString().toBoolean()
+
     // Freeze the reference tuple layout here so downstream modules never index
     // into the bundle ad hoc.
     reference_bundle
@@ -79,12 +80,12 @@ workflow APA_CORE {
         APA_FEATURE_PIPELINE.out.apa_events,
         apa_model_type,
         apa_model_group_level,
-        enable_single_cell_apa_projection
+        do_single_cell_projection
     )
 
     def ch_pas_reference
     def ch_pas_reference_manifest
-    if (enable_pas_reference_build) {
+    if (do_pas_reference_build) {
         PAS_REFERENCE_BUILD(
             ch_site_catalog,
             ch_terminal_exons,
@@ -101,7 +102,7 @@ workflow APA_CORE {
 
     def ch_sierra_quant
     def ch_sierra_manifest
-    if (enable_sierra_quant) {
+    if (do_sierra_quant) {
         GROUPED_RECONSTRUCTION.out.grouped_bams
             .flatMap { meta, group_level, bams, bais ->
                 def bam_list = (bams instanceof List) ? bams : [bams]
@@ -128,7 +129,7 @@ workflow APA_CORE {
 
     def ch_pas_scored
     def ch_pas_scoring_manifest
-    if (enable_pas_scoring) {
+    if (do_pas_scoring) {
         PAS_SCORING(
             APA_FEATURE_PIPELINE.out.feature_table,
             APA_FEATURE_PIPELINE.out.apa_events,

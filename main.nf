@@ -68,11 +68,7 @@ workflow SCPOLASEQ {
         params.apa_min_coverage ?: 5,
         params.apa_min_pdui_delta ?: 0.2,
         params.apa_model_type ?: 'random_forest',
-        params.apa_group_level ?: 'cluster',
-        params.enable_single_cell_apa_projection ?: false,
-        params.enable_pas_reference_build ?: true,
-        params.enable_sierra_quant ?: true,
-        params.enable_pas_scoring ?: true
+        params.apa_group_level ?: 'cluster'
     )
 
     // ── Reporting ─────────────────────────────────────────────────────────────

@@ -34,10 +34,6 @@ apa_min_coverage                   // val(Integer)
 apa_min_pdui_delta                 // val(Decimal)
 apa_model_type                     // val(String)
 apa_model_group_level              // val(String)
-enable_single_cell_apa_projection  // val(Boolean)
-enable_pas_reference_build         // val(Boolean)
-enable_sierra_quant                // val(Boolean)
-enable_pas_scoring                 // val(Boolean)
 ```
 
 Primary emitted contracts:
@@ -193,6 +189,11 @@ path("pas_scoring.log")
 
 ## Toggle behavior
 
+- Toggle control is parameter-driven, not channel-driven:
+  `params.enable_single_cell_apa_projection`,
+  `params.enable_pas_reference_build`,
+  `params.enable_sierra_quant`,
+  `params.enable_pas_scoring`
 - `enable_pas_reference_build = false`
   `APA_CORE` falls back to the existing annotation-guided site catalog as the
   effective PAS reference.
