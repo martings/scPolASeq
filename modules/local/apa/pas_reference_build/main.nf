@@ -45,7 +45,13 @@ process PAS_REFERENCE_BUILD {
     """
     printf "pas_reference_id\\tsite_id\\tgene_id\\tchrom\\tstart\\tend\\tstrand\\treference_source\\n" > pas_reference.tsv
     printf "pas_ref_stub_001\\tNA\\tNA\\tNA\\t0\\t0\\t+\\tstub\\n" >> pas_reference.tsv
-    printf "field\\tvalue\\nmode\\tstub\\n" > pas_reference_build.manifest.tsv
+
+    printf "field\\tvalue\\n" > pas_reference_build.manifest.tsv
+    printf "site_catalog\\t${site_catalog.name}\\n"   >> pas_reference_build.manifest.tsv
+    printf "terminal_exons\\t${terminal_exons.name}\\n" >> pas_reference_build.manifest.tsv
+    printf "known_polya\\t${known_polya.name}\\n"     >> pas_reference_build.manifest.tsv
+    printf "mode\\tstub\\n"                           >> pas_reference_build.manifest.tsv
+
     printf "PAS_REFERENCE_BUILD stub executed\\n" > pas_reference_build.log
     """
 }

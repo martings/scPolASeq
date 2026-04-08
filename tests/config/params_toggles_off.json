@@ -1,0 +1,18 @@
+{
+  "input": "tests/data/samplesheet.csv",
+  "genome_fasta": "tests/data/reference.fa",
+  "gtf": "tests/data/reference.gtf",
+  "known_polya": "tests/data/known_polya.tsv",
+  "priming_blacklist": "tests/data/priming_blacklist.bed",
+  "cell_metadata": "tests/data/cell_metadata.tsv",
+  "run_mode": "full",
+  "aligner": "starsolo",
+  "protocol_mode": "10x_3p",
+  "emit_group_bams": false,
+  "emit_bigwigs": true,
+  "outdir": "tests/results/toggles_off",
+  "enable_pas_reference_build": false,
+  "enable_sierra_quant": false,
+  "enable_pas_scoring": false,
+  "enable_single_cell_apa_projection": false
+}
