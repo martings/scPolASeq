@@ -23,3 +23,15 @@
 ## apa_stats.tsv
 
 `contrast_id,gene_id,site_id,group_level,logFC,delta_usage,pvalue,fdr,test_class`
+
+## pas_reference.tsv
+
+`pas_reference_id,site_id,gene_id,chrom,start,end,strand,reference_source`
+
+## sierra_quant.tsv
+
+`library_id,group_level,group_id,pas_reference,quant_source`
+
+## pas_scored_events.tsv
+
+`event_id,score_namespace,score_source,reference_input`
