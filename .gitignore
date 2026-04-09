@@ -3,6 +3,8 @@
 .DS_Store
 work/
 results/
+tests/results*/
+.nf_test_work/
 .pytest_cache/
 .mypy_cache/
 *.pyc

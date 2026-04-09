@@ -23,28 +23,34 @@ process STARSOLO_ALIGN_SC {
     script:
     def whitelistArg = whitelist.name == 'NO_FILE' ? '--soloCBwhitelist None' : "--soloCBwhitelist ${whitelist}"
     def warning = protocol_mode == '10x_5p' ? "echo 'WARNING: guarded 10x 5p support is enabled; APA outputs are descriptive-first.' >&2" : ''
+    def readFilesCmd = reads[0].name.endsWith('.gz') ? '--readFilesCommand zcat' : ''
     """
     ${warning}
+    _star_ok=0
     if command -v STAR >/dev/null 2>&1; then
         STAR \\
             --genomeDir ${star_index} \\
             --sjdbGTFfile ${gtf} \\
             --readFilesIn ${reads[1]} ${reads[0]} \\
+            ${readFilesCmd} \\
             --runThreadN ${task.cpus} \\
             --outFileNamePrefix ${meta.library_id}. \\
             ${whitelistArg} \\
-            ${task.ext.args ?: ''} || true
+            ${task.ext.args ?: ''} && _star_ok=1
     fi
 
+    # Fallback placeholders — only if STAR was absent or failed
     mkdir -p ${meta.library_id}.Solo.out/Gene
-    touch ${meta.library_id}.Log.final.out
-    touch ${meta.library_id}.Aligned.sortedByCoord.out.bam
-    echo "${meta.sample_id}-CELL001" > ${meta.library_id}.Solo.out/Gene/barcodes.tsv
-    touch ${meta.library_id}.Solo.out/Gene/matrix.mtx
-    touch ${meta.library_id}.Solo.out/Gene/features.tsv
+    if [[ \$_star_ok -eq 0 ]]; then
+        touch ${meta.library_id}.Log.final.out
+        touch ${meta.library_id}.Aligned.sortedByCoord.out.bam
+        echo "${meta.sample_id}-CELL001" > ${meta.library_id}.Solo.out/Gene/barcodes.tsv
+        touch ${meta.library_id}.Solo.out/Gene/matrix.mtx
+        touch ${meta.library_id}.Solo.out/Gene/features.tsv
+    fi
 
-    if command -v samtools >/dev/null 2>&1; then
-        samtools index ${meta.library_id}.Aligned.sortedByCoord.out.bam || touch ${meta.library_id}.Aligned.sortedByCoord.out.bam.bai
+    if command -v samtools >/dev/null 2>&1 && [[ -s ${meta.library_id}.Aligned.sortedByCoord.out.bam ]]; then
+        samtools index ${meta.library_id}.Aligned.sortedByCoord.out.bam
     else
         touch ${meta.library_id}.Aligned.sortedByCoord.out.bam.bai
     fi

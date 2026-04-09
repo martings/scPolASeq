@@ -14,3 +14,17 @@
 ## Provenance strategy
 
 The scaffold emits manifest tables at alignment and labeling stages. These are meant to remain stable inputs to later `feedback` runs.
+
+## APA orchestration boundary
+
+`subworkflows/apa_core.nf` is the contract freezer for APA-stage execution. It
+owns channel reshaping, toggle handling, and future sidecar module wiring. This
+keeps `main.nf` focused on coarse orchestration and prevents later feature work
+from leaking tuple-layout assumptions across the pipeline.
+
+## Contract strategy
+
+Current working outputs remain the primary public surface. `PAS_REFERENCE_BUILD`
+now has a repo-native implementation on top of the frozen input contract, while
+`SIERRA_QUANT` and `PAS_SCORING` remain scaffolded sidecars with explicit I/O so
+they can mature independently without breaking existing consumers.

@@ -1,0 +1,3 @@
+site_id	gene_id	chrom	start	end	strand	site_class	site_source	priming_flag
+geneA:chr1:120:+	geneA	chr1	120	120	+	known_pas	annotation+atlas	pass
+geneB:chr1:180:+	geneB	chr1	180	180	+	annotated_terminal_end	annotation	pass

@@ -32,6 +32,13 @@
 - `apa/gene_summary.tsv`
 - `apa/apa_stats.tsv`
 
+## PAS sidecars
+
+- `pas_reference/pas_reference.tsv`
+- `pas_reference/pas_reference_build.manifest.tsv`
+- `sierra_quant/<group_level>/<library_id>.<group_level>.<group_id>.sierra_quant.tsv`
+- `pas_scoring/pas_scored_events.tsv`
+
 ## Report
 
 - `report/scpolaseq_report.html`

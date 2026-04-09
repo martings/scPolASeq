@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main, modules_refactor]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stub-run:
+    name: Stub-run all scenarios
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Nextflow
+        run: |
+          curl -s https://get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+          nextflow -version
+
+      - name: Stub-run — full (all toggles on)
+        run: |
+          nextflow run . \
+            -profile test \
+            -params-file tests/config/params_full.json \
+            -stub-run \
+            -ansi-log false
+          echo "Expected: 22 processes"
+
+      - name: Stub-run — toggles off
+        run: |
+          nextflow run . \
+            -profile test \
+            -params-file tests/config/params_toggles_off.json \
+            -stub-run \
+            -ansi-log false
+          echo "Expected: 18 processes"
+
+      - name: Stub-run — from_bam
+        run: |
+          nextflow run . \
+            -profile test \
+            -params-file tests/config/params_from_bam.json \
+            -stub-run \
+            -ansi-log false
+
+      - name: Stub-run — feedback
+        run: |
+          nextflow run . \
+            -profile test \
+            -params-file tests/config/params_feedback.json \
+            -stub-run \
+            -ansi-log false
+
+      - name: Module test — PAS_REFERENCE_BUILD (stub)
+        run: |
+          nextflow run tests/modules/apa/test_pas_reference_build.nf \
+            -stub \
+            -ansi-log false
+
+      - name: Upload Nextflow logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextflow-logs
+          path: |
+            .nextflow.log
+            work/
+          retention-days: 3

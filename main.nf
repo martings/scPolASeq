@@ -6,12 +6,8 @@ include { REFERENCE_PREPARE      } from './subworkflows/local/reference_prepare/
 include { ALIGN_OR_IMPORT_SC     } from './subworkflows/local/alignment_or_import/main'
 include { CELL_LABELING_SC       } from './subworkflows/local/cell_labeling/main'
 
-// ── New 9-stage APA subworkflows ──────────────────────────────────────────────
-include { BARCODE_FILTERING      } from './subworkflows/local/barcode_filtering/main'
-include { GROUPED_RECONSTRUCTION } from './subworkflows/local/grouped_reconstruction/main'
-include { COVERAGE_GENERATION    } from './subworkflows/local/coverage_generation/main'
-include { APA_FEATURE_PIPELINE   } from './subworkflows/local/apa_feature_pipeline/main'
-include { MODEL_PIPELINE         } from './subworkflows/local/model_pipeline/main'
+// ── APA orchestration boundary ────────────────────────────────────────────────
+include { APA_CORE               } from './subworkflows/apa_core'
 
 // ── Reporting ─────────────────────────────────────────────────────────────────
 include { REPORTING_SC           } from './subworkflows/local/reporting/main'
@@ -55,79 +51,33 @@ workflow SCPOLASEQ {
         params.grouping_levels
     )
 
-    // ── Stage 3 — Barcode-aware BAM filtering ─────────────────────────────────
-    // Reads are subset to valid cell barcodes; each read is tagged with its
-    // cluster / cell_type derived from CELL_LABELING_SC.
-    BARCODE_FILTERING(
-        ALIGN_OR_IMPORT_SC.out.bam_bundle,
-        CELL_LABELING_SC.out.cell_annotations          // plain path (unified TSV)
-    )
-
-    // ── Stage 4 — Grouped BAM reconstruction (one BAM per group_level/group_id)
-    GROUPED_RECONSTRUCTION(
-        BARCODE_FILTERING.out.filtered_bam,
-        CELL_LABELING_SC.out.group_map,                // plain path
-        params.apa_grouping_levels ?: 'cluster,cell_type'
-    )
-
-    // ── Stage 5 — Strand-aware coverage tracks (bedGraph + bigWig) ───────────
-    // Extract chrom_sizes from the reference bundle (field index 4)
-    REFERENCE_PREPARE.out.reference_bundle
-        .map { ref_meta, star_index, gtf, fasta, chrom_sizes,
-               terminal_exons, atlas, blacklist -> chrom_sizes }
-        .first()
-        .set { ch_chrom_sizes }
-
-    COVERAGE_GENERATION(
-        GROUPED_RECONSTRUCTION.out.grouped_bams,
-        ch_chrom_sizes
-    )
-
-    // ── Stages 6 + 7 — APA feature extraction + statistical APA calling ───────
-    // site_catalog / atlas from reference bundle (field index 6)
-    REFERENCE_PREPARE.out.reference_bundle
-        .map { ref_meta, star_index, gtf, fasta, chrom_sizes,
-               terminal_exons, atlas, blacklist -> atlas }
-        .first()
-        .set { ch_site_catalog }
-
+    // ── Stages 3–9 — APA core orchestration ───────────────────────────────────
+    // All APA-stage channel wiring is isolated behind APA_CORE so future
+    // modules can be added without widening main.nf.
     def ch_known_polya = params.known_polya
         ? Channel.value(file(params.known_polya, checkIfExists: true))
-        : Channel.value(nofile)
+        : Channel.value(file("${projectDir}/assets/NO_FILE"))
 
-    APA_FEATURE_PIPELINE(
-        ch_site_catalog,
-        COVERAGE_GENERATION.out.bedgraphs,
+    APA_CORE(
+        REFERENCE_PREPARE.out.reference_bundle,
+        ALIGN_OR_IMPORT_SC.out.bam_bundle,
         CELL_LABELING_SC.out.cell_annotations,
+        CELL_LABELING_SC.out.group_map,
         ch_known_polya,
-        params.apa_min_coverage   ?: 5,
-        params.apa_min_pdui_delta ?: 0.2
-    )
-
-    // ── Stages 8 + 9 — ML model training + APA event scoring ─────────────────
-    MODEL_PIPELINE(
-        APA_FEATURE_PIPELINE.out.feature_table,
-        APA_FEATURE_PIPELINE.out.apa_events,
-        params.apa_model_type  ?: 'random_forest',
-        params.apa_group_level ?: 'cluster',
-        params.enable_single_cell_apa_projection ?: false
+        params.apa_grouping_levels ?: 'cluster,cell_type',
+        params.apa_min_coverage ?: 5,
+        params.apa_min_pdui_delta ?: 0.2,
+        params.apa_model_type ?: 'random_forest',
+        params.apa_group_level ?: 'cluster'
     )
 
     // ── Reporting ─────────────────────────────────────────────────────────────
-    // Map bigwig tuples to flat paths for track_bundle; mix QC files for qc_bundle.
-    def ch_track_bundle = COVERAGE_GENERATION.out.bigwigs
-        .flatMap { meta, group_level, group_id, fwd_bw, rev_bw -> [fwd_bw, rev_bw] }
-
-    def ch_qc_bundle = BARCODE_FILTERING.out.filter_stats
-        .mix(MODEL_PIPELINE.out.model_metrics)
-        .mix(GROUPED_RECONSTRUCTION.out.grouping_manifest)
-
     REPORTING_SC(
-        APA_FEATURE_PIPELINE.out.feature_table,   // site_catalog proxy
-        APA_FEATURE_PIPELINE.out.pdui_matrix,     // apa_usage
-        MODEL_PIPELINE.out.scored_events,          // apa_stats
-        ch_track_bundle,
-        ch_qc_bundle
+        APA_CORE.out.feature_table,   // site_catalog proxy
+        APA_CORE.out.pdui_matrix,     // apa_usage
+        APA_CORE.out.scored_events,   // apa_stats
+        APA_CORE.out.track_bundle,
+        APA_CORE.out.qc_bundle
     )
 }
 
