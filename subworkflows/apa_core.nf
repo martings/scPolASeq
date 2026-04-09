@@ -152,6 +152,7 @@ workflow APA_CORE {
     def ch_qc_bundle = BARCODE_FILTERING.out.filter_stats
         .mix(MODEL_PIPELINE.out.model_metrics)
         .mix(GROUPED_RECONSTRUCTION.out.grouping_manifest)
+        .mix(ch_pas_reference_manifest)
 
     emit:
     filtered_bam                = BARCODE_FILTERING.out.filtered_bam

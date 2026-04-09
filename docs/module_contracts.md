@@ -10,7 +10,7 @@ keep orchestration stable even as biological logic evolves.
 - `reference_bundle` is a tuple with fixed positional layout:
   `tuple val(ref_meta), path(star_index), path(gtf), path(fasta), path(chrom_sizes), path(terminal_exons), path(site_catalog), path(priming_blacklist)`
 - Group-resolved files always carry both `group_level` and `group_id` in the channel contract, even if only one appears in the filename.
-- New scaffold stages are sidecar-only. They must not replace existing published APA outputs until explicitly promoted.
+- New PAS sidecar stages must not replace existing published APA outputs until explicitly promoted.
 
 ## Subworkflow boundary
 
@@ -136,7 +136,7 @@ path("model_metrics.tsv")
 path("scored_apa_events.tsv")
 ```
 
-## Scaffold-only future modules
+## PAS sidecar modules
 
 ### `PAS_REFERENCE_BUILD`
 
@@ -155,6 +155,10 @@ path("pas_reference_build.log")
 Naming rule:
 the emitted file is always exactly `pas_reference.tsv`, independent of the
 source method.
+
+Parameter control:
+`params.pas_reference_merge_distance` controls evidence collapsing without
+changing the channel contract.
 
 ### `SIERRA_QUANT`
 

@@ -9,7 +9,7 @@
  *   is wired in as the real implementation.
  *
  * Usage (stub — fast, no real tools needed):
- *   nextflow run tests/modules/apa/test_pas_reference_build.nf -stub
+ *   nextflow run tests/modules/apa/test_pas_reference_build.nf -stub-run
  *
  * Usage (real — exercises the actual script):
  *   nextflow run tests/modules/apa/test_pas_reference_build.nf
@@ -28,10 +28,9 @@ params.publish_dir_mode = 'copy'
 // ── Test fixtures (reuse workflow test data) ─────────────────────────────────
 // launchDir = directory from which `nextflow run` was called (repo root).
 // projectDir = directory containing this script (tests/modules/apa/).
-// NOTE: use distinct files for each input to avoid Nextflow filename collision.
-def SITE_CATALOG   = file("${launchDir}/tests/data/known_polya.tsv",       checkIfExists: true)
-def TERMINAL_EXONS = file("${launchDir}/tests/data/priming_blacklist.bed",  checkIfExists: true)
-def KNOWN_POLYA    = file("${launchDir}/tests/data/cell_metadata.tsv",      checkIfExists: true)
+def SITE_CATALOG   = file("${launchDir}/tests/data/site_catalog.tsv",     checkIfExists: true)
+def TERMINAL_EXONS = file("${launchDir}/tests/data/terminal_exons.tsv",   checkIfExists: true)
+def KNOWN_POLYA    = file("${launchDir}/tests/data/known_polya.tsv",      checkIfExists: true)
 
 // ── Required header columns in pas_reference.tsv ────────────────────────────
 def REQUIRED_COLUMNS = [
@@ -43,13 +42,10 @@ def REQUIRED_COLUMNS = [
 def REQUIRED_MANIFEST_FIELDS = ['site_catalog', 'terminal_exons', 'known_polya']
 
 workflow {
-
-    ch_inputs = Channel.value([SITE_CATALOG, TERMINAL_EXONS, KNOWN_POLYA])
-
     PAS_REFERENCE_BUILD(
-        ch_inputs.map { s, t, k -> s },
-        ch_inputs.map { s, t, k -> t },
-        ch_inputs.map { s, t, k -> k }
+        Channel.value(SITE_CATALOG),
+        Channel.value(TERMINAL_EXONS),
+        Channel.value(KNOWN_POLYA)
     )
 
     // ── Assert pas_reference.tsv header ─────────────────────────────────────
@@ -58,11 +54,13 @@ workflow {
             assert f.exists()         : "pas_reference.tsv does not exist"
             assert f.size() > 0       : "pas_reference.tsv is empty"
 
-            def header = f.readLines().first().split('\t').collect { it.trim() }
+            def lines = f.readLines()
+            def header = lines.first().split('\t').collect { it.trim() }
             REQUIRED_COLUMNS.each { col ->
                 assert header.contains(col) :
                     "pas_reference.tsv missing column '${col}'. Found: ${header}"
             }
+            assert lines.size() >= 2 : "pas_reference.tsv must include at least one data row"
             log.info "[PASS] pas_reference.tsv — header OK: ${header}"
             f
         }

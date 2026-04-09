@@ -24,7 +24,7 @@ from leaking tuple-layout assumptions across the pipeline.
 
 ## Contract strategy
 
-Current working outputs remain the primary public surface. New modules
-(`PAS_REFERENCE_BUILD`, `SIERRA_QUANT`, `PAS_SCORING`) are scaffolded as
-sidecars with explicit I/O so they can mature independently without breaking
-existing consumers.
+Current working outputs remain the primary public surface. `PAS_REFERENCE_BUILD`
+now has a repo-native implementation on top of the frozen input contract, while
+`SIERRA_QUANT` and `PAS_SCORING` remain scaffolded sidecars with explicit I/O so
+they can mature independently without breaking existing consumers.

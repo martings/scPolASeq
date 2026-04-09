@@ -112,7 +112,7 @@ run_module_test() {
     log_file="$(mktemp)"
 
     if nextflow run "$nf_file" \
-        -stub \
+        -stub-run \
         -work-dir "$work_dir" \
         -ansi-log false \
         > "$log_file" 2>&1; then
