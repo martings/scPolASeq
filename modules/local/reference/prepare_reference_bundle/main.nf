@@ -44,8 +44,12 @@ process PREPARE_REFERENCE_BUNDLE {
             --genomeFastaFiles reference.genome.fa \\
             --sjdbGTFfile reference.annotation.gtf || true
     fi
-    touch star_index/SA
-    touch star_index/Genome
+    # Only create sentinel stubs if STAR did not produce the real index files.
+    # `touch` on an existing file only updates mtime, but an absent file (STAR
+    # unavailable or failed) would otherwise make the next process crash without
+    # a clear error.
+    [ -f star_index/SA ]     || touch star_index/SA
+    [ -f star_index/Genome ] || touch star_index/Genome
     """
 
     stub:

@@ -5,14 +5,15 @@
  * plug in as sidecar modules without changing main.nf or the legacy outputs
  * that downstream users already consume.
  */
-include { BARCODE_FILTERING      } from './local/barcode_filtering/main'
-include { GROUPED_RECONSTRUCTION } from './local/grouped_reconstruction/main'
-include { COVERAGE_GENERATION    } from './local/coverage_generation/main'
-include { APA_FEATURE_PIPELINE   } from './local/apa_feature_pipeline/main'
-include { MODEL_PIPELINE         } from './local/model_pipeline/main'
-include { PAS_REFERENCE_BUILD    } from '../modules/local/apa/pas_reference_build/main'
-include { SIERRA_QUANT           } from '../modules/local/apa/sierra_quant/main'
-include { PAS_SCORING            } from '../modules/local/apa/pas_scoring/main'
+include { BARCODE_FILTERING                  } from './local/barcode_filtering/main'
+include { GROUPED_RECONSTRUCTION             } from './local/grouped_reconstruction/main'
+include { COVERAGE_GENERATION                } from './local/coverage_generation/main'
+include { APA_FEATURE_PIPELINE               } from './local/apa_feature_pipeline/main'
+include { MODEL_PIPELINE                     } from './local/model_pipeline/main'
+include { CANDIDATE_SITES_ANNOTATION_GUIDED  } from '../modules/local/apa/candidate_sites_annotation_guided/main'
+include { PAS_REFERENCE_BUILD                } from '../modules/local/apa/pas_reference_build/main'
+include { SIERRA_QUANT                       } from '../modules/local/apa/sierra_quant/main'
+include { PAS_SCORING                        } from '../modules/local/apa/pas_scoring/main'
 
 workflow APA_CORE {
     take:
@@ -45,10 +46,17 @@ workflow APA_CORE {
         .first()
         .set { ch_terminal_exons }
 
-    reference_bundle
-        .map { ref_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist -> atlas }
-        .first()
-        .set { ch_site_catalog }
+    // Build a proper site catalog (site_id / start / end / gene_id schema) from
+    // terminal exons + the known polyA atlas.  The raw atlas file (PolyASite BED,
+    // PolyA_DB TSV, …) must NOT be passed directly as site_catalog because its
+    // column names differ from the normalized contract.
+    ch_terminal_exons
+        .combine(known_polya)
+        .set { ch_candidate_input }
+
+    CANDIDATE_SITES_ANNOTATION_GUIDED(ch_candidate_input)
+
+    def ch_site_catalog = CANDIDATE_SITES_ANNOTATION_GUIDED.out.site_catalog
 
     BARCODE_FILTERING(
         bam_bundle,
@@ -162,6 +170,7 @@ workflow APA_CORE {
     bedgraphs                   = COVERAGE_GENERATION.out.bedgraphs
     bigwigs                     = COVERAGE_GENERATION.out.bigwigs
     coverage_stats              = COVERAGE_GENERATION.out.coverage_stats
+    site_catalog                = ch_site_catalog
     feature_table               = APA_FEATURE_PIPELINE.out.feature_table
     apa_events                  = APA_FEATURE_PIPELINE.out.apa_events
     pdui_matrix                 = APA_FEATURE_PIPELINE.out.pdui_matrix

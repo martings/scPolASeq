@@ -136,11 +136,38 @@ def normalize_known_polya(path: Path):
     rows = load_tsv_rows(path)
     normalized = []
     for row in rows:
-        gene_id = (row.get("gene_id") or row.get("gene") or "unknown_gene").strip()
-        chrom = normalize_chrom(row.get("chrom") or row.get("chr"))
-        start = safe_int(row.get("start") or row.get("position") or row.get("end"))
-        end = safe_int(row.get("end") or row.get("position") or row.get("start"), start)
-        strand = (row.get("strand") or "+").strip() or "+"
+        # gene_id: canonical column first, then PolyA_DB 'Gene'/'Alias', then gene_name
+        gene_id = (
+            row.get("gene_id")
+            or row.get("Gene")
+            or row.get("gene")
+            or row.get("gene_name")
+            or "unknown_gene"
+        ).strip()
+        # chrom: BED uses 'chrom', PolyA_DB uses 'Chr'/'chr'
+        chrom = normalize_chrom(
+            row.get("chrom") or row.get("Chr") or row.get("chr")
+        )
+        # start/end: canonical names first, then PolyASite BED chromStart/chromEnd,
+        # then PolyA_DB single-base 'Position'/'position'
+        start = safe_int(
+            row.get("start")
+            or row.get("chromStart")
+            or row.get("Position")
+            or row.get("position")
+            or row.get("end")
+            or row.get("chromEnd")
+        )
+        end = safe_int(
+            row.get("end")
+            or row.get("chromEnd")
+            or row.get("Position")
+            or row.get("position")
+            or row.get("start")
+            or row.get("chromStart"),
+            start,
+        )
+        strand = (row.get("strand") or row.get("Strand") or "+").strip() or "+"
         anchor = anchor_for_interval(start, end, strand)
         normalized.append(
             {

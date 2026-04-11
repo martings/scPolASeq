@@ -50,11 +50,34 @@ def main() -> None:
         seen[key] = row
 
     for atlas in known_polya:
-        gene_id = atlas.get("gene_id", "unknown_gene")
-        chrom = atlas.get("chrom") or atlas.get("chr") or ""
-        start = int(atlas.get("start") or atlas.get("position") or atlas.get("end") or 0)
-        end = int(atlas.get("end") or atlas.get("position") or start)
-        strand = atlas.get("strand", "+")
+        # gene_id: support PolyASite (gene_id), PolyA_DB (Gene/Alias), gene_name fallback
+        gene_id = (
+            atlas.get("gene_id")
+            or atlas.get("Gene")
+            or atlas.get("gene")
+            or atlas.get("gene_name")
+            or "unknown_gene"
+        )
+        # chrom: BED 'chrom', PolyA_DB 'Chr'/'chr'
+        chrom = atlas.get("chrom") or atlas.get("Chr") or atlas.get("chr") or ""
+        # coordinates: canonical → PolyASite BED chromStart/chromEnd → PolyA_DB Position
+        start = int(
+            atlas.get("start")
+            or atlas.get("chromStart")
+            or atlas.get("Position")
+            or atlas.get("position")
+            or atlas.get("end")
+            or atlas.get("chromEnd")
+            or 0
+        )
+        end = int(
+            atlas.get("end")
+            or atlas.get("chromEnd")
+            or atlas.get("Position")
+            or atlas.get("position")
+            or start
+        )
+        strand = atlas.get("strand") or atlas.get("Strand") or "+"
         key = (gene_id, chrom, end if strand == "+" else start, strand)
         if key in seen:
             seen[key]["site_source"] = "annotation+atlas"
