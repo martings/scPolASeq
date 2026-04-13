@@ -20,8 +20,18 @@ def write_rows(rows, out_path: Path):
         writer.writerows(rows)
 
 
+def _pick_barcode_files(solo_dir: Path):
+    """Prefer STARsolo filtered/ barcodes over raw/ to avoid empty-droplet inflation."""
+    for subdir in ("filtered", "raw", ""):
+        pattern = f"{subdir}/barcodes.tsv" if subdir else "barcodes.tsv"
+        hits = list(solo_dir.rglob(pattern)) + list(solo_dir.rglob(pattern + ".gz"))
+        if hits:
+            return hits
+    return []
+
+
 def extract_from_solo(solo_dir: Path, sample_id: str, library_id: str):
-    candidates = list(solo_dir.rglob("barcodes.tsv")) + list(solo_dir.rglob("barcodes.tsv.gz"))
+    candidates = _pick_barcode_files(solo_dir)
     rows = []
     seen = set()
     for candidate in candidates:

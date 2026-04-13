@@ -24,6 +24,13 @@ process STARSOLO_ALIGN_SC {
     def whitelistArg = whitelist.name == 'NO_FILE' ? '--soloCBwhitelist None' : "--soloCBwhitelist ${whitelist}"
     def warning = protocol_mode == '10x_5p' ? "echo 'WARNING: guarded 10x 5p support is enabled; APA outputs are descriptive-first.' >&2" : ''
     def readFilesCmd = reads[0].name.endsWith('.gz') ? '--readFilesCommand zcat' : ''
+    // STARsolo single-cell params derived from protocol_mode.
+    // ext.args is not reliably propagated in Nextflow 25.x when multiple withName
+    // selectors exist across config files, so critical params are hardcoded here.
+    def umiLen       = protocol_mode == '10x_5p' ? 10 : 12
+    def soloTypeArgs = protocol_mode.startsWith('10x') ?
+        "--soloType CB_UMI_Simple --soloCBstart 1 --soloCBlen 16 --soloUMIstart 17 --soloUMIlen ${umiLen} --soloCellFilter CellRanger2.2" :
+        "--soloType CB_UMI_Simple"
     """
     ${warning}
     _star_ok=0
@@ -34,6 +41,9 @@ process STARSOLO_ALIGN_SC {
             --readFilesIn ${reads[1]} ${reads[0]} \\
             ${readFilesCmd} \\
             --runThreadN ${task.cpus} \\
+            --outSAMtype BAM SortedByCoordinate \\
+            --outSAMattributes NH HI nM AS CR UR CB UB GX GN sS sQ sM \\
+            ${soloTypeArgs} \\
             --outFileNamePrefix ${meta.library_id}. \\
             ${whitelistArg} \\
             ${task.ext.args ?: ''} && _star_ok=1

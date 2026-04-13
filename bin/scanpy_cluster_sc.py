@@ -27,8 +27,18 @@ def load_metadata(path: Path, sample_id: str):
         return [row for row in reader if (row.get("sample_id") or "") == sample_id]
 
 
+def _pick_barcode_files(matrix_dir: Path):
+    """Prefer STARsolo filtered/ barcodes over raw/ to avoid empty-droplet inflation."""
+    for subdir in ("filtered", "raw", ""):
+        pattern = f"{subdir}/barcodes.tsv" if subdir else "barcodes.tsv"
+        hits = list(matrix_dir.rglob(pattern)) + list(matrix_dir.rglob(pattern + ".gz"))
+        if hits:
+            return hits
+    return []
+
+
 def find_barcodes(matrix_dir: Path):
-    candidates = list(matrix_dir.rglob("barcodes.tsv")) + list(matrix_dir.rglob("barcodes.tsv.gz"))
+    candidates = _pick_barcode_files(matrix_dir)
     barcodes = []
     for candidate in candidates:
         if candidate.suffix == ".gz":
