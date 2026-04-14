@@ -44,11 +44,21 @@ workflow SCPOLASEQ {
     )
 
     // ── Stage 2 — Expression quantification + cell labeling ───────────────────
+    def ch_celltypist_model = params.celltypist_model
+        ? Channel.value(file(params.celltypist_model, checkIfExists: true))
+        : Channel.value(file("${projectDir}/assets/NO_FILE"))
+    def ch_cell_type_ref_h5ad = params.cell_type_ref_h5ad
+        ? Channel.value(file(params.cell_type_ref_h5ad, checkIfExists: true))
+        : Channel.value(file("${projectDir}/assets/NO_FILE"))
+
     CELL_LABELING_SC(
         ALIGN_OR_IMPORT_SC.out.matrix_bundle,
         INPUT_HARMONIZATION.out.cell_metadata,
         params.enable_internal_clustering,
-        params.grouping_levels
+        params.grouping_levels,
+        ch_celltypist_model,
+        ch_cell_type_ref_h5ad,
+        params.cell_type_ref_label_col ?: 'cell_type'
     )
 
     // ── Stages 3–9 — APA core orchestration ───────────────────────────────────

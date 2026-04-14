@@ -60,7 +60,7 @@ run_scenario() {
     local params_file="$2"
     local expected_procs="$3"
     local stub_flag="${4:--stub-run}"    # -stub-run or ""
-    local work_dir="$REPO_DIR/.nf_test_work/${name}_$(date +%s)"
+    local work_dir="/scratch/.nf_work/test/${name}_$(date +%s)"
 
     local mode_label="stub"
     [[ "$stub_flag" == "" ]] && mode_label="real"
@@ -104,7 +104,7 @@ run_scenario() {
 run_module_test() {
     local name="$1"
     local nf_file="$2"
-    local work_dir="$REPO_DIR/.nf_test_work/module_${name}_$(date +%s)"
+    local work_dir="/scratch/.nf_work/test/module_${name}_$(date +%s)"
 
     info "Running module test '${name}' (stub)..."
 

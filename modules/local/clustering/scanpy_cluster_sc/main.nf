@@ -10,7 +10,7 @@ process SCANPY_CLUSTER_SC {
     publishDir "${params.outdir}/labels", mode: params.publish_dir_mode, pattern: "*.clustered.h5ad"
 
     input:
-    tuple val(meta), path(matrix_dir), path(cell_metadata), val(enable_internal_clustering)
+    tuple val(meta), path(matrix_dir), path(cell_metadata), val(enable_internal_clustering), path(celltypist_model, stageAs: 'celltypist_model_input'), path(reference_h5ad, stageAs: 'reference_h5ad_input'), val(reference_label_col)
 
     output:
     tuple val(meta), path("${meta.library_id}.cell_annotations.tsv"), emit: cell_annotations
@@ -18,13 +18,20 @@ process SCANPY_CLUSTER_SC {
     tuple val(meta), path("${meta.library_id}.clustered.h5ad"), emit: h5ad
 
     script:
+    def ct_model_arg = (celltypist_model  && celltypist_model.name  != 'NO_FILE') ? "--celltypist-model celltypist_model_input"   : ''
+    def ref_h5ad_arg = (reference_h5ad    && reference_h5ad.name    != 'NO_FILE') ? "--reference-h5ad reference_h5ad_input"       : ''
+    def ref_col_arg  = reference_label_col ? "--reference-label-col ${reference_label_col}" : ''
     """
+    export NUMBA_CACHE_DIR=/tmp
     python ${projectDir}/bin/scanpy_cluster_sc.py \\
         --matrix-dir ${matrix_dir} \\
         --cell-metadata ${cell_metadata} \\
         --sample-id ${meta.sample_id} \\
         --library-id ${meta.library_id} \\
         --enable-internal-clustering ${enable_internal_clustering} \\
+        ${ct_model_arg} \\
+        ${ref_h5ad_arg} \\
+        ${ref_col_arg} \\
         --out-annotations ${meta.library_id}.cell_annotations.tsv \\
         --out-report ${meta.library_id}.cluster_report.tsv \\
         --out-h5ad ${meta.library_id}.clustered.h5ad

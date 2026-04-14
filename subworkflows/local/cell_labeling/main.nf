@@ -8,12 +8,18 @@ workflow CELL_LABELING_SC {
     cell_metadata
     enable_internal_clustering
     grouping_levels
+    celltypist_model
+    cell_type_ref_h5ad
+    cell_type_ref_label_col
 
     main:
     matrix_bundle
         .combine(cell_metadata)
-        .map { meta, matrix_dir, metadata_file ->
-            tuple(meta, matrix_dir, metadata_file, enable_internal_clustering)
+        .combine(celltypist_model)
+        .combine(cell_type_ref_h5ad)
+        .map { meta, matrix_dir, metadata_file, ct_model, ref_h5ad ->
+            tuple(meta, matrix_dir, metadata_file, enable_internal_clustering,
+                  ct_model, ref_h5ad, cell_type_ref_label_col)
         }
         .set { ch_cluster_input }
 

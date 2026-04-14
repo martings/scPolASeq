@@ -60,8 +60,10 @@ def main():
     bc_to_meta = {}
     for _, row in anno.iterrows():
         bc = str(row[bc_col]).strip()
+        # Accept both 'cluster_id' (canonical output) and legacy 'cluster'
+        cluster_val = row.get("cluster_id") or row.get("cluster", "NA")
         bc_to_meta[bc] = {
-            "cluster":   str(row.get("cluster",   "NA")),
+            "cluster":   str(cluster_val) if cluster_val and str(cluster_val) != "nan" else "NA",
             "cell_type": str(row.get("cell_type", "NA")),
             "condition": str(row.get("condition", "NA")),
         }
