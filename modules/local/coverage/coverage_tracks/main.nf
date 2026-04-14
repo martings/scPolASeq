@@ -4,8 +4,8 @@ process COVERAGE_TRACKS {
     tag "${group_id}:${group_level}"
     label 'process_medium'
 
-    conda "${projectDir}/envs/alignment.yml"
-    container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-alignment.sif" : null
+    conda "${projectDir}/envs/python.yml"
+    container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-python.sif" : null
     publishDir "${params.outdir}/coverage/${group_level}", mode: params.publish_dir_mode, pattern: "*.bedGraph"
     publishDir "${params.outdir}/coverage/${group_level}", mode: params.publish_dir_mode, pattern: "*.bw"
 
@@ -20,17 +20,15 @@ process COVERAGE_TRACKS {
 
     script:
     """
-    # Strand-aware coverage using bedtools
-    if command -v bedtools >/dev/null 2>&1 && [ -s ${bam} ]; then
-        bedtools genomecov -ibam ${bam} -bga -strand + -split \\
-            | sort -k1,1 -k2,2n > ${group_id}.fwd.bedGraph || touch ${group_id}.fwd.bedGraph
-        bedtools genomecov -ibam ${bam} -bga -strand - -split \\
-            | sort -k1,1 -k2,2n > ${group_id}.rev.bedGraph || touch ${group_id}.rev.bedGraph
+    # Strand-aware coverage using pysam (bam_to_bedgraph.py)
+    if [ -s ${bam} ]; then
+        python ${projectDir}/bin/bam_to_bedgraph.py ${bam} --strand + --output ${group_id}.fwd.bedGraph
+        python ${projectDir}/bin/bam_to_bedgraph.py ${bam} --strand - --output ${group_id}.rev.bedGraph
     else
         touch ${group_id}.fwd.bedGraph ${group_id}.rev.bedGraph
     fi
 
-    # Convert to bigWig if tool available and chrom_sizes is real
+    # bigWig conversion (optional — requires bedGraphToBigWig on PATH)
     if command -v bedGraphToBigWig >/dev/null 2>&1 && [ -s ${group_id}.fwd.bedGraph ] && [ -s ${chrom_sizes} ]; then
         bedGraphToBigWig ${group_id}.fwd.bedGraph ${chrom_sizes} ${group_id}.fwd.bw || touch ${group_id}.fwd.bw
         bedGraphToBigWig ${group_id}.rev.bedGraph ${chrom_sizes} ${group_id}.rev.bw || touch ${group_id}.rev.bw
