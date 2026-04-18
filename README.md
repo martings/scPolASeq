@@ -1,5 +1,6 @@
 # scPolASeq
 
+
 `scPolASeq` is a modular Nextflow DSL2 scaffold for single-cell APA discovery and quantification with barcode-aware read reconstruction, grouped 3' coverage, and feedback re-analysis after clustering or cell-type labeling.
 
 ## Design goals
