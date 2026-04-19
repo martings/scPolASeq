@@ -30,7 +30,9 @@
 
 ## sierra_quant.tsv
 
-`library_id,group_level,group_id,pas_reference,quant_source`
+Long-format per-cell peak count matrix produced by Sierra::CountPeaks.
+
+`library_id,group_level,group_id,site_id,cell_barcode,umi_count`
 
 ## pas_scored_events.tsv
 
