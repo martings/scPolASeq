@@ -3,7 +3,7 @@ From: mambaorg/micromamba:1.5.10-jammy
 
 %labels
     maintainer  scPolASeq
-    description "R env: r-base 4.3, r-data.table, r-jsonlite, r-optparse"
+    description "R env: r-base 4.3, Sierra (VCCRI/Sierra), Bioconductor deps"
     env_source  envs/r.yml
 
 %post
@@ -12,8 +12,67 @@ From: mambaorg/micromamba:1.5.10-jammy
         r-base=4.3 \
         r-data.table=1.15.4 \
         r-jsonlite=1.8.8 \
-        r-optparse=1.7.5 && \
-    micromamba clean --all -y
+        r-optparse=1.7.5 \
+        r-remotes \
+        r-matrix \
+        r-reshape2 \
+        r-plyr \
+        r-dplyr \
+        r-foreach \
+        r-doparallel \
+        r-mlmetrics \
+        r-progress \
+        r-ggplot2 \
+        r-cowplot \
+        r-flock \
+        r-magrittr \
+        r-r.utils \
+        r-scales \
+        r-rcpp \
+        r-rlang \
+        r-cli \
+        r-glue \
+        r-lifecycle \
+        r-vctrs \
+        r-tibble \
+        r-tidyr \
+        r-tidyselect \
+        r-purrr \
+        r-stringr \
+        r-stringi \
+        r-curl \
+        r-httr \
+        r-xml \
+        r-xml2 \
+        r-yaml \
+        r-knitr \
+        r-htmltools \
+        r-htmlwidgets \
+        r-png \
+        r-jpeg \
+        r-mass \
+        r-locfit \
+        r-rcpparmadillo \
+        bioconductor-rsamtools \
+        bioconductor-genomicranges \
+        bioconductor-genomicalignments \
+        bioconductor-biocparallel \
+        bioconductor-s4vectors \
+        bioconductor-gviz \
+        bioconductor-biocstyle \
+        bioconductor-singlecellexperiment \
+        bioconductor-dexseq \
+        bioconductor-bsgenome \
+        bioconductor-genomicfeatures \
+        bioconductor-genefilter \
+        bioconductor-rtracklayer \
+        bioconductor-annotationdbi \
+        bioconductor-biomart \
+        bioconductor-deseq2 \
+        bioconductor-biocfilecache && \
+    micromamba clean --all -y && \
+    /opt/conda/bin/Rscript -e "remotes::install_github('VCCRI/Sierra', dependencies = FALSE, upgrade = 'never')" && \
+    /opt/conda/bin/Rscript -e "library(Sierra); cat('Sierra OK\n')"
 
 %environment
     export PATH=/opt/conda/bin:$PATH

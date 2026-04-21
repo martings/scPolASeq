@@ -46,6 +46,11 @@ workflow APA_CORE {
         .first()
         .set { ch_terminal_exons }
 
+    reference_bundle
+        .map { ref_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist -> gtf }
+        .first()
+        .set { ch_gtf }
+
     // Build a proper site catalog (site_id / start / end / gene_id schema) from
     // terminal exons + the known polyA atlas.  The raw atlas file (PolyASite BED,
     // PolyA_DB TSV, …) must NOT be passed directly as site_catalog because its
@@ -122,12 +127,13 @@ workflow APA_CORE {
             }
             .combine(ch_pas_reference)
             .combine(cell_annotations)
-            .map { meta, group_level, group_id, bam, bai, pas_reference, annotations ->
-                tuple(meta, group_level, group_id, bam, bai, pas_reference, annotations)
+            .combine(ch_gtf)
+            .map { meta, group_level, group_id, bam, bai, pas_reference, annotations, gtf ->
+                tuple(meta, group_level, group_id, bam, bai, pas_reference, annotations, gtf)
             }
             .set { ch_sierra_input }
 
-        SIERRA_QUANT(ch_sierra_input)
+        SIERRA_QUANT(ch_sierra_input, file("${projectDir}/bin/sierra_quant.R"))
         ch_sierra_quant = SIERRA_QUANT.out.quantified_pas
         ch_sierra_manifest = SIERRA_QUANT.out.manifest
     } else {

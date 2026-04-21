@@ -14,6 +14,7 @@ process APA_FEATURE_EXTRACTION {
     path bedgraphs, stageAs: '?/*'  // collected: all *.bedGraph files, staged in unique subdirs
     path cell_annotations
     path known_polya
+    path extraction_script
 
     output:
     path "apa_features.tsv",       emit: feature_table
@@ -21,7 +22,7 @@ process APA_FEATURE_EXTRACTION {
 
     script:
     """
-    python ${projectDir}/bin/apa_feature_extraction.py \\
+    python ${extraction_script} \\
         --site-catalog     ${site_catalog}     \\
         --bedgraph-dir     .                   \\
         --bedgraph-glob    '**/*.bedGraph'      \\

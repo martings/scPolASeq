@@ -23,7 +23,8 @@ workflow APA_FEATURE_PIPELINE {
         site_catalog,
         ch_all_bedgraphs,
         cell_annotations,
-        known_polya
+        known_polya,
+        file("${projectDir}/bin/apa_feature_extraction.py")
     )
 
     APA_CALLING(

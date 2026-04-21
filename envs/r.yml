@@ -7,3 +7,10 @@ dependencies:
   - r-data.table=1.15.4
   - r-jsonlite=1.8.8
   - r-optparse=1.7.5
+  - r-remotes
+  - r-matrix
+  - bioconductor-rsamtools
+  - bioconductor-genomicranges
+  - bioconductor-genomicalignments
+  - bioconductor-biocparallel
+  - bioconductor-s4vectors

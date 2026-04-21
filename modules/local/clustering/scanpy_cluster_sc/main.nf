@@ -22,7 +22,8 @@ process SCANPY_CLUSTER_SC {
     def ref_h5ad_arg = (reference_h5ad    && reference_h5ad.name    != 'NO_FILE') ? "--reference-h5ad reference_h5ad_input"       : ''
     def ref_col_arg  = reference_label_col ? "--reference-label-col ${reference_label_col}" : ''
     """
-    export NUMBA_CACHE_DIR=/tmp
+    mkdir -p \$PWD/.numba_cache
+    export NUMBA_CACHE_DIR=\$PWD/.numba_cache
     python ${projectDir}/bin/scanpy_cluster_sc.py \\
         --matrix-dir ${matrix_dir} \\
         --cell-metadata ${cell_metadata} \\
