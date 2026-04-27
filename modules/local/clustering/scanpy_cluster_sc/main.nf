@@ -24,7 +24,7 @@ process SCANPY_CLUSTER_SC {
     """
     mkdir -p \$PWD/.numba_cache
     export NUMBA_CACHE_DIR=\$PWD/.numba_cache
-    python ${projectDir}/bin/scanpy_cluster_sc.py \\
+    python3 ${projectDir}/bin/scanpy_cluster_sc.py \\
         --matrix-dir ${matrix_dir} \\
         --cell-metadata ${cell_metadata} \\
         --sample-id ${meta.sample_id} \\

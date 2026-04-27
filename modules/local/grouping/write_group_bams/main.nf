@@ -16,7 +16,7 @@ process WRITE_GROUP_BAMS {
 
     script:
     """
-    python ${projectDir}/bin/write_group_bams.py \\
+    python3 ${projectDir}/bin/write_group_bams.py \\
         --group-map ${group_map} \\
         --sample-id ${meta.sample_id} \\
         --out-dir ${meta.library_id}.group_bams \\

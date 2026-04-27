@@ -23,7 +23,7 @@ process APA_CALLING {
 
     script:
     """
-    python ${projectDir}/bin/apa_calling.py \\
+    python3 ${projectDir}/bin/apa_calling.py \\
         --features         ${feature_table}    \\
         --site-catalog     ${site_catalog}     \\
         --cell-annotations ${cell_annotations} \\

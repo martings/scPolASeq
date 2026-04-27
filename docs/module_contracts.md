@@ -8,7 +8,7 @@ keep orchestration stable even as biological logic evolves.
 - `meta` is a Nextflow map with stable keys:
   `sample_id`, `library_id`, `protocol`, `chemistry`, `condition`, `replicate_id`
 - `reference_bundle` is a tuple with fixed positional layout:
-  `tuple val(ref_meta), path(star_index), path(gtf), path(fasta), path(chrom_sizes), path(terminal_exons), path(site_catalog), path(priming_blacklist)`
+  `tuple val(ref_meta), path(star_index), path(gtf), path(fasta), path(fasta_fai), path(chrom_sizes), path(terminal_exons), path(site_catalog), path(priming_blacklist)`
 - Group-resolved files always carry both `group_level` and `group_id` in the channel contract, even if only one appears in the filename.
 - New PAS sidecar stages must not replace existing published APA outputs until explicitly promoted.
 
@@ -24,7 +24,7 @@ surface.
 Input contract:
 
 ```nextflow
-reference_bundle                   // tuple(ref_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist)
+reference_bundle                   // tuple(ref_meta, star_index, gtf, fasta, fasta_fai, chrom_sizes, terminal_exons, atlas, blacklist)
 bam_bundle                         // tuple val(meta), path(bam), path(bai)
 cell_annotations                   // path("cell_annotations.tsv")
 group_map                          // path("group_map.tsv")

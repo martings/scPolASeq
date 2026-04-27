@@ -19,7 +19,7 @@ process BUILD_GROUP_MAP {
     script:
     def annotationArgs = annotation_files.collect { it.toString() }.join(' ')
     """
-    python ${projectDir}/bin/build_group_map.py \\
+    python3 ${projectDir}/bin/build_group_map.py \\
         --annotation-files ${annotationArgs} \\
         --grouping-levels "${grouping_levels}" \\
         --out-cell-annotations cell_annotations.tsv \\

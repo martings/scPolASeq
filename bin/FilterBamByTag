@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+"""
+Drop-seq FilterBamByTag replacement using pysam.
+Filters a BAM keeping only reads whose tag value is in a whitelist file.
+
+Accepts Picard-style KEY=VALUE arguments:
+  I=input.bam  O=output.bam  TAG=CB  TAG_VALUES_FILE=barcodes.txt  [SUMMARY=out.txt]
+"""
+import sys
+import pysam
+
+
+def main():
+    args = {}
+    for tok in sys.argv[1:]:
+        if "=" in tok:
+            k, v = tok.split("=", 1)
+            args[k.upper()] = v
+
+    input_bam     = args.get("I")
+    output_bam    = args.get("O")
+    tag           = args.get("TAG", "CB")
+    values_file   = args.get("TAG_VALUES_FILE")
+    summary_file  = args.get("SUMMARY")
+
+    if not all([input_bam, output_bam, values_file]):
+        print("ERROR: I=, O=, and TAG_VALUES_FILE= are required", file=sys.stderr)
+        sys.exit(1)
+
+    with open(values_file) as fh:
+        allowed = set(line.strip() for line in fh if line.strip())
+
+    kept = 0
+    total = 0
+    with pysam.AlignmentFile(input_bam, "rb") as inbam, \
+         pysam.AlignmentFile(output_bam, "wb", header=inbam.header) as outbam:
+        for read in inbam:
+            total += 1
+            try:
+                val = read.get_tag(tag)
+            except KeyError:
+                continue
+            if str(val) in allowed:
+                outbam.write(read)
+                kept += 1
+
+    if summary_file:
+        with open(summary_file, "w") as fh:
+            fh.write(f"INPUT_READS\t{total}\n")
+            fh.write(f"OUTPUT_READS\t{kept}\n")
+            fh.write(f"TAG\t{tag}\n")
+            fh.write(f"TAG_VALUES_COUNT\t{len(allowed)}\n")
+
+    print(f"FilterBamByTag: kept {kept}/{total} reads with {tag} in whitelist",
+          file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()

@@ -23,7 +23,7 @@ process RENDER_APA_REPORT {
     def trackArgs = track_paths.collect { it.toString() }.join(' ')
     def qcArgs = qc_paths.collect { it.toString() }.join(' ')
     """
-    python ${projectDir}/bin/render_apa_report.py \\
+    python3 ${projectDir}/bin/render_apa_report.py \\
         --site-catalog ${site_catalog} \\
         --apa-usage ${apa_usage} \\
         --apa-stats ${apa_stats} \\

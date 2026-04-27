@@ -17,7 +17,7 @@ process GROUPED_3PRIME_COVERAGE {
 
     script:
     """
-    python ${projectDir}/bin/grouped_3prime_coverage.py \\
+    python3 ${projectDir}/bin/grouped_3prime_coverage.py \\
         --bam ${bam} \\
         --barcode-registry ${barcode_registry} \\
         --group-map ${group_map} \\

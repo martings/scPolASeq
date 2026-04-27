@@ -19,6 +19,19 @@ workflow SCPOLASEQ {
     if (!params.genome_fasta) error "Missing required parameter: --genome_fasta"
     if (!params.gtf)          error "Missing required parameter: --gtf"
 
+    // ── Container preflight (SCAPTURE) ────────────────────────────────────────
+    // Containers are a deployment concern, not a runtime concern: build them
+    // once with `bash containers/build.sh --env scapture --cache-dir <dir>`
+    // so apptainer logs stream to the terminal directly.
+    if (params.enable_scapture.toString().toBoolean() && params.apptainer_cache_dir) {
+        def sif = file("${params.apptainer_cache_dir}/scpolaseq-scapture.sif")
+        if (!sif.exists()) {
+            error "SCAPTURE is enabled but ${sif} was not found. Build it first with:\n" +
+                  "    bash ${projectDir}/containers/build.sh --env scapture --cache-dir ${params.apptainer_cache_dir}\n" +
+                  "or disable with --enable_scapture false"
+        }
+    }
+
     // ── Stage 0 — Input harmonization + Reference preparation ─────────────────
     INPUT_HARMONIZATION(
         file(params.input, checkIfExists: true),
@@ -93,4 +106,22 @@ workflow SCPOLASEQ {
 
 workflow {
     SCPOLASEQ()
+}
+
+workflow.onComplete {
+    def status = workflow.success ? 'OK' : 'FAILED'
+    log.info """
+    ========================================
+     scPolASeq pipeline complete
+    ========================================
+     Status   : ${status}
+     Duration : ${workflow.duration}
+     Results  : ${params.outdir}
+     Work dir : ${workflow.workDir}
+    ========================================
+    """.stripIndent()
+}
+
+workflow.onError {
+    log.error "Pipeline failed — see error above. Work dir: ${workflow.workDir}"
 }

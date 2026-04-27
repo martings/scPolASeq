@@ -112,6 +112,13 @@ def _filter_with_pysam(args, valid_barcodes, bc_to_meta, log):
 
     log.info(f"Total reads: {total}, with valid CB: {valid_cb}, written: {filtered}")
 
+    log.info("Sorting and indexing filtered BAM")
+    sorted_bam = args.out_bam + ".sorted_tmp.bam"
+    pysam.sort("-o", sorted_bam, args.out_bam)
+    import os, shutil
+    shutil.move(sorted_bam, args.out_bam)
+    pysam.index(args.out_bam)
+
     pd.DataFrame([
         {"metric": "total_reads",    "value": total},
         {"metric": "valid_cb_reads", "value": valid_cb},

@@ -22,7 +22,7 @@ process APA_FEATURE_EXTRACTION {
 
     script:
     """
-    python ${extraction_script} \\
+    python3 ${extraction_script} \\
         --site-catalog     ${site_catalog}     \\
         --bedgraph-dir     .                   \\
         --bedgraph-glob    '**/*.bedGraph'      \\

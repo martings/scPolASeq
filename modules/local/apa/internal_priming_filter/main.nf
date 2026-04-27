@@ -17,7 +17,7 @@ process INTERNAL_PRIMING_FILTER {
 
     script:
     """
-    python ${projectDir}/bin/internal_priming_filter.py \\
+    python3 ${projectDir}/bin/internal_priming_filter.py \\
         --site-catalog ${site_catalog} \\
         --genome-fasta ${genome_fasta} \\
         --priming-blacklist ${priming_blacklist} \\
