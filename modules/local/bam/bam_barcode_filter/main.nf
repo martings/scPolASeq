@@ -19,18 +19,11 @@ process BAM_BARCODE_FILTER {
 
     script:
     """
-    python ${projectDir}/bin/filter_bam_by_barcodes.py \\
+    python3 ${projectDir}/bin/filter_bam_by_barcodes.py \\
         --bam            ${bam} \\
         --annotations    ${cell_annotations} \\
         --out-bam        ${meta.library_id}.filtered.bam \\
         --out-stats      ${meta.library_id}.barcode_filter_stats.tsv
-
-    if command -v samtools >/dev/null 2>&1; then
-        samtools index ${meta.library_id}.filtered.bam \\
-            || touch ${meta.library_id}.filtered.bam.bai
-    else
-        touch ${meta.library_id}.filtered.bam.bai
-    fi
     """
 
     stub:

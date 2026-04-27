@@ -16,7 +16,7 @@ process BUILD_TERMINAL_EXON_CATALOG {
 
     script:
     """
-    python ${projectDir}/bin/build_terminal_exons.py \\
+    python3 ${projectDir}/bin/build_terminal_exons.py \\
         --gtf ${gtf} \\
         --out-tsv terminal_exons.tsv \\
         --out-bed terminal_exons.bed

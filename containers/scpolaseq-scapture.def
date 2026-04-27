@@ -1,0 +1,85 @@
+Bootstrap: docker
+From: mambaorg/micromamba:1.5.10-jammy
+
+%labels
+    maintainer  scPolASeq
+    description "SCAPTURE de novo PAS detection (YangLab/SCAPTURE + TF 2.4 / DeepPASS)"
+    source      https://github.com/YangLab/SCAPTURE
+
+%post
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -qq && apt-get install -y --no-install-recommends git \
+        && rm -rf /var/lib/apt/lists/*
+
+    # All bioinformatics deps from conda-forge / bioconda.
+    # Version specs MUST be quoted — unquoted `>=` is shell redirection.
+    # TensorFlow 2.4 requires numpy<1.20. Keep pandas/h5py pinned to builds
+    # from the same ABI generation so importing TensorFlow does not trip over
+    # binary-extension mismatches before DeepPASS can use the GPU.
+    micromamba install -y -n base \
+        -c conda-forge -c bioconda \
+        'python=3.8' \
+        'numpy=1.19.5' \
+        'pandas=1.1.5' \
+        'bedtools>=2.26' \
+        'samtools>=1.9' \
+        'homer>=4.11' \
+        'umi_tools>=1.1' \
+        'r-base>=4.0' \
+        r-nortest \
+        r-diptest \
+        r-matrix \
+        subread \
+        stringtie \
+        parallel \
+        pysam \
+        scipy \
+        scikit-learn \
+        'h5py=2.10.0' \
+        ucsc-gtftogenepred \
+        ucsc-genepredtobed \
+        ucsc-bedtogenepred \
+        ucsc-genepredtogtf \
+        ucsc-bedsort \
+        'cudatoolkit=11.0' \
+        'cudnn>=8.0,<9' && \
+    micromamba clean --all -y
+
+    # TensorFlow GPU — 2.4 is the last version supporting numpy<1.20 / py3.8.
+    # cudatoolkit=11.0 provides the runtime; Apptainer --nv injects the driver.
+    # Install after conda so pip doesn't downgrade numpy.
+    /opt/conda/bin/pip install --no-cache-dir "tensorflow==2.4.1"
+
+    # Install SCAPTURE from GitHub (collection of shell+python scripts)
+    git clone --depth 1 https://github.com/YangLab/SCAPTURE.git /opt/scapture
+    chmod +x \
+        /opt/scapture/scapture \
+        /opt/scapture/scapture_annotation \
+        /opt/scapture/scapture_callpeak \
+        /opt/scapture/scapture_evaluate \
+        /opt/scapture/scapture_mergesample \
+        /opt/scapture/scapture_quant
+    find /opt/scapture/scripts -maxdepth 2 \( -name "*.py" -o -name "*.sh" \) \
+        2>/dev/null | xargs -r chmod +x
+
+    # Fix DeepPASS Predict.py for TF 2.4 + pandas 1.1.5 incompatibility:
+    # tf.convert_to_tensor cannot convert a pandas object-dtype Series of numpy
+    # arrays directly.  Stack into a contiguous numpy array first.
+    python3 - << 'PYEOF'
+with open('/opt/scapture/DeepPASS/Predict.py', 'r') as f:
+    code = f.read()
+old = '    seq = tf.convert_to_tensor(data["seq"].apply(lambda x:np.array([ NT_dict[i] for i in x],dtype=np.float32)))'
+new = ('    seq_list = [np.array([NT_dict.get(i, np.array([0,0,0,0])) for i in x], dtype=np.float32)\n'
+       '                for x in data["seq"]]\n'
+       '    seq = tf.convert_to_tensor(np.array(seq_list, dtype=np.float32))')
+assert old in code, "Predict.py patch anchor not found -- upstream may have changed"
+with open('/opt/scapture/DeepPASS/Predict.py', 'w') as f:
+    f.write(code.replace(old, new))
+print('DeepPASS Predict.py patched OK')
+PYEOF
+
+%environment
+    export PATH=/opt/scapture:/opt/conda/bin:$PATH
+    export MAMBA_NO_BANNER=1
+    export LC_ALL=C.UTF-8
+    export LANG=C.UTF-8

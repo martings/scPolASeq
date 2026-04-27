@@ -14,10 +14,12 @@ include { CANDIDATE_SITES_ANNOTATION_GUIDED  } from '../modules/local/apa/candid
 include { PAS_REFERENCE_BUILD                } from '../modules/local/apa/pas_reference_build/main'
 include { SIERRA_QUANT                       } from '../modules/local/apa/sierra_quant/main'
 include { PAS_SCORING                        } from '../modules/local/apa/pas_scoring/main'
+include { SCAPTURE_FILTER                    } from '../modules/local/apa/scapture/main'
+include { BAM_MERGE_SAMPLE                   } from '../modules/local/bam/merge_sample_bams/main'
 
 workflow APA_CORE {
     take:
-    reference_bundle                   // tuple(ref_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist)
+    reference_bundle                   // tuple(ref_meta, star_index, gtf, fasta, fasta_fai, chrom_sizes, terminal_exons, atlas, blacklist)
     bam_bundle                         // tuple(meta, bam, bai)
     cell_annotations                   // path: unified cell annotations TSV
     group_map                          // path: barcode-to-group map TSV
@@ -33,21 +35,32 @@ workflow APA_CORE {
     def do_pas_reference_build = params.enable_pas_reference_build.toString().toBoolean()
     def do_sierra_quant = params.enable_sierra_quant.toString().toBoolean()
     def do_pas_scoring = params.enable_pas_scoring.toString().toBoolean()
+    def do_scapture = params.enable_scapture.toString().toBoolean()
 
     // Freeze the reference tuple layout here so downstream modules never index
     // into the bundle ad hoc.
     reference_bundle
-        .map { ref_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist -> chrom_sizes }
+        .map { ref_meta, star_index, gtf, fasta, fasta_fai, chrom_sizes, terminal_exons, atlas, blacklist -> chrom_sizes }
         .first()
         .set { ch_chrom_sizes }
 
     reference_bundle
-        .map { ref_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist -> terminal_exons }
+        .map { ref_meta, star_index, gtf, fasta, fasta_fai, chrom_sizes, terminal_exons, atlas, blacklist -> fasta }
+        .first()
+        .set { ch_fasta }
+
+    reference_bundle
+        .map { ref_meta, star_index, gtf, fasta, fasta_fai, chrom_sizes, terminal_exons, atlas, blacklist -> fasta_fai }
+        .first()
+        .set { ch_fasta_fai }
+
+    reference_bundle
+        .map { ref_meta, star_index, gtf, fasta, fasta_fai, chrom_sizes, terminal_exons, atlas, blacklist -> terminal_exons }
         .first()
         .set { ch_terminal_exons }
 
     reference_bundle
-        .map { ref_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist -> gtf }
+        .map { ref_meta, star_index, gtf, fasta, fasta_fai, chrom_sizes, terminal_exons, atlas, blacklist -> gtf }
         .first()
         .set { ch_gtf }
 
@@ -158,6 +171,60 @@ workflow APA_CORE {
         ch_pas_scoring_manifest = Channel.empty()
     }
 
+    def ch_scapture_catalog
+    def ch_scapture_quant
+    def ch_scapture_manifest
+    if (do_scapture) {
+        // Resolve SCAPTURE-specific polyA DB — separate from the general known_polya atlas.
+        def ch_scapture_polya_db = params.scapture_polya_db
+            ? Channel.value(file(params.scapture_polya_db))
+            : Channel.value(file("${projectDir}/assets/NO_FILE"))
+
+        def ch_scapture_resume_pascall_dir = params.scapture_resume_pascall_dir
+            ? Channel.value(file(params.scapture_resume_pascall_dir, checkIfExists: true))
+            : Channel.value(file("${projectDir}/assets/NO_FILE"))
+
+        // Group per-library filtered BAMs by sample_id and merge into one BAM per sample.
+        // This avoids running SCAPTURE N times for N lanes of the same biological sample.
+        BARCODE_FILTERING.out.filtered_bam
+            .map { meta, bam, bai ->
+                def sid = meta.containsKey('sample_id') ? meta.sample_id : meta.library_id
+                tuple(sid, meta, bam, bai)
+            }
+            .groupTuple(by: 0)
+            .map { sid, metas, bams, bais ->
+                def sample_meta = metas[0] + [library_id: sid]
+                tuple(sample_meta,
+                      bams instanceof List ? bams : [bams],
+                      bais instanceof List ? bais : [bais])
+            }
+            .set { ch_bams_by_sample }
+
+        BAM_MERGE_SAMPLE(ch_bams_by_sample)
+
+        BAM_MERGE_SAMPLE.out.merged_bam
+            .combine(ch_fasta)
+            .combine(ch_fasta_fai)
+            .combine(ch_gtf)
+            .combine(ch_chrom_sizes)
+            .combine(cell_annotations)
+            .combine(ch_scapture_polya_db)
+            .combine(ch_scapture_resume_pascall_dir)
+            .map { meta, bam, bai, fasta, fasta_fai, gtf, chrom_sizes, annotations, polya, resume_dir ->
+                tuple(meta, bam, bai, fasta, fasta_fai, gtf, chrom_sizes, annotations, polya, resume_dir)
+            }
+            .set { ch_scapture_input }
+
+        SCAPTURE_FILTER(ch_scapture_input)
+        ch_scapture_catalog  = SCAPTURE_FILTER.out.site_catalog
+        ch_scapture_quant    = SCAPTURE_FILTER.out.quant
+        ch_scapture_manifest = SCAPTURE_FILTER.out.manifest
+    } else {
+        ch_scapture_catalog  = Channel.empty()
+        ch_scapture_quant    = Channel.empty()
+        ch_scapture_manifest = Channel.empty()
+    }
+
     def ch_track_bundle = COVERAGE_GENERATION.out.bigwigs
         .flatMap { meta, group_level, group_id, fwd_bw, rev_bw -> [fwd_bw, rev_bw] }
 
@@ -190,6 +257,9 @@ workflow APA_CORE {
     sierra_manifest             = ch_sierra_manifest
     pas_scored_events           = ch_pas_scored
     pas_scoring_manifest        = ch_pas_scoring_manifest
+    scapture_catalog            = ch_scapture_catalog
+    scapture_quant              = ch_scapture_quant
+    scapture_manifest           = ch_scapture_manifest
     track_bundle                = ch_track_bundle
     qc_bundle                   = ch_qc_bundle
 }

@@ -19,7 +19,7 @@ process GROUPED_BAM_GENERATION {
 
     script:
     """
-    python ${projectDir}/bin/write_group_bams.py \\
+    python3 ${projectDir}/bin/write_group_bams.py \\
         --bam           ${filtered_bam} \\
         --group-map     ${group_map} \\
         --sample-id     ${meta.sample_id} \\

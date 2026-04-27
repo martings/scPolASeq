@@ -12,16 +12,19 @@ process PREPARE_REFERENCE_BUNDLE {
     path gtf
     path known_polya
     path priming_blacklist
+    path prebuilt_star_index   // directory or NO_FILE sentinel
 
     output:
-    tuple val("primary"), path("star_index"), path("reference.annotation.gtf"), path("reference.genome.fa"), path("reference.chrom.sizes"), path("known_polya.reference.tsv"), path("priming_blacklist.reference.bed"), emit: reference_meta
+    tuple val("primary"), path("star_index"), path("reference.annotation.gtf"), path("reference.genome.fa"), path("reference.genome.fa.fai"), path("reference.chrom.sizes"), path("known_polya.reference.tsv"), path("priming_blacklist.reference.bed"), emit: reference_meta
     path "reference_manifest.json", emit: manifest
     path "reference.annotation.gtf", emit: gtf
     path "reference.genome.fa", emit: fasta
+    path "reference.genome.fa.fai", emit: fasta_fai
 
     script:
+    def use_prebuilt = prebuilt_star_index.name != 'NO_FILE'
     """
-    python ${projectDir}/bin/prepare_reference_bundle.py \\
+    python3 ${projectDir}/bin/prepare_reference_bundle.py \\
         --genome-fasta ${genome_fasta} \\
         --gtf ${gtf} \\
         --known-polya ${known_polya} \\
@@ -35,21 +38,23 @@ process PREPARE_REFERENCE_BUNDLE {
         --out-blacklist priming_blacklist.reference.bed \\
         --out-manifest reference_manifest.json
 
-    mkdir -p star_index
-    if command -v STAR >/dev/null 2>&1; then
-        STAR \\
-            --runMode genomeGenerate \\
-            --runThreadN ${task.cpus} \\
-            --genomeDir star_index \\
-            --genomeFastaFiles reference.genome.fa \\
-            --sjdbGTFfile reference.annotation.gtf || true
+    if ${use_prebuilt}; then
+        cp -rL star_index .star_index_staged
+        rm -rf star_index
+        mv .star_index_staged star_index
+    else
+        mkdir -p star_index
+        if command -v STAR >/dev/null 2>&1; then
+            STAR \\
+                --runMode genomeGenerate \\
+                --runThreadN ${task.cpus} \\
+                --genomeDir star_index \\
+                --genomeFastaFiles reference.genome.fa \\
+                --sjdbGTFfile reference.annotation.gtf || true
+        fi
+        [ -f star_index/SA ]     || touch star_index/SA
+        [ -f star_index/Genome ] || touch star_index/Genome
     fi
-    # Only create sentinel stubs if STAR did not produce the real index files.
-    # `touch` on an existing file only updates mtime, but an absent file (STAR
-    # unavailable or failed) would otherwise make the next process crash without
-    # a clear error.
-    [ -f star_index/SA ]     || touch star_index/SA
-    [ -f star_index/Genome ] || touch star_index/Genome
     """
 
     stub:

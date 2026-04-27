@@ -16,7 +16,7 @@ process CANDIDATE_SITES_ANNOTATION_GUIDED {
 
     script:
     """
-    python ${projectDir}/bin/candidate_sites_annotation_guided.py \\
+    python3 ${projectDir}/bin/candidate_sites_annotation_guided.py \\
         --terminal-exons ${terminal_exons} \\
         --known-polya ${known_polya} \\
         --out-tsv site_catalog.tsv \\
