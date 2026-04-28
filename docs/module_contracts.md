@@ -8,7 +8,7 @@ keep orchestration stable even as biological logic evolves.
 - `meta` is a Nextflow map with stable keys:
   `sample_id`, `library_id`, `protocol`, `chemistry`, `condition`, `replicate_id`
 - `reference_bundle` is a tuple with fixed positional layout:
-  `tuple val(ref_meta), path(star_index), path(gtf), path(fasta), path(chrom_sizes), path(terminal_exons), path(site_catalog), path(priming_blacklist)`
+  `tuple val(ref_meta), path(star_index), path(gtf), path(fasta), path(chrom_sizes), path(terminal_exons), path(known_polya), path(priming_blacklist)`
 - Group-resolved files always carry both `group_level` and `group_id` in the channel contract, even if only one appears in the filename.
 - New PAS sidecar stages must not replace existing published APA outputs until explicitly promoted.
 
@@ -137,6 +137,29 @@ path("scored_apa_events.tsv")
 ```
 
 ## PAS sidecar modules
+
+### `PREPARE_POLYA_REFERENCES`
+
+```nextflow
+input:
+path("known_polya.tsv") | path("NO_FILE")
+val(polya_db)           // skip | download | URL | staged local file path
+path(polya_db_file)     // staged local file or NO_FILE
+val(polyasite)          // skip | download | URL | staged local file path
+path(polyasite_file)    // staged local file or NO_FILE
+
+output:
+path("prepared_known_polya.tsv")
+path("prepared_known_polya.manifest.tsv")
+```
+
+Notes:
+`params.polya_db` is the curated precision source and `params.polyasite` is the
+recall source. If both are set, the module collapses sites within
+`params.pas_reference_merge_distance` bp and records combined source labels. If
+only one is set, that source is normalized and passed through without merging.
+If neither is set, the legacy `params.known_polya` path is used unchanged by the
+reference preparation subworkflow.
 
 ### `PAS_REFERENCE_BUILD`
 

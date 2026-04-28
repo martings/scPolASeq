@@ -179,7 +179,7 @@ def normalize_known_polya(path: Path):
                 "anchor": anchor,
                 "site_id": f"{gene_id}:{chrom}:{anchor}:{strand}",
                 "source_kind": "known_polya",
-                "site_source": "known_polya",
+                "site_source": (row.get("source") or row.get("reference_source") or "known_polya").strip(),
             }
         )
     return normalized
@@ -202,6 +202,17 @@ def choose_representative(rows):
     else:
         coord_key = lambda row: (-row["anchor"], -row["start"], -row["end"])
     return sorted(rows, key=lambda row: (representative_priority(row), coord_key(row), row["site_id"]))[0]
+
+
+def evidence_labels(row):
+    if row["source_kind"] == "known_polya":
+        labels = [
+            label.strip()
+            for label in (row.get("site_source") or "known_polya").split("+")
+            if label.strip()
+        ]
+        return labels or ["known_polya"]
+    return [row["source_kind"]]
 
 
 def cluster_candidates(candidates, merge_distance):
@@ -242,7 +253,7 @@ def build_reference_rows(site_catalog_rows, terminal_exon_rows, known_polya_rows
     for cluster in cluster_candidates(candidates, merge_distance):
         rep = choose_representative(cluster)
         anchor = rep["anchor"]
-        sources = sorted({row["source_kind"] for row in cluster})
+        sources = sorted({label for row in cluster for label in evidence_labels(row)})
         source_label = "+".join(sources)
         gene_token = sanitize_token(rep["gene_id"])
         chrom_token = sanitize_token(rep["chrom"])
