@@ -11,11 +11,26 @@
 - `alignment/<library_id>.barcode_registry.tsv`
 - `alignment/<library_id>.alignment_manifest.tsv`
 
+`barcode_registry.tsv` preserves STARsolo barcodes verbatim in
+`barcode_raw` and `barcode_corrected`, including 10x suffixes such as `-1`.
+
 ## Labels and grouping
 
 - `labels/cell_annotations.tsv`
 - `labels/group_map.tsv`
 - `labels/group_summary.tsv`
+
+`cell_annotations.tsv` canonical columns:
+`sample_id`, `library_id`, `barcode_raw`, `barcode_corrected`, `cell_id`,
+`cluster_id`, `cell_type`, `condition`, `batch`, `label_source`
+
+`group_map.tsv` canonical columns:
+`sample_id`, `library_id`, `barcode_corrected`, `group_level`, `group_id`
+
+`<library_id>.clustered.h5ad` stores explicit `obs` columns
+`sample_id`, `library_id`, `barcode_raw`, `barcode_corrected`, and `cell_id`.
+If the AnnData index is rewritten for uniqueness, `barcode_corrected` remains
+the canonical STARsolo barcode and `cell_id` remains reversible.
 
 ## Coverage
 

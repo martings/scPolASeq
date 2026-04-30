@@ -66,7 +66,9 @@ path("*filter*.tsv")
 
 Notes:
 `meta.library_id` remains the library-scoped identity anchor. Filtering must not
-rewrite sample identities.
+rewrite sample identities. Unified `cell_annotations.tsv` inputs must carry
+explicit `sample_id`, `library_id`, `barcode_raw`, `barcode_corrected`, and a
+reversible `cell_id = <sample_id>:<library_id>:<barcode_corrected>`.
 
 ### `GROUPED_RECONSTRUCTION`
 
@@ -83,7 +85,9 @@ path("*.grouping_manifest.tsv")
 
 Notes:
 the output channel is library-scoped. One emission may contain multiple grouped
-BAM paths for the same `(meta, group_level)` pair.
+BAM paths for the same `(meta, group_level)` pair. When `group_map.tsv`
+contains `library_id`, consumers must scope barcode/group lookups to the active
+library before matching on `barcode_corrected`.
 
 ### `COVERAGE_GENERATION`
 
@@ -118,6 +122,14 @@ path("apa_features.tsv")
 path("apa_events.tsv")
 path("pdui_usage_matrix.tsv")
 ```
+
+Unified label tables:
+
+- `cell_annotations.tsv` canonical columns:
+  `sample_id`, `library_id`, `barcode_raw`, `barcode_corrected`, `cell_id`,
+  `cluster_id`, `cell_type`, `condition`, `batch`, `label_source`
+- `group_map.tsv` canonical columns:
+  `sample_id`, `library_id`, `barcode_corrected`, `group_level`, `group_id`
 
 ### `MODEL_PIPELINE`
 

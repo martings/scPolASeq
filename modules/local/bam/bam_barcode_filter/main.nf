@@ -22,6 +22,8 @@ process BAM_BARCODE_FILTER {
     python ${projectDir}/bin/filter_bam_by_barcodes.py \\
         --bam            ${bam} \\
         --annotations    ${cell_annotations} \\
+        --sample-id      ${meta.sample_id} \\
+        --library-id     ${meta.library_id} \\
         --out-bam        ${meta.library_id}.filtered.bam \\
         --out-stats      ${meta.library_id}.barcode_filter_stats.tsv
 

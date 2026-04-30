@@ -23,6 +23,7 @@ process GROUPED_BAM_GENERATION {
         --bam           ${filtered_bam} \\
         --group-map     ${group_map} \\
         --sample-id     ${meta.sample_id} \\
+        --library-id    ${meta.library_id} \\
         --group-level   ${group_level} \\
         --out-dir       . \\
         --out-manifest  ${meta.library_id}.${group_level}.grouping_manifest.tsv

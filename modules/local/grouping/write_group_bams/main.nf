@@ -19,6 +19,7 @@ process WRITE_GROUP_BAMS {
     python ${projectDir}/bin/write_group_bams.py \\
         --group-map ${group_map} \\
         --sample-id ${meta.sample_id} \\
+        --library-id ${meta.library_id} \\
         --out-dir ${meta.library_id}.group_bams \\
         --out-manifest ${meta.library_id}.group_bams_manifest.tsv
     """

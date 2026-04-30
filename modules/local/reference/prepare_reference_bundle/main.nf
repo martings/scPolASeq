@@ -36,7 +36,12 @@ process PREPARE_REFERENCE_BUNDLE {
         --out-manifest reference_manifest.json
 
     mkdir -p star_index
-    if command -v STAR >/dev/null 2>&1; then
+    if [[ -n "${params.prebuilt_star_index}" && -d "${params.prebuilt_star_index}" ]]; then
+        # Hard-link the pre-built index into the work dir — zero extra disk space,
+        # instantaneous, and produces content-identical files so downstream
+        # process cache hashes remain stable.
+        cp -rl "${params.prebuilt_star_index}/." star_index/
+    elif command -v STAR >/dev/null 2>&1; then
         STAR \\
             --runMode genomeGenerate \\
             --runThreadN ${task.cpus} \\
