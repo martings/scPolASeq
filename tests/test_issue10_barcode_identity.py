@@ -290,6 +290,23 @@ def test_write_group_bams_names_outputs_with_library_prefix(tmp_path):
     assert write_group_bams.grouped_bam_name(None, "cluster_1") == "cluster_1.grouped.bam"
 
 
+def test_alignment_subworkflow_collapses_samplesheet_rows_by_sample_id(tmp_path):
+    del tmp_path
+    alignment_nf = (REPO_ROOT / "subworkflows" / "local" / "alignment_or_import" / "main.nf").read_text(
+        encoding="utf-8"
+    )
+    assert ".groupTuple()" in alignment_nf
+    assert "library_id        : sampleId" in alignment_nf
+    assert "source_library_ids" in alignment_nf
+
+
+def test_apa_core_normalizes_group_id_before_sierra(tmp_path):
+    del tmp_path
+    apa_core_nf = (REPO_ROOT / "subworkflows" / "apa_core.nf").read_text(encoding="utf-8")
+    assert "def prefix = meta.library_id ? \"${meta.library_id}.\" : ''" in apa_core_nf
+    assert "group_id.startsWith(prefix)" in apa_core_nf
+
+
 def run_all_tests() -> None:
     test_functions = [
         test_extract_barcode_registry_preserves_starsolo_suffixes,
@@ -298,6 +315,8 @@ def run_all_tests() -> None:
         test_grouped_3prime_coverage_scopes_shared_barcodes_by_library,
         test_scanpy_cluster_emits_embedding_plots_when_embeddings_exist,
         test_write_group_bams_names_outputs_with_library_prefix,
+        test_alignment_subworkflow_collapses_samplesheet_rows_by_sample_id,
+        test_apa_core_normalizes_group_id_before_sierra,
     ]
     for test_function in test_functions:
         with tempfile.TemporaryDirectory() as tmpdir:

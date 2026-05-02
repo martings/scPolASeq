@@ -122,6 +122,10 @@ workflow APA_CORE {
                 def bai_list = (bais instanceof List) ? bais : [bais]
                 [bam_list, bai_list].transpose().collect { bam, bai ->
                     def group_id = bam.baseName.replaceAll(/\.grouped(\.bam)?$/, '')
+                    def prefix = meta.library_id ? "${meta.library_id}." : ''
+                    if (prefix && group_id.startsWith(prefix)) {
+                        group_id = group_id.substring(prefix.length())
+                    }
                     tuple(meta, group_level, group_id, bam, bai)
                 }
             }
