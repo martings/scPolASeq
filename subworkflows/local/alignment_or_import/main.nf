@@ -30,6 +30,11 @@ workflow ALIGN_OR_IMPORT_SC {
         .splitCsv(header: true)
         .map { row ->
             def sampleId = normalize(row.sample_id)
+            if (!sampleId) {
+                throw new IllegalArgumentException(
+                    "A samplesheet row has a missing or blank sample_id. All rows must have a non-empty sample_id. Row: ${row}"
+                )
+            }
             def fastqR1 = normalize(row.fastq_r1)
             def fastqR2 = normalize(row.fastq_r2)
             def bamPath = normalize(row.bam)
