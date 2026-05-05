@@ -21,7 +21,7 @@ workflow SCPOLASEQ {
 
     // ── Stage 0 — Input harmonization + Reference preparation ─────────────────
     // Returns true only if value is a real path (not null, not keyword like "null"/"skip"/"download")
-    def _NULL_STRINGS = ['', 'null', 'none', 'skip', 'false', 'no', '0', 'no_file'] as Set
+    def _NULL_STRINGS = ['', 'null', 'none', 'skip', 'false', 'no', '0', 'no_file', 'download', 'auto', 'true', 'yes', '1'] as Set
     def param_is_set = { value ->
         def text = value?.toString()?.trim()
         return text && !(text.toLowerCase() in _NULL_STRINGS)
