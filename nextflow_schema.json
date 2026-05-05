@@ -21,7 +21,19 @@
         },
         "known_polya": {
           "type": "string",
-          "description": "Optional known polyA atlas or PAS reference."
+          "description": "Optional legacy known polyA atlas or PAS reference."
+        },
+        "polya_db": {
+          "type": "string",
+          "description": "Optional PolyA_DB precision source. Use a local file, URL, or 'download' for the built-in human PAS URL."
+        },
+        "polyasite": {
+          "type": "string",
+          "description": "Optional PolyASite recall source. Use a local file, URL, or 'download' for the built-in GRCh38 GENCODE 42 atlas URL."
+        },
+        "pas_reference_cache_dir": {
+          "type": "string",
+          "description": "Optional cache directory for downloaded PolyA_DB and PolyASite archives."
         },
         "priming_blacklist": {
           "type": "string",
