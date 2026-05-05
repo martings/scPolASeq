@@ -15,8 +15,8 @@ workflow REFERENCE_PREPARE {
 
     main:
     def polya_skip_values = ['skip', 'none', 'null', 'false', 'no', '0', '']
-    def polya_db_source = params.polya_db?.toString()?.trim() ?: 'skip'
-    def polyasite_source = params.polyasite?.toString()?.trim() ?: 'skip'
+    def polya_db_source = polya_db?.toString()?.trim() ?: 'skip'
+    def polyasite_source = polyasite?.toString()?.trim() ?: 'skip'
     def wants_polya_db = !(polya_db_source.toLowerCase() in polya_skip_values)
     def wants_polyasite = !(polyasite_source.toLowerCase() in polya_skip_values)
 
