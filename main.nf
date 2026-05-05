@@ -34,8 +34,8 @@ workflow SCPOLASEQ {
     }
     def polya_db_source = params.polya_db ?: 'skip'
     def polyasite_source = params.polyasite ?: 'skip'
-    def polya_db_file = is_local_polya_source(polya_db_source) ? file(polya_db_source, checkIfExists: true) : file("${projectDir}/assets/NO_FILE_POLYA_DB")
-    def polyasite_file = is_local_polya_source(polyasite_source) ? file(polyasite_source, checkIfExists: true) : file("${projectDir}/assets/NO_FILE_POLYASITE")
+    def polya_db_file = is_local_polya_source(polya_db_source) ? file(polya_db_source, checkIfExists: true) : file("${projectDir}/assets/NO_FILE")
+    def polyasite_file = is_local_polya_source(polyasite_source) ? file(polyasite_source, checkIfExists: true) : file("${projectDir}/assets/NO_FILE")
 
     INPUT_HARMONIZATION(
         file(params.input, checkIfExists: true),
