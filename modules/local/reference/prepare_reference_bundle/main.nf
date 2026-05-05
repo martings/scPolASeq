@@ -36,7 +36,19 @@ process PREPARE_REFERENCE_BUNDLE {
         --out-manifest reference_manifest.json
 
     mkdir -p star_index
-    if command -v STAR >/dev/null 2>&1; then
+    if [[ -n "${params.prebuilt_star_index}" && -d "${params.prebuilt_star_index}" ]]; then
+        # Try hard-linking first (zero disk space, instantaneous, and produces
+        # content-identical files so downstream cache hashes remain stable).
+        # Hard links fail when the source and destination are on different
+        # filesystems, so fall back to a regular copy in that case.
+        if cp -rl "${params.prebuilt_star_index}/." star_index/ 2>/dev/null; then
+            echo "Prebuilt STAR index staged via hard-links."
+        else
+            echo "Hard-link staging failed (likely cross-device); falling back to regular copy." >&2
+            cp -r "${params.prebuilt_star_index}/." star_index/ || \
+                { echo "ERROR: Failed to stage prebuilt STAR index from '${params.prebuilt_star_index}'." >&2; exit 1; }
+        fi
+    elif command -v STAR >/dev/null 2>&1; then
         STAR \\
             --runMode genomeGenerate \\
             --runThreadN ${task.cpus} \\

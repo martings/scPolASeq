@@ -28,17 +28,65 @@ log <- function(...) {
     writeLines(msg, log_con)
 }
 
+required_ann_cols <- c("library_id", "barcode_corrected")
+subset_annotations <- function(ann, library_id, group_level, group_id) {
+    missing_cols <- setdiff(required_ann_cols, colnames(ann))
+    if (length(missing_cols) > 0) {
+        stop(paste("cell_annotations.tsv missing required columns:", paste(missing_cols, collapse = ", ")))
+    }
+
+    library_mask <- ann[["library_id"]] == library_id
+    ann <- ann[library_mask, ]
+
+    if (group_level == "cluster") {
+        if (!("cluster_id" %in% colnames(ann))) {
+            stop("cell_annotations.tsv missing cluster_id needed for cluster-level Sierra quant")
+        }
+        ann <- ann[cluster_id == group_id]
+    } else if (group_level == "cell_type") {
+        if (!("cell_type" %in% colnames(ann))) {
+            stop("cell_annotations.tsv missing cell_type needed for cell_type-level Sierra quant")
+        }
+        ann <- ann[cell_type == group_id]
+    } else if (group_level == "cell") {
+        if (!("cell_id" %in% colnames(ann))) {
+            stop("cell_annotations.tsv missing cell_id needed for cell-level Sierra quant")
+        }
+        ann <- ann[cell_id == group_id]
+    }
+
+    ann
+}
+
 # ── Diagnostics: peek at BAM CB tags vs whitelist ─────────────────────────────
 log("Reading cell annotations: ", opt$`cell-annotations`)
 ann <- fread(opt$`cell-annotations`)
-whitelist_barcodes <- ann$barcode_corrected
-log("Whitelist barcodes: ", length(whitelist_barcodes), " (first: ", whitelist_barcodes[1], ")")
+ann <- subset_annotations(ann, opt$`library-id`, opt$`group-level`, opt$`group-id`)
+whitelist_barcodes <- unique(ann$barcode_corrected)
+log("Scoped annotations rows: ", nrow(ann))
+log("Whitelist barcodes after scoping: ", length(whitelist_barcodes),
+    if (length(whitelist_barcodes) > 0) paste0(" (first: ", whitelist_barcodes[1], ")") else "")
+if (length(whitelist_barcodes) == 0) {
+    log("WARNING: scoped whitelist is empty — writing empty TSV")
+    empty_dt <- data.table(
+        library_id   = character(),
+        group_level  = character(),
+        group_id     = character(),
+        site_id      = character(),
+        cell_barcode = character(),
+        umi_count    = integer()
+    )
+    fwrite(empty_dt, opt$output, sep = "\t")
+    close(log_con)
+    quit(status = 0)
+}
 
 param_diag <- ScanBamParam(tag = "CB", what = character(0))
 diag_aln   <- scanBam(opt$bam, param = param_diag)[[1]]
 bam_cbs    <- unique(na.omit(diag_aln$tag$CB))
 n_overlap   <- sum(bam_cbs %in% whitelist_barcodes)
-log("BAM CB tags sampled: ", length(bam_cbs), " unique (first: ", bam_cbs[1], ")")
+log("BAM CB tags sampled: ", length(bam_cbs), " unique",
+    if (length(bam_cbs) > 0) paste0(" (first: ", bam_cbs[1], ")") else "")
 log("Barcode overlap with whitelist: ", n_overlap, " / ", length(bam_cbs))
 
 whitelist_file <- tempfile(fileext = ".txt")

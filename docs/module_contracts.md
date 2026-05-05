@@ -65,8 +65,11 @@ path("*filter*.tsv")
 ```
 
 Notes:
-`meta.library_id` remains the library-scoped identity anchor. Filtering must not
-rewrite sample identities.
+the analysis unit is sample-scoped from `STARsolo` onward. In sample-merged
+runs, `meta.library_id` mirrors `meta.sample_id` for backward compatibility
+with stable module interfaces. Unified `cell_annotations.tsv` inputs must carry
+explicit `sample_id`, `library_id`, `barcode_raw`, `barcode_corrected`, and a
+reversible `cell_id = <sample_id>:<library_id>:<barcode_corrected>`.
 
 ### `GROUPED_RECONSTRUCTION`
 
@@ -82,8 +85,10 @@ path("*.grouping_manifest.tsv")
 ```
 
 Notes:
-the output channel is library-scoped. One emission may contain multiple grouped
-BAM paths for the same `(meta, group_level)` pair.
+the output channel is sample-scoped. One emission may contain multiple grouped
+BAM paths for the same `(meta, group_level)` pair. In sample-merged runs,
+`group_map.tsv` still carries `library_id`, but that value mirrors the active
+sample analysis unit unless a legacy import path overrides it.
 
 ### `COVERAGE_GENERATION`
 
@@ -118,6 +123,14 @@ path("apa_features.tsv")
 path("apa_events.tsv")
 path("pdui_usage_matrix.tsv")
 ```
+
+Unified label tables:
+
+- `cell_annotations.tsv` canonical columns:
+  `sample_id`, `library_id`, `barcode_raw`, `barcode_corrected`, `cell_id`,
+  `cluster_id`, `cell_type`, `condition`, `batch`, `label_source`
+- `group_map.tsv` canonical columns:
+  `sample_id`, `library_id`, `barcode_corrected`, `group_level`, `group_id`
 
 ### `MODEL_PIPELINE`
 
@@ -173,7 +186,7 @@ path("*.sierra_quant.log")
 ```
 
 Naming rule:
-`<library_id>.<group_level>.<group_id>.sierra_quant.tsv`
+`<sample_id>.<group_level>.<group_id>.sierra_quant.tsv`
 
 ### `PAS_SCORING`
 

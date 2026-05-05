@@ -15,48 +15,109 @@ workflow ALIGN_OR_IMPORT_SC {
     }
 
     def nofile = file("${projectDir}/assets/NO_FILE")
+    def normalize = { value -> value ? value.toString().trim() : '' }
+    def distinctOrThrow = { sampleId, entries, key, fallback = '' ->
+        def values = entries.collect { entry -> normalize(entry[key]) }.findAll { it }.unique()
+        if (values.size() > 1) {
+            throw new IllegalArgumentException(
+                "Sample '${sampleId}' has conflicting ${key} values across source libraries: ${values.join(', ')}"
+            )
+        }
+        values ? values[0] : fallback
+    }
 
     samplesheet
         .splitCsv(header: true)
         .map { row ->
+            def sampleId = normalize(row.sample_id)
+            if (!sampleId) {
+                throw new IllegalArgumentException(
+                    "A samplesheet row has a missing or blank sample_id. All rows must have a non-empty sample_id. Row: ${row}"
+                )
+            }
+            def fastqR1 = normalize(row.fastq_r1)
+            def fastqR2 = normalize(row.fastq_r2)
+            def bamPath = normalize(row.bam)
+            def matrixPath = normalize(row.matrix_path)
+            def whitelistPath = normalize(row.barcode_whitelist)
+            tuple(
+                sampleId,
+                [
+                    sample_id        : sampleId,
+                    source_library_id: normalize(row.library_id),
+                    protocol         : normalize(row.protocol) ?: protocol_mode,
+                    chemistry        : normalize(row.chemistry),
+                    condition        : normalize(row.condition),
+                    replicate_id     : normalize(row.replicate_id) ?: sampleId,
+                    fastq_r1         : fastqR1 ? file(fastqR1, checkIfExists: true) : null,
+                    fastq_r2         : fastqR2 ? file(fastqR2, checkIfExists: true) : null,
+                    bam              : bamPath ? file(bamPath, checkIfExists: true) : nofile,
+                    matrix           : matrixPath ? file(matrixPath, checkIfExists: true) : nofile,
+                    whitelist        : whitelistPath ? file(whitelistPath, checkIfExists: true) : nofile,
+                ]
+            )
+        }
+        .groupTuple()
+        .map { sampleId, entries ->
+            def read1s = entries.collect { it.fastq_r1 }.findAll { it != null }
+            def read2s = entries.collect { it.fastq_r2 }.findAll { it != null }
+            if (read1s.size() != read2s.size()) {
+                throw new IllegalArgumentException(
+                    "Sample '${sampleId}' has mismatched FASTQ mates after sample-level grouping: R1=${read1s.size()} R2=${read2s.size()}"
+                )
+            }
+
+            def bamInputs = entries.collect { it.bam }.findAll { it != null && it.name != 'NO_FILE' }
+            def matrixInputs = entries.collect { it.matrix }.findAll { it != null && it.name != 'NO_FILE' }
+            def whitelistCandidates = entries.collect { it.whitelist }.findAll { it != null && it.name != 'NO_FILE' }
+            def whitelistPaths = whitelistCandidates.collect { it.toString() }.unique()
+            if (whitelistPaths.size() > 1) {
+                throw new IllegalArgumentException(
+                    "Sample '${sampleId}' has multiple barcode whitelist files across source libraries: ${whitelistPaths.join(', ')}"
+                )
+            }
+
+            def sourceLibraries = entries.collect { normalize(it.source_library_id) }.findAll { it }.unique().sort()
             def meta = [
-                sample_id   : row.sample_id,
-                library_id  : row.library_id,
-                protocol    : row.protocol ?: protocol_mode,
-                chemistry   : row.chemistry,
-                condition   : row.condition,
-                replicate_id: row.replicate_id ?: row.sample_id,
+                sample_id         : sampleId,
+                library_id        : sampleId,
+                source_library_ids: sourceLibraries.join(','),
+                protocol          : distinctOrThrow(sampleId, entries, 'protocol', protocol_mode),
+                chemistry         : distinctOrThrow(sampleId, entries, 'chemistry', ''),
+                condition         : distinctOrThrow(sampleId, entries, 'condition', ''),
+                replicate_id      : distinctOrThrow(sampleId, entries, 'replicate_id', sampleId),
             ]
-            def reads = []
-            if (row.fastq_r1) {
-                reads << file(row.fastq_r1, checkIfExists: true)
-            }
-            if (row.fastq_r2) {
-                reads << file(row.fastq_r2, checkIfExists: true)
-            }
-            def bam = row.bam ? file(row.bam, checkIfExists: true) : nofile
-            def matrix = row.matrix_path ? file(row.matrix_path, checkIfExists: true) : nofile
-            def whitelist = row.barcode_whitelist ? file(row.barcode_whitelist, checkIfExists: true) : nofile
-            tuple(meta, reads, bam, matrix, whitelist)
+
+            tuple(meta, read1s, read2s, bamInputs, matrixInputs, whitelistCandidates ? whitelistCandidates[0] : nofile)
         }
         .set { ch_rows }
 
     ch_rows
-        .filter { meta, reads, bam, matrix, whitelist ->
-            run_mode == 'full' && reads.size() >= 2
+        .filter { meta, read1s, read2s, bamInputs, matrixInputs, whitelist ->
+            run_mode == 'full' && read1s.size() >= 1 && read2s.size() >= 1
         }
         .combine(reference_bundle)
-        .map { meta, reads, bam, matrix, whitelist, reference_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist ->
-            tuple(meta, reads, whitelist, star_index, gtf, meta.protocol)
+        .map { meta, read1s, read2s, bamInputs, matrixInputs, whitelist, reference_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist ->
+            tuple(meta, read1s, read2s, whitelist, star_index, gtf, meta.protocol)
         }
         .set { ch_fastq }
 
     ch_rows
-        .filter { meta, reads, bam, matrix, whitelist ->
-            bam.name != 'NO_FILE' && (run_mode in ['from_bam', 'feedback'] || reads.size() == 0)
+        .filter { meta, read1s, read2s, bamInputs, matrixInputs, whitelist ->
+            bamInputs.size() >= 1 && (run_mode in ['from_bam', 'feedback'] || (read1s.size() == 0 && read2s.size() == 0))
         }
-        .map { meta, reads, bam, matrix, whitelist ->
-            tuple(meta, bam, matrix, whitelist)
+        .map { meta, read1s, read2s, bamInputs, matrixInputs, whitelist ->
+            if (bamInputs.size() != 1) {
+                throw new IllegalArgumentException(
+                    "Sample-level BAM import currently expects exactly one BAM per sample; sample '${meta.sample_id}' received ${bamInputs.size()}"
+                )
+            }
+            if (matrixInputs.size() > 1) {
+                throw new IllegalArgumentException(
+                    "Sample-level BAM import currently expects at most one matrix bundle per sample; sample '${meta.sample_id}' received ${matrixInputs.size()}"
+                )
+            }
+            tuple(meta, bamInputs[0], matrixInputs ? matrixInputs[0] : nofile, whitelist)
         }
         .set { ch_bam }
 

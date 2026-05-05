@@ -3,6 +3,7 @@
 .DS_Store
 work/
 results/
+scripts/
 tests/results*/
 .nf_test_work/
 .pytest_cache/
