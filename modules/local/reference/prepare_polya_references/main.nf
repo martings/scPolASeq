@@ -24,7 +24,7 @@ process PREPARE_POLYA_REFERENCES {
     def default_cache_dir = params.outdir.toString().startsWith('/') ? "${params.outdir}/reference_cache" : "${launchDir}/${params.outdir}/reference_cache"
     def cache_dir = params.pas_reference_cache_dir ?: default_cache_dir
     """
-    python ${projectDir}/bin/merge_polya_references.py \\
+    python3 ${projectDir}/bin/merge_polya_references.py \\
         --known-polya ${known_polya} \\
         --polya-db '${polya_db ?: 'skip'}' \\
         --polya-db-file '${polya_db_file_arg}' \\
