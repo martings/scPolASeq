@@ -34,7 +34,7 @@ process SCAPTURE_FILTER {
 
     output:
     tuple val(meta), path("${meta.library_id}.scapture.site_catalog.tsv"), emit: site_catalog
-    tuple val(meta), path("*.PASquant.KeepCell.UMIs.tsv.gz"),              emit: quant,    optional: true
+    tuple val(meta), path("*.KeepCell.UMIs.tsv.gz"),                       emit: quant,    optional: true
     path "${meta.library_id}.scapture.manifest.tsv",                        emit: manifest
     path "${meta.library_id}.scapture.metrics.tsv",                         emit: metrics
     path "${meta.library_id}.scapture.gene_name_map.tsv",                   emit: gene_name_map
