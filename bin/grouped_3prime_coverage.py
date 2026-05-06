@@ -11,25 +11,33 @@ def sanitize(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "_", value)
 
 
-def load_group_map(path: Path, sample_id: str):
+def row_matches_scope(row, sample_id: str, library_id: str) -> bool:
+    if row.get("sample_id") != sample_id:
+        return False
+    row_library_id = (row.get("library_id") or "").strip()
+    return not row_library_id or row_library_id == library_id
+
+
+def load_group_map(path: Path, sample_id: str, library_id: str):
     mapping = defaultdict(list)
     with path.open("r", newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle, delimiter="\t")
         for row in reader:
-            if row.get("sample_id") != sample_id:
+            if not row_matches_scope(row, sample_id, library_id):
                 continue
-            mapping[row.get("barcode_corrected", "")].append((row.get("group_level", ""), row.get("group_id", "")))
+            barcode = row.get("barcode_corrected") or row.get("barcode_raw") or ""
+            mapping[barcode].append((row.get("group_level", ""), row.get("group_id", "")))
     return mapping
 
 
-def load_barcode_registry(path: Path, sample_id: str):
+def load_barcode_registry(path: Path, sample_id: str, library_id: str):
     rows = []
     if not path.exists() or path.stat().st_size == 0:
         return rows
     with path.open("r", newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle, delimiter="\t")
         for row in reader:
-            if row.get("sample_id") == sample_id:
+            if row_matches_scope(row, sample_id, library_id):
                 rows.append(row)
     return rows
 
@@ -100,8 +108,8 @@ def main() -> None:
     parser.add_argument("--out-summary", required=True)
     args = parser.parse_args()
 
-    group_map = load_group_map(Path(args.group_map), args.sample_id)
-    barcode_registry = load_barcode_registry(Path(args.barcode_registry), args.sample_id)
+    group_map = load_group_map(Path(args.group_map), args.sample_id, args.library_id)
+    barcode_registry = load_barcode_registry(Path(args.barcode_registry), args.sample_id, args.library_id)
     chrom_sizes = load_chrom_sizes(Path(args.chrom_sizes))
 
     counts = count_from_bam(Path(args.bam), group_map, args.min_mapq)

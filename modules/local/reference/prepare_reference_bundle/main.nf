@@ -39,9 +39,18 @@ process PREPARE_REFERENCE_BUNDLE {
         --out-manifest reference_manifest.json
 
     if ${use_prebuilt}; then
-        cp -rL star_index .star_index_staged
-        rm -rf star_index
-        mv .star_index_staged star_index
+        mkdir -p star_index
+        # Try hard-linking first (zero disk space, instantaneous, and produces
+        # content-identical files so downstream cache hashes remain stable).
+        # Hard links fail when the source and destination are on different
+        # filesystems, so fall back to a regular copy in that case.
+        if cp -rl ${prebuilt_star_index}/. star_index/ 2>/dev/null; then
+            echo "Prebuilt STAR index staged via hard-links."
+        else
+            echo "Hard-link staging failed (likely cross-device); falling back to regular copy." >&2
+            cp -r ${prebuilt_star_index}/. star_index/ || \
+                { echo "ERROR: Failed to stage prebuilt STAR index." >&2; exit 1; }
+        fi
     else
         mkdir -p star_index
         if command -v STAR >/dev/null 2>&1; then
@@ -52,9 +61,10 @@ process PREPARE_REFERENCE_BUNDLE {
                 --genomeFastaFiles reference.genome.fa \\
                 --sjdbGTFfile reference.annotation.gtf || true
         fi
-        [ -f star_index/SA ]     || touch star_index/SA
-        [ -f star_index/Genome ] || touch star_index/Genome
     fi
+    # Only create sentinel stubs if STAR did not produce the real index files.
+    [ -f star_index/SA ]     || touch star_index/SA
+    [ -f star_index/Genome ] || touch star_index/Genome
     """
 
     stub:

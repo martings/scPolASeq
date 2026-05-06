@@ -45,6 +45,7 @@ declare -a SCENARIOS=(
     "toggles_off|tests/config/params_toggles_off.json|18"
     "from_bam|tests/config/params_from_bam.json|22"
     "feedback|tests/config/params_feedback.json|22"
+    "polya_refs|tests/config/params_polya_refs.json|23"
 )
 # NOTE: Nextflow engine flags use single dash (-stub-run, -resume, -profile).
 # Double dash (--flag) is reserved for pipeline params (params.*).
@@ -52,6 +53,7 @@ declare -a SCENARIOS=(
 # ── Module-level tests ────────────────────────────────────────────────────────
 declare -a MODULE_TESTS=(
     "pas_reference_build|tests/modules/apa/test_pas_reference_build.nf"
+    "prepare_polya_references|tests/modules/reference/test_prepare_polya_references.nf"
 )
 
 # ── Helper: run one scenario ──────────────────────────────────────────────────

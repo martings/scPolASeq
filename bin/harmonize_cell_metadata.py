@@ -8,6 +8,7 @@ from pathlib import Path
 
 CANONICAL_COLUMNS = [
     "sample_id",
+    "library_id",
     "barcode_raw",
     "barcode_corrected",
     "cell_id",
@@ -17,6 +18,14 @@ CANONICAL_COLUMNS = [
     "batch",
     "label_source",
 ]
+
+
+def canonical_cell_id(sample_id: str, library_id: str, barcode: str) -> str:
+    parts = [sample_id]
+    if library_id:
+        parts.append(library_id)
+    parts.append(barcode)
+    return ":".join(parts)
 
 
 def load_table(path: Path):
@@ -29,8 +38,9 @@ def load_table(path: Path):
 
 def barcode_key(row):
     sample_id = row.get("sample_id", "")
+    library_id = row.get("library_id", "")
     barcode = row.get("barcode_corrected") or row.get("barcode_raw") or row.get("barcode") or ""
-    return sample_id, barcode
+    return sample_id, library_id, barcode
 
 
 def main() -> None:
@@ -51,9 +61,14 @@ def main() -> None:
         key = barcode_key(row)
         by_key[key] = {
             "sample_id": row.get("sample_id", ""),
+            "library_id": row.get("library_id", ""),
             "barcode_raw": row.get("barcode_raw") or row.get("barcode") or row.get("barcode_corrected", ""),
             "barcode_corrected": row.get("barcode_corrected") or row.get("barcode") or row.get("barcode_raw", ""),
-            "cell_id": row.get("cell_id") or f"{row.get('sample_id', '')}:{row.get('barcode_corrected') or row.get('barcode_raw') or row.get('barcode', '')}",
+            "cell_id": row.get("cell_id") or canonical_cell_id(
+                row.get("sample_id", ""),
+                row.get("library_id", ""),
+                row.get("barcode_corrected") or row.get("barcode_raw") or row.get("barcode", ""),
+            ),
             "cluster_id": row.get("cluster_id", ""),
             "cell_type": row.get("cell_type", ""),
             "condition": row.get("condition", ""),
@@ -67,9 +82,14 @@ def main() -> None:
             key,
             {
                 "sample_id": row.get("sample_id", ""),
+                "library_id": row.get("library_id", ""),
                 "barcode_raw": row.get("barcode_raw") or row.get("barcode") or row.get("barcode_corrected", ""),
                 "barcode_corrected": row.get("barcode_corrected") or row.get("barcode") or row.get("barcode_raw", ""),
-                "cell_id": f"{row.get('sample_id', '')}:{row.get('barcode_corrected') or row.get('barcode_raw') or row.get('barcode', '')}",
+                "cell_id": canonical_cell_id(
+                    row.get("sample_id", ""),
+                    row.get("library_id", ""),
+                    row.get("barcode_corrected") or row.get("barcode_raw") or row.get("barcode", ""),
+                ),
                 "cluster_id": "",
                 "cell_type": "",
                 "condition": row.get("condition", ""),
@@ -86,9 +106,14 @@ def main() -> None:
             key,
             {
                 "sample_id": row.get("sample_id", ""),
+                "library_id": row.get("library_id", ""),
                 "barcode_raw": row.get("barcode_raw") or row.get("barcode") or row.get("barcode_corrected", ""),
                 "barcode_corrected": row.get("barcode_corrected") or row.get("barcode") or row.get("barcode_raw", ""),
-                "cell_id": f"{row.get('sample_id', '')}:{row.get('barcode_corrected') or row.get('barcode_raw') or row.get('barcode', '')}",
+                "cell_id": canonical_cell_id(
+                    row.get("sample_id", ""),
+                    row.get("library_id", ""),
+                    row.get("barcode_corrected") or row.get("barcode_raw") or row.get("barcode", ""),
+                ),
                 "cluster_id": "",
                 "cell_type": "",
                 "condition": row.get("condition", ""),
@@ -100,7 +125,7 @@ def main() -> None:
         if not existing["label_source"]:
             existing["label_source"] = "cell_type_labels"
 
-    out_rows = sorted(by_key.values(), key=lambda row: (row["sample_id"], row["barcode_corrected"]))
+    out_rows = sorted(by_key.values(), key=lambda row: (row["sample_id"], row["library_id"], row["barcode_corrected"]))
     with Path(args.out).open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=CANONICAL_COLUMNS, delimiter="\t")
         writer.writeheader()

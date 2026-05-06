@@ -18,6 +18,33 @@ nextflow run . -profile slurm,singularity --run_mode from_bam --input sampleshee
 nextflow run . -profile slurm,singularity --run_mode feedback --input samplesheet.csv --cell_metadata relabeled_cells.tsv
 ```
 
+## Dual PAS reference mode
+
+Use the curated PolyA_DB source for precision, the PolyASite v3 source for
+recall, or both together. When both optional sources are set, the pipeline
+downloads missing built-in archives, normalizes both tables, and collapses sites
+within `--pas_reference_merge_distance` bp. When only one source is set, that
+source is normalized and used directly.
+
+```bash
+nextflow run . \
+  --input samplesheet.csv \
+  --genome_fasta genome.fa \
+  --gtf genes.gtf \
+  --polya_db download \
+  --polyasite download
+```
+
+Downloaded archives are cached under `<outdir>/reference_cache` by default, or
+under `--pas_reference_cache_dir` when supplied.
+
+Single-source examples:
+
+```bash
+nextflow run . --polya_db download --polyasite skip
+nextflow run . --polya_db skip --polyasite /data/atlas.clusters.3.0.GRCh38.GENCODE_42.bed.gz
+```
+
 ## pbmc1k MVP validation run (deepthought)
 
 The PBMC 1k v3 (10x Genomics healthy donor) dataset is the canonical test for
@@ -55,4 +82,3 @@ nextflow run main.nf \
 
 - `Failed to render execution report/timeline` — R not installed; HTML reports skipped
 - `SIERRA_QUANT` and `PAS_SCORING` are disabled in this profile (scaffold stubs)
-

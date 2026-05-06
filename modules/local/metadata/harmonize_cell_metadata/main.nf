@@ -29,7 +29,7 @@ process HARMONIZE_CELL_METADATA {
 
     stub:
     """
-    printf "sample_id\\tbarcode_raw\\tbarcode_corrected\\tcell_id\\tcluster_id\\tcell_type\\tcondition\\tbatch\\tlabel_source\\n" > cell_metadata.harmonized.tsv
+    printf "sample_id\\tlibrary_id\\tbarcode_raw\\tbarcode_corrected\\tcell_id\\tcluster_id\\tcell_type\\tcondition\\tbatch\\tlabel_source\\n" > cell_metadata.harmonized.tsv
     echo "{}" > cell_metadata_manifest.json
     """
 }

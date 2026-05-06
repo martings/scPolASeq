@@ -78,9 +78,10 @@ def main() -> None:
             or start
         )
         strand = atlas.get("strand") or atlas.get("Strand") or "+"
+        atlas_source = atlas.get("source") or atlas.get("reference_source") or "atlas"
         key = (gene_id, chrom, end if strand == "+" else start, strand)
         if key in seen:
-            seen[key]["site_source"] = "annotation+atlas"
+            seen[key]["site_source"] = f"annotation+atlas:{atlas_source}"
             continue
         row = {
             "site_id": f"{gene_id}:{chrom}:{start}-{end}:{strand}",
@@ -90,7 +91,7 @@ def main() -> None:
             "end": end,
             "strand": strand,
             "site_class": "known_pas",
-            "site_source": "atlas",
+            "site_source": f"atlas:{atlas_source}",
             "priming_flag": "unchecked",
         }
         site_rows.append(row)

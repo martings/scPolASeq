@@ -24,11 +24,22 @@ def parse_args():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--bam",          required=True)
     p.add_argument("--annotations",  required=True)
+    p.add_argument("--sample-id",    default=None)
+    p.add_argument("--library-id",   default=None)
     p.add_argument("--out-bam",      required=True)
     p.add_argument("--out-stats",    required=True)
     p.add_argument("--cb-tag",       default="CB", help="BAM tag carrying cell barcode")
     p.add_argument("--ub-tag",       default="UB", help="BAM tag carrying UMI")
     return p.parse_args()
+
+
+def filter_annotations(anno, sample_id=None, library_id=None):
+    scoped = anno
+    if sample_id and "sample_id" in scoped.columns:
+        scoped = scoped[scoped["sample_id"].fillna("").astype(str).str.strip() == sample_id]
+    if library_id and "library_id" in scoped.columns:
+        scoped = scoped[scoped["library_id"].fillna("").astype(str).str.strip() == library_id]
+    return scoped
 
 
 def main():
@@ -42,6 +53,8 @@ def main():
     except Exception as e:
         log.error(f"Cannot load annotations: {e}")
         sys.exit(1)
+    anno = filter_annotations(anno, sample_id=args.sample_id, library_id=args.library_id)
+    log.info(f"Scoped annotation rows: {len(anno)}")
 
     # Resolve barcode column: accept 'barcode', 'barcode_corrected', or 'barcode_raw'
     bc_col = next(

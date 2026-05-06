@@ -8,6 +8,7 @@ from pathlib import Path
 
 CANONICAL_COLUMNS = [
     "sample_id",
+    "library_id",
     "barcode_raw",
     "barcode_corrected",
     "cell_id",
@@ -17,6 +18,14 @@ CANONICAL_COLUMNS = [
     "batch",
     "label_source",
 ]
+
+
+def canonical_cell_id(sample_id: str, library_id: str, barcode: str) -> str:
+    parts = [sample_id]
+    if library_id:
+        parts.append(library_id)
+    parts.append(barcode)
+    return ":".join(parts)
 
 
 def load_rows(paths):
@@ -41,7 +50,7 @@ def main() -> None:
     args = parser.parse_args()
 
     rows = load_rows(args.annotation_files)
-    rows.sort(key=lambda row: ((row.get("sample_id") or ""), (row.get("barcode_corrected") or "")))
+    rows.sort(key=lambda row: ((row.get("sample_id") or ""), (row.get("library_id") or ""), (row.get("barcode_corrected") or "")))
 
     with Path(args.out_cell_annotations).open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=CANONICAL_COLUMNS, delimiter="\t")
@@ -53,6 +62,7 @@ def main() -> None:
     summary = Counter()
     for row in rows:
         sample_id = row.get("sample_id", "")
+        library_id = row.get("library_id", "")
         barcode = row.get("barcode_corrected") or row.get("barcode_raw") or ""
         condition = row.get("condition", "") or "NA"
         cluster_id = row.get("cluster_id", "")
@@ -61,7 +71,7 @@ def main() -> None:
         for level in grouping_levels:
             group_id = None
             if level == "cell":
-                group_id = row.get("cell_id") or f"{sample_id}:{barcode}"
+                group_id = row.get("cell_id") or canonical_cell_id(sample_id, library_id, barcode)
             elif level == "cluster" and cluster_id:
                 group_id = cluster_id
             elif level == "cell_type" and cell_type:
@@ -73,6 +83,7 @@ def main() -> None:
                 group_rows.append(
                     {
                         "sample_id": sample_id,
+                        "library_id": library_id,
                         "barcode_corrected": barcode,
                         "group_level": level,
                         "group_id": group_id,
@@ -81,7 +92,7 @@ def main() -> None:
                 summary[(level, group_id)] += 1
 
     with Path(args.out_group_map).open("w", newline="", encoding="utf-8") as handle:
-        fieldnames = ["sample_id", "barcode_corrected", "group_level", "group_id"]
+        fieldnames = ["sample_id", "library_id", "barcode_corrected", "group_level", "group_id"]
         writer = csv.DictWriter(handle, fieldnames=fieldnames, delimiter="\t")
         writer.writeheader()
         writer.writerows(group_rows)

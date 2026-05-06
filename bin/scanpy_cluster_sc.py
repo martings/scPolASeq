@@ -24,7 +24,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger()
 
 CANONICAL_COLUMNS = [
-    "sample_id", "barcode_raw", "barcode_corrected", "cell_id",
+    "sample_id", "library_id", "barcode_raw", "barcode_corrected", "cell_id",
     "cluster_id", "cell_type", "condition", "batch", "label_source",
 ]
 
@@ -37,12 +37,24 @@ def _is_sentinel(value: str) -> bool:
     return not value or value.strip() in _SENTINEL
 
 
-def load_metadata(path: Path, sample_id: str):
+def load_metadata(path: Path, sample_id: str, library_id: str):
     if not path.exists() or _is_sentinel(path.name) or path.stat().st_size == 0:
         return []
     with path.open("r", newline="", encoding="utf-8") as fh:
         reader = csv.DictReader(fh, delimiter="\t")
-        return [r for r in reader if (r.get("sample_id") or "") == sample_id]
+        rows = []
+        for row in reader:
+            if (row.get("sample_id") or "") != sample_id:
+                continue
+            row_library_id = (row.get("library_id") or "").strip()
+            if row_library_id and row_library_id != library_id:
+                continue
+            rows.append(row)
+        return rows
+
+
+def canonical_cell_id(sample_id: str, library_id: str, barcode_corrected: str) -> str:
+    return f"{sample_id}:{library_id}:{barcode_corrected}"
 
 
 def _pick_barcode_files(matrix_dir: Path):
@@ -117,6 +129,8 @@ def _load_10x_matrix(mtx_dir: Path):
 
     adata = anndata.AnnData(X=mat)
     adata.obs_names = barcodes
+    adata.obs["barcode_raw"] = barcodes
+    adata.obs["barcode_corrected"] = barcodes
     adata.var_names = var_names
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
@@ -124,18 +138,101 @@ def _load_10x_matrix(mtx_dir: Path):
     return adata
 
 
-def _make_row(sample_id, bc, cluster_id, cell_type, label_source, condition="", batch=""):
+def normalize_row(row, sample_id: str, library_id: str, default_label_source: str):
+    resolved_sample_id = row.get("sample_id") or sample_id
+    resolved_library_id = row.get("library_id") or library_id
+    barcode_raw = row.get("barcode_raw") or row.get("barcode_corrected") or row.get("barcode") or ""
+    barcode_corrected = row.get("barcode_corrected") or row.get("barcode_raw") or row.get("barcode") or ""
     return {
-        "sample_id": sample_id, "barcode_raw": bc, "barcode_corrected": bc,
-        "cell_id": f"{sample_id}:{bc}", "cluster_id": cluster_id,
+        "sample_id": resolved_sample_id,
+        "library_id": resolved_library_id,
+        "barcode_raw": barcode_raw,
+        "barcode_corrected": barcode_corrected,
+        "cell_id": canonical_cell_id(resolved_sample_id, resolved_library_id, barcode_corrected),
+        "cluster_id": row.get("cluster_id", ""),
+        "cell_type": row.get("cell_type", ""),
+        "condition": row.get("condition", ""),
+        "batch": row.get("batch", ""),
+        "label_source": row.get("label_source") or default_label_source,
+    }
+
+
+def _make_row(sample_id, library_id, bc, cluster_id, cell_type, label_source, condition="", batch=""):
+    return {
+        "sample_id": sample_id,
+        "library_id": library_id,
+        "barcode_raw": bc,
+        "barcode_corrected": bc,
+        "cell_id": canonical_cell_id(sample_id, library_id, bc),
+        "cluster_id": cluster_id,
         "cell_type": cell_type, "condition": condition, "batch": batch,
         "label_source": label_source,
     }
 
 
+def annotate_adata_obs(adata, sample_id: str, library_id: str):
+    barcodes = [str(barcode) for barcode in list(adata.obs_names)]
+    cell_ids = [canonical_cell_id(sample_id, library_id, barcode) for barcode in barcodes]
+    n_obs = len(barcodes)
+    adata.obs["sample_id"] = [sample_id] * n_obs
+    adata.obs["library_id"] = [library_id] * n_obs
+    adata.obs["barcode_raw"] = barcodes
+    adata.obs["barcode_corrected"] = barcodes
+    adata.obs["cell_id"] = cell_ids
+    adata.obs_names = cell_ids
+    return adata
+
+
+def emit_embedding_plots(adata, out_plot_prefix: str) -> None:
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        log.warning(f"matplotlib not importable ({exc}); skipping embedding plots.")
+        return
+
+    base_path = Path(out_plot_prefix)
+    plot_specs = []
+
+    if "X_pca" in adata.obsm and adata.obsm["X_pca"].shape[1] >= 2:
+        plot_specs.append(("pca", adata.obsm["X_pca"][:, :2], "PCA 1", "PCA 2"))
+    if "X_umap" in adata.obsm and adata.obsm["X_umap"].shape[1] >= 2:
+        plot_specs.append(("umap", adata.obsm["X_umap"][:, :2], "UMAP 1", "UMAP 2"))
+
+    if not plot_specs:
+        log.warning("No 2D embeddings available in adata.obsm; skipping embedding plots.")
+        return
+
+    cluster_ids = [str(value) for value in adata.obs.get("cluster_id", ["unassigned"] * adata.n_obs)]
+    unique_clusters = sorted(set(cluster_ids))
+    cmap = plt.get_cmap("tab20", max(len(unique_clusters), 1))
+    color_map = {cluster_id: cmap(index) for index, cluster_id in enumerate(unique_clusters)}
+    colors = [color_map[cluster_id] for cluster_id in cluster_ids]
+
+    for embedding_name, coords, x_label, y_label in plot_specs:
+        fig, ax = plt.subplots(figsize=(7, 6))
+        ax.scatter(coords[:, 0], coords[:, 1], c=colors, s=10, linewidths=0, alpha=0.85)
+        ax.set_title(f"{base_path.name} {embedding_name.upper()} by cluster")
+        ax.set_xlabel(x_label)
+        ax.set_ylabel(y_label)
+        handles = [
+            plt.Line2D([0], [0], marker="o", color="w", label=cluster_id,
+                       markerfacecolor=color_map[cluster_id], markersize=6)
+            for cluster_id in unique_clusters
+        ]
+        if handles:
+            ax.legend(handles=handles, title="cluster_id", loc="best", fontsize=8, title_fontsize=9)
+        fig.tight_layout()
+        out_path = base_path.parent / f"{base_path.name}.{embedding_name}.png"
+        fig.savefig(out_path, dpi=150)
+        plt.close(fig)
+        log.info(f"Saved embedding plot: {out_path}")
+
+
 # ── label sources ─────────────────────────────────────────────────────────────
 
-def labels_from_celltypist(matrix_dir: Path, model_arg: str, barcodes: list, sample_id: str):
+def labels_from_celltypist(matrix_dir: Path, model_arg: str, barcodes: list, sample_id: str, library_id: str):
     """Run CellTypist. Returns (rows, mode) or (None, None) on any failure."""
     try:
         import celltypist
@@ -158,14 +255,14 @@ def labels_from_celltypist(matrix_dir: Path, model_arg: str, barcodes: list, sam
         log.warning(f"CellTypist prediction failed: {exc}; skipping.")
         return None, None
 
-    rows = [_make_row(sample_id, bc, ct_map.get(bc, "unknown"), ct_map.get(bc, "unknown"),
+    rows = [_make_row(sample_id, library_id, bc, ct_map.get(bc, "unknown"), ct_map.get(bc, "unknown"),
                       "celltypist") for bc in barcodes]
     n_types = len(set(r["cell_type"] for r in rows))
     log.info(f"CellTypist: {n_types} cell types across {len(rows)} cells")
     return rows, "celltypist"
 
 
-def labels_from_reference_h5ad(ref_path: Path, label_col: str, barcodes: list, sample_id: str):
+def labels_from_reference_h5ad(ref_path: Path, label_col: str, barcodes: list, sample_id: str, library_id: str):
     """Transfer labels from reference h5ad by barcode matching. Returns (rows, mode) or (None, None)."""
     try:
         import anndata
@@ -191,12 +288,12 @@ def labels_from_reference_h5ad(ref_path: Path, label_col: str, barcodes: list, s
         log.warning("h5ad reference: 0 barcodes matched; skipping this tier.")
         return None, None
 
-    rows = [_make_row(sample_id, bc, bc_to_label.get(bc, "unmatched"),
+    rows = [_make_row(sample_id, library_id, bc, bc_to_label.get(bc, "unmatched"),
                       bc_to_label.get(bc, "unmatched"), "reference_h5ad") for bc in barcodes]
     return rows, "reference_h5ad"
 
 
-def labels_from_leiden(matrix_dir: Path, barcodes: list, sample_id: str, resolution=0.5):
+def labels_from_leiden(matrix_dir: Path, barcodes: list, sample_id: str, library_id: str, resolution=0.5):
     """Leiden clustering via scanpy (requires leidenalg + igraph). Returns (rows, mode, adata) or (None, None, None)."""
     try:
         import leidenalg  # noqa: F401 — just to check availability
@@ -233,13 +330,13 @@ def labels_from_leiden(matrix_dir: Path, barcodes: list, sample_id: str, resolut
     rows = []
     for bc in barcodes:
         cid = f"cluster_{int(cluster_map[bc]) + 1}" if bc in cluster_map else "unassigned"
-        rows.append(_make_row(sample_id, bc, cid, "unlabeled", "leiden_clustering"))
+        rows.append(_make_row(sample_id, library_id, bc, cid, "unlabeled", "leiden_clustering"))
     adata_hvg.obs["cluster_id"] = [f"cluster_{int(cluster_map.get(bc, -1)) + 1}" if bc in cluster_map else "unassigned" for bc in adata_hvg.obs_names]
     adata_hvg.obs["label_source"] = "leiden_clustering"
     return rows, "leiden_clustering", adata_hvg
 
 
-def labels_from_kmeans(matrix_dir: Path, barcodes: list, sample_id: str, n_clusters: int = 8):
+def labels_from_kmeans(matrix_dir: Path, barcodes: list, sample_id: str, library_id: str, n_clusters: int = 8):
     """KMeans on PCA coordinates via scanpy + sklearn. Returns (rows, mode, adata) or (None, None, None)."""
     try:
         import scanpy as sc
@@ -274,7 +371,7 @@ def labels_from_kmeans(matrix_dir: Path, barcodes: list, sample_id: str, n_clust
     rows = []
     for bc in barcodes:
         cid = f"cluster_{cluster_map[bc] + 1}" if bc in cluster_map else "unassigned"
-        rows.append(_make_row(sample_id, bc, cid, "unlabeled", "kmeans_clustering"))
+        rows.append(_make_row(sample_id, library_id, bc, cid, "unlabeled", "kmeans_clustering"))
 
     # Annotate adata_hvg with cluster labels and compute UMAP for h5ad output
     adata_hvg.obs["cluster_id"] = [f"cluster_{cluster_map[bc] + 1}" if bc in cluster_map else "unassigned" for bc in adata_hvg.obs_names]
@@ -289,8 +386,8 @@ def labels_from_kmeans(matrix_dir: Path, barcodes: list, sample_id: str, n_clust
     return rows, "kmeans_clustering", adata_hvg
 
 
-def fallback_round_robin(barcodes: list, sample_id: str):
-    rows = [_make_row(sample_id, bc, f"cluster_{((i) % 3) + 1}", "unlabeled",
+def fallback_round_robin(barcodes: list, sample_id: str, library_id: str):
+    rows = [_make_row(sample_id, library_id, bc, f"cluster_{((i) % 3) + 1}", "unlabeled",
                       "fallback_internal_clustering")
             for i, bc in enumerate(barcodes)]
     return rows, "fallback_internal_clustering"
@@ -314,6 +411,7 @@ def main():
     parser.add_argument("--out-annotations",           required=True)
     parser.add_argument("--out-report",                required=True)
     parser.add_argument("--out-h5ad",                  required=True)
+    parser.add_argument("--out-plot-prefix",           default=None)
     args = parser.parse_args()
 
     sample_id = args.sample_id
@@ -324,19 +422,9 @@ def main():
     adata_out = None
 
     # ── Tier 1: External metadata TSV ─────────────────────────────────────────
-    meta_rows = load_metadata(Path(args.cell_metadata), sample_id)
+    meta_rows = load_metadata(Path(args.cell_metadata), sample_id, args.library_id)
     if meta_rows:
-        rows = [{
-            "sample_id":         r.get("sample_id", ""),
-            "barcode_raw":       r.get("barcode_raw") or r.get("barcode_corrected", ""),
-            "barcode_corrected": r.get("barcode_corrected") or r.get("barcode_raw", ""),
-            "cell_id":           r.get("cell_id") or f"{sample_id}:{r.get('barcode_corrected') or r.get('barcode_raw', '')}",
-            "cluster_id":        r.get("cluster_id", ""),
-            "cell_type":         r.get("cell_type", ""),
-            "condition":         r.get("condition", ""),
-            "batch":             r.get("batch", ""),
-            "label_source":      r.get("label_source", "external_metadata"),
-        } for r in meta_rows]
+        rows = [normalize_row(r, sample_id, args.library_id, "external_metadata") for r in meta_rows]
         clustering_mode = "external_metadata"
         log.info(f"Tier 1 (external metadata): {len(rows)} cells")
 
@@ -347,7 +435,7 @@ def main():
     # ── Tier 2: CellTypist ────────────────────────────────────────────────────
     ct_model = args.celltypist_model
     if rows is None and ct_model and not _is_sentinel(ct_model):
-        rows, clustering_mode = labels_from_celltypist(matrix_dir, ct_model, barcodes, sample_id)
+        rows, clustering_mode = labels_from_celltypist(matrix_dir, ct_model, barcodes, sample_id, args.library_id)
         if rows is not None:
             log.info(f"Tier 2 (CellTypist): {len(rows)} cells")
 
@@ -357,16 +445,16 @@ def main():
         ref_path = Path(ref_h5ad)
         if ref_path.exists() and ref_path.stat().st_size > 0:
             rows, clustering_mode = labels_from_reference_h5ad(
-                ref_path, args.reference_label_col, barcodes, sample_id)
+                ref_path, args.reference_label_col, barcodes, sample_id, args.library_id)
             if rows is not None:
                 log.info(f"Tier 3 (h5ad reference): {len(rows)} cells")
 
     # ── Tier 4: Internal Scanpy clustering ────────────────────────────────────
     if rows is None and enable_clustering and barcodes:
         # Try Leiden first, then KMeans
-        rows, clustering_mode, adata_out = labels_from_leiden(matrix_dir, barcodes, sample_id)
+        rows, clustering_mode, adata_out = labels_from_leiden(matrix_dir, barcodes, sample_id, args.library_id)
         if rows is None:
-            rows, clustering_mode, adata_out = labels_from_kmeans(matrix_dir, barcodes, sample_id)
+            rows, clustering_mode, adata_out = labels_from_kmeans(matrix_dir, barcodes, sample_id, args.library_id)
         if rows is not None:
             log.info(f"Tier 4 (internal clustering/{clustering_mode}): {len(rows)} cells")
 
@@ -375,7 +463,7 @@ def main():
         if not barcodes:
             rows, clustering_mode = [], "empty_annotations"
         else:
-            rows, clustering_mode = fallback_round_robin(barcodes, sample_id)
+            rows, clustering_mode = fallback_round_robin(barcodes, sample_id, args.library_id)
             log.info(f"Tier 5 (round-robin fallback): {len(rows)} cells")
 
     # ── Write outputs ─────────────────────────────────────────────────────────
@@ -390,10 +478,11 @@ def main():
         writer.writerow([sample_id, args.library_id, len(rows), clustering_mode])
 
     if adata_out is not None:
-        adata_out.obs["sample_id"]  = sample_id
-        adata_out.obs["library_id"] = args.library_id
+        annotate_adata_obs(adata_out, sample_id, args.library_id)
         try:
             adata_out.write_h5ad(args.out_h5ad)
+            plot_prefix = args.out_plot_prefix or str(Path(args.out_h5ad).with_suffix(""))
+            emit_embedding_plots(adata_out, plot_prefix)
             log.info(f"Saved h5ad: {args.out_h5ad} ({adata_out.n_obs} cells x {adata_out.n_vars} genes)")
         except Exception as exc:
             log.warning(f"h5ad write failed ({exc}); writing JSON stub instead.")
