@@ -19,7 +19,7 @@ process HARMONIZE_CELL_METADATA {
 
     script:
     """
-    python ${projectDir}/bin/harmonize_cell_metadata.py \\
+    python3 ${projectDir}/bin/harmonize_cell_metadata.py \\
         --cell-metadata ${cell_metadata} \\
         --cluster-assignments ${cluster_assignments} \\
         --cell-type-labels ${cell_type_labels} \\

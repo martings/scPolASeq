@@ -28,6 +28,22 @@ log <- function(...) {
     writeLines(msg, log_con)
 }
 
+# ── Bail out cleanly on empty / invalid BAM ───────────────────────────────────
+empty_dt <- data.table(
+    library_id   = character(),
+    group_level  = character(),
+    group_id     = character(),
+    site_id      = character(),
+    cell_barcode = character(),
+    umi_count    = integer()
+)
+if (file.info(opt$bam)$size == 0) {
+    log("WARNING: BAM file is empty — writing empty TSV and skipping")
+    fwrite(empty_dt, opt$output, sep = "\t")
+    close(log_con)
+    quit(status = 0)
+}
+
 required_ann_cols <- c("library_id", "barcode_corrected")
 subset_annotations <- function(ann, library_id, group_level, group_id) {
     missing_cols <- setdiff(required_ann_cols, colnames(ann))
@@ -82,7 +98,16 @@ if (length(whitelist_barcodes) == 0) {
 }
 
 param_diag <- ScanBamParam(tag = "CB", what = character(0))
-diag_aln   <- scanBam(opt$bam, param = param_diag)[[1]]
+diag_aln   <- tryCatch(
+    scanBam(opt$bam, param = param_diag)[[1]],
+    error = function(e) { log("WARNING: BAM diagnostic scan failed: ", conditionMessage(e)); NULL }
+)
+if (is.null(diag_aln)) {
+    log("WARNING: could not read BAM — writing empty TSV and skipping")
+    fwrite(empty_dt, opt$output, sep = "\t")
+    close(log_con)
+    quit(status = 0)
+}
 bam_cbs    <- unique(na.omit(diag_aln$tag$CB))
 n_overlap   <- sum(bam_cbs %in% whitelist_barcodes)
 log("BAM CB tags sampled: ", length(bam_cbs), " unique",
@@ -147,15 +172,6 @@ result <- tryCatch(
 )
 
 # ── Parse output or write empty TSV if no reads were found ───────────────────
-empty_dt <- data.table(
-    library_id   = character(),
-    group_level  = character(),
-    group_id     = character(),
-    site_id      = character(),
-    cell_barcode = character(),
-    umi_count    = integer()
-)
-
 mat_file     <- file.path(out_dir, "matrix.mtx.gz")
 barcode_file <- file.path(out_dir, "barcodes.tsv.gz")
 feature_file <- file.path(out_dir, "sitenames.tsv.gz")

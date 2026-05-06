@@ -32,7 +32,7 @@ process PAS_REFERENCE_BUILD {
 
     script:
     """
-    python ${projectDir}/bin/build_pas_reference.py \\
+    python3 ${projectDir}/bin/build_pas_reference.py \\
         --site-catalog ${site_catalog} \\
         --terminal-exons ${terminal_exons} \\
         --known-polya ${known_polya} \\

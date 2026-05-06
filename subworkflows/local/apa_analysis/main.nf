@@ -12,7 +12,7 @@ workflow APA_ANALYSIS_SC {
 
     main:
     reference_bundle
-        .map { reference_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist ->
+        .map { reference_meta, star_index, gtf, fasta, fasta_fai, chrom_sizes, terminal_exons, atlas, blacklist ->
             tuple(terminal_exons, atlas)
         }
         .set { ch_candidate_input }
@@ -21,7 +21,7 @@ workflow APA_ANALYSIS_SC {
 
     CANDIDATE_SITES_ANNOTATION_GUIDED.out.site_catalog
         .combine(reference_bundle)
-        .map { site_catalog, reference_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist ->
+        .map { site_catalog, reference_meta, star_index, gtf, fasta, fasta_fai, chrom_sizes, terminal_exons, atlas, blacklist ->
             tuple(site_catalog, fasta, blacklist)
         }
         .set { ch_priming_input }

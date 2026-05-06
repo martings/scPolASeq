@@ -22,7 +22,7 @@ process APA_MODEL_PREDICT {
     script:
     def scFlag = enable_single_cell_projection ? '--single-cell-projection' : ''
     """
-    python ${projectDir}/bin/apa_model_predict.py \\
+    python3 ${projectDir}/bin/apa_model_predict.py \\
         --features     ${feature_table} \\
         --model        ${trained_model} \\
         --group-level  ${group_level}   \\

@@ -7,25 +7,38 @@ import shutil
 from pathlib import Path
 
 
-def read_fasta_lengths(path: Path):
-    lengths = []
+def read_fasta_index(path: Path):
+    """Return faidx-compatible rows for a FASTA file."""
+    entries = []
     name = None
     seq_len = 0
-    with path.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            line = line.strip()
+    seq_offset = 0
+    line_bases = 0
+    line_width = 0
+
+    def flush_entry():
+        if name is not None:
+            entries.append((name, seq_len, seq_offset, line_bases, line_width))
+
+    with path.open("rb") as handle:
+        for raw_line in handle:
+            line = raw_line.rstrip(b"\r\n")
             if not line:
                 continue
-            if line.startswith(">"):
-                if name is not None:
-                    lengths.append((name, seq_len))
-                name = line[1:].split()[0]
+            if line.startswith(b">"):
+                flush_entry()
+                name = line[1:].split()[0].decode("utf-8")
                 seq_len = 0
+                seq_offset = handle.tell()
+                line_bases = 0
+                line_width = 0
             else:
+                if line_bases == 0:
+                    line_bases = len(line)
+                    line_width = len(raw_line)
                 seq_len += len(line)
-    if name is not None:
-        lengths.append((name, seq_len))
-    return lengths
+    flush_entry()
+    return entries
 
 
 def copy_or_touch(source: Path, target: Path):
@@ -57,19 +70,18 @@ def main() -> None:
     shutil.copyfile(genome_fasta, out_fasta)
     shutil.copyfile(Path(args.gtf), out_gtf)
 
-    lengths = read_fasta_lengths(out_fasta)
+    fasta_index = read_fasta_index(out_fasta)
     with Path(args.out_sizes).open("w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle, delimiter="\t")
-        writer.writerows(lengths)
+        writer.writerows((contig, length) for contig, length, *_ in fasta_index)
 
     with Path(args.out_fai).open("w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle, delimiter="\t")
-        for contig, length in lengths:
-            writer.writerow([contig, length, 0, 0, 0])
+        writer.writerows(fasta_index)
 
     with Path(args.out_dict).open("w", encoding="utf-8") as handle:
         handle.write("@HD\tVN:1.6\tSO:unsorted\n")
-        for contig, length in lengths:
+        for contig, length, *_ in fasta_index:
             handle.write(f"@SQ\tSN:{contig}\tLN:{length}\n")
 
     copy_or_touch(Path(args.known_polya), Path(args.out_known_polya))
@@ -78,7 +90,8 @@ def main() -> None:
     manifest = {
         "genome_fasta": str(out_fasta.resolve()),
         "gtf": str(out_gtf.resolve()),
-        "contigs": len(lengths),
+        "genome_fai": str(Path(args.out_fai).resolve()),
+        "contigs": len(fasta_index),
     }
     Path(args.out_manifest).write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 

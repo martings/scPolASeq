@@ -21,7 +21,7 @@ process APA_QUANTIFY_SITE_USAGE {
     script:
     def coverageArgs = coverage_files.collect { it.toString() }.join(' ')
     """
-    python ${projectDir}/bin/quantify_site_usage.py \\
+    python3 ${projectDir}/bin/quantify_site_usage.py \\
         --coverage-files ${coverageArgs} \\
         --site-catalog ${site_catalog} \\
         --group-map ${group_map} \\

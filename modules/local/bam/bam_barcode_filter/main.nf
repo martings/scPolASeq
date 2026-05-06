@@ -19,7 +19,7 @@ process BAM_BARCODE_FILTER {
 
     script:
     """
-    python ${projectDir}/bin/filter_bam_by_barcodes.py \\
+    python3 ${projectDir}/bin/filter_bam_by_barcodes.py \\
         --bam            ${bam} \\
         --annotations    ${cell_annotations} \\
         --sample-id      ${meta.sample_id} \\

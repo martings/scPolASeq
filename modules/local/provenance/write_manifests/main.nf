@@ -16,7 +16,7 @@ process WRITE_MANIFESTS {
 
     script:
     """
-    python ${projectDir}/bin/write_manifest.py \\
+    python3 ${projectDir}/bin/write_manifest.py \\
         --input-table ${input_table} \\
         --manifest-name ${manifest_name} \\
         --out ${manifest_name}.manifest.tsv

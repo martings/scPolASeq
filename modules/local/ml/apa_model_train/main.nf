@@ -23,7 +23,7 @@ process APA_MODEL_TRAIN {
 
     script:
     """
-    python ${projectDir}/bin/apa_model_train.py \\
+    python3 ${projectDir}/bin/apa_model_train.py \\
         --features       ${feature_table} \\
         --apa-events     ${apa_events}    \\
         --model-type     ${model_type}    \\

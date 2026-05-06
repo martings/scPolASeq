@@ -16,7 +16,7 @@ workflow FEEDBACK_RECONSTRUCT {
         .join(barcode_registry)
         .combine(group_map)
         .combine(reference_bundle)
-        .map { meta, bam, bai, registry, group_map_file, reference_meta, star_index, gtf, fasta, chrom_sizes, terminal_exons, atlas, blacklist ->
+        .map { meta, bam, bai, registry, group_map_file, reference_meta, star_index, gtf, fasta, fasta_fai, chrom_sizes, terminal_exons, atlas, blacklist ->
             tuple(meta, bam, bai, registry, group_map_file, chrom_sizes, emit_bigwigs)
         }
         .set { ch_coverage_input }

@@ -18,7 +18,7 @@ process VALIDATE_INPUTS {
 
     script:
     """
-    python ${projectDir}/bin/validate_inputs.py \\
+    python3 ${projectDir}/bin/validate_inputs.py \\
         --input ${samplesheet} \\
         --schema ${schema} \\
         --out samplesheet.validated.csv \\

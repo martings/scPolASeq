@@ -67,13 +67,13 @@ process STARSOLO_ALIGN_SC {
         touch ${meta.sample_id}.Aligned.sortedByCoord.out.bam.bai
     fi
 
-    python ${projectDir}/bin/extract_barcode_registry.py \\
+    python3 ${projectDir}/bin/extract_barcode_registry.py \\
         --solo-dir ${meta.sample_id}.Solo.out \\
         --sample ${meta.sample_id} \\
         --library ${meta.sample_id} \\
         --out ${meta.sample_id}.barcode_registry.tsv
 
-    python ${projectDir}/bin/write_manifest.py \\
+    python3 ${projectDir}/bin/write_manifest.py \\
         --input-table ${meta.sample_id}.barcode_registry.tsv \\
         --manifest-name ${meta.sample_id}.alignment \\
         --out ${meta.sample_id}.alignment_manifest.tsv
