@@ -19,7 +19,7 @@ process BAM_MERGE_SAMPLE {
     def n       = bam_list.size()
     """
     if [ "${n}" -eq 1 ]; then
-        ln -sf \$(realpath ${bam_list[0]}) ${prefix}.merged.bam
+        ln -sf ${bam_list[0]} ${prefix}.merged.bam
         samtools index ${prefix}.merged.bam
     else
         samtools merge -@ ${task.cpus} -f ${prefix}.merged.bam ${bam_list.join(' ')}
