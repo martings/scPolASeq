@@ -183,10 +183,12 @@ workflow APA_CORE {
         def ch_scapture_polya_db = params.scapture_polya_db
             ? Channel.value(file(params.scapture_polya_db))
             : Channel.value(file("${projectDir}/assets/NO_FILE"))
+        def ch_scapture_has_polya_db = Channel.value(params.scapture_polya_db ? true : false)
 
         def ch_scapture_resume_pascall_dir = params.scapture_resume_pascall_dir
             ? Channel.value(file(params.scapture_resume_pascall_dir, checkIfExists: true))
             : Channel.value(file("${projectDir}/assets/NO_FILE"))
+        def ch_scapture_has_resume_pascall_dir = Channel.value(params.scapture_resume_pascall_dir ? true : false)
 
         // Group per-library filtered BAMs by sample_id and merge into one BAM per sample.
         // This avoids running SCAPTURE N times for N lanes of the same biological sample.
@@ -213,9 +215,11 @@ workflow APA_CORE {
             .combine(ch_chrom_sizes)
             .combine(cell_annotations)
             .combine(ch_scapture_polya_db)
+            .combine(ch_scapture_has_polya_db)
             .combine(ch_scapture_resume_pascall_dir)
-            .map { meta, bam, bai, fasta, fasta_fai, gtf, chrom_sizes, annotations, polya, resume_dir ->
-                tuple(meta, bam, bai, fasta, fasta_fai, gtf, chrom_sizes, annotations, polya, resume_dir)
+            .combine(ch_scapture_has_resume_pascall_dir)
+            .map { meta, bam, bai, fasta, fasta_fai, gtf, chrom_sizes, annotations, polya, has_polya_db, resume_dir, has_resume_dir ->
+                tuple(meta, bam, bai, fasta, fasta_fai, gtf, chrom_sizes, annotations, polya, has_polya_db, resume_dir, has_resume_dir)
             }
             .set { ch_scapture_input }
 

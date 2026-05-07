@@ -19,6 +19,8 @@ CANONICAL_COLUMNS = [
     "label_source",
 ]
 
+UNINFORMATIVE_CELL_TYPES = {"", "na", "nan", "none", "unknown", "undefined", "unlabeled", "unassigned"}
+
 
 def canonical_cell_id(sample_id: str, library_id: str, barcode: str) -> str:
     parts = [sample_id]
@@ -40,10 +42,19 @@ def load_rows(paths):
     return rows
 
 
+def has_informative_cell_types(rows):
+    for row in rows:
+        value = (row.get("cell_type") or "").strip().lower()
+        if value not in UNINFORMATIVE_CELL_TYPES:
+            return True
+    return False
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--annotation-files", nargs="+", required=True)
     parser.add_argument("--grouping-levels", required=True)
+    parser.add_argument("--skip-uninformative-cell-type", default="false")
     parser.add_argument("--out-cell-annotations", required=True)
     parser.add_argument("--out-group-map", required=True)
     parser.add_argument("--out-group-summary", required=True)
@@ -51,6 +62,8 @@ def main() -> None:
 
     rows = load_rows(args.annotation_files)
     rows.sort(key=lambda row: ((row.get("sample_id") or ""), (row.get("library_id") or ""), (row.get("barcode_corrected") or "")))
+    skip_uninformative_cell_type = str(args.skip_uninformative_cell_type).strip().lower() == "true"
+    informative_cell_types = has_informative_cell_types(rows)
 
     with Path(args.out_cell_annotations).open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=CANONICAL_COLUMNS, delimiter="\t")
@@ -75,8 +88,12 @@ def main() -> None:
             elif level == "cluster" and cluster_id:
                 group_id = cluster_id
             elif level == "cell_type" and cell_type:
+                if skip_uninformative_cell_type and not informative_cell_types:
+                    continue
                 group_id = cell_type
             elif level == "sample_condition_celltype":
+                if skip_uninformative_cell_type and not informative_cell_types:
+                    continue
                 group_id = f"{sample_id}__{condition}__{cell_type}"
 
             if group_id:

@@ -18,10 +18,12 @@ process BUILD_GROUP_MAP {
 
     script:
     def annotationArgs = annotation_files.collect { it.toString() }.join(' ')
+    def skipCellTypeFlag = params.skip_uninformative_cell_type_grouping?.toString()?.toBoolean() ? "true" : "false"
     """
     python3 ${projectDir}/bin/build_group_map.py \\
         --annotation-files ${annotationArgs} \\
         --grouping-levels "${grouping_levels}" \\
+        --skip-uninformative-cell-type ${skipCellTypeFlag} \\
         --out-cell-annotations cell_annotations.tsv \\
         --out-group-map group_map.tsv \\
         --out-group-summary group_summary.tsv

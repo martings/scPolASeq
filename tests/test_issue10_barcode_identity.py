@@ -307,6 +307,81 @@ def test_apa_core_normalizes_group_id_before_sierra(tmp_path):
     assert "group_id.startsWith(prefix)" in apa_core_nf
 
 
+def test_scapture_wiring_uses_distinct_stage_aliases_and_boolean_flags(tmp_path):
+    del tmp_path
+    apa_core_nf = (REPO_ROOT / "subworkflows" / "apa_core.nf").read_text(encoding="utf-8")
+    scapture_nf = (REPO_ROOT / "modules" / "local" / "apa" / "scapture" / "main.nf").read_text(
+        encoding="utf-8"
+    )
+    assert "ch_scapture_has_polya_db" in apa_core_nf
+    assert "ch_scapture_has_resume_pascall_dir" in apa_core_nf
+    assert "stageAs: 'scapture_polya_db_input'" in scapture_nf
+    assert "stageAs: 'scapture_resume_pascall_input'" in scapture_nf
+    assert "def db_arg     = has_polya_db ? \"--polyaDB ${polyaDB}\" : \"\"" in scapture_nf
+    assert "def has_resume = has_resume_pascall_dir" in scapture_nf
+
+
+def test_build_group_map_skips_uninformative_cell_type_groups(tmp_path):
+    annotation_fields = [
+        "sample_id",
+        "library_id",
+        "barcode_raw",
+        "barcode_corrected",
+        "cell_id",
+        "cluster_id",
+        "cell_type",
+        "condition",
+        "batch",
+        "label_source",
+    ]
+    annotation_one = tmp_path / "sample.cell_annotations.tsv"
+    write_tsv(
+        annotation_one,
+        annotation_fields,
+        [
+            {
+                "sample_id": "pbmc_1k_v3",
+                "library_id": "pbmc_1k_v3",
+                "barcode_raw": "AAAC-1",
+                "barcode_corrected": "AAAC-1",
+                "cell_id": "pbmc_1k_v3:pbmc_1k_v3:AAAC-1",
+                "cluster_id": "cluster_1",
+                "cell_type": "unlabeled",
+                "condition": "",
+                "batch": "",
+                "label_source": "unit_test",
+            }
+        ],
+    )
+
+    out_annotations = tmp_path / "cell_annotations.tsv"
+    out_group_map = tmp_path / "group_map.tsv"
+    out_group_summary = tmp_path / "group_summary.tsv"
+    subprocess.run(
+        [
+            sys.executable,
+            str(REPO_ROOT / "bin/build_group_map.py"),
+            "--annotation-files",
+            str(annotation_one),
+            "--grouping-levels",
+            "cluster,cell_type",
+            "--skip-uninformative-cell-type",
+            "true",
+            "--out-cell-annotations",
+            str(out_annotations),
+            "--out-group-map",
+            str(out_group_map),
+            "--out-group-summary",
+            str(out_group_summary),
+        ],
+        check=True,
+        cwd=REPO_ROOT,
+    )
+
+    group_rows = read_tsv(out_group_map)
+    assert {(row["group_level"], row["group_id"]) for row in group_rows} == {("cluster", "cluster_1")}
+
+
 def run_all_tests() -> None:
     test_functions = [
         test_extract_barcode_registry_preserves_starsolo_suffixes,
@@ -317,6 +392,8 @@ def run_all_tests() -> None:
         test_write_group_bams_names_outputs_with_library_prefix,
         test_alignment_subworkflow_collapses_samplesheet_rows_by_sample_id,
         test_apa_core_normalizes_group_id_before_sierra,
+        test_scapture_wiring_uses_distinct_stage_aliases_and_boolean_flags,
+        test_build_group_map_skips_uninformative_cell_type_groups,
     ]
     for test_function in test_functions:
         with tempfile.TemporaryDirectory() as tmpdir:

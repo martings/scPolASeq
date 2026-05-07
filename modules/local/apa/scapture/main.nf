@@ -30,7 +30,7 @@ process SCAPTURE_FILTER {
     publishDir "${params.outdir}/scapture", mode: params.publish_dir_mode
 
     input:
-    tuple val(meta), path(bam), path(bai), path(genome_fasta), path(genome_fai), path(gtf), path(chrom_sizes), path(cell_annotations), path(polyaDB), path(resume_pascall_dir)
+    tuple val(meta), path(bam), path(bai), path(genome_fasta), path(genome_fai), path(gtf), path(chrom_sizes), path(cell_annotations), path(polyaDB, stageAs: 'scapture_polya_db_input'), val(has_polya_db), path(resume_pascall_dir, stageAs: 'scapture_resume_pascall_input'), val(has_resume_pascall_dir)
 
     output:
     tuple val(meta), path("${meta.library_id}.scapture.site_catalog.tsv"), emit: site_catalog
@@ -48,8 +48,8 @@ process SCAPTURE_FILTER {
     def species    = params.scapture_species             ?: 'human'
     def peak_width = params.scapture_peak_width          ?: 400
     def score_thr  = params.scapture_deeppass_threshold  ?: 0.5
-    def db_arg     = (polyaDB.name != 'NO_FILE') ? "--polyaDB ${polyaDB}" : ""
-    def has_resume = resume_pascall_dir.name != 'NO_FILE'
+    def db_arg     = has_polya_db ? "--polyaDB ${polyaDB}" : ""
+    def has_resume = has_resume_pascall_dir
     """
     set -euo pipefail
 

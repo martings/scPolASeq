@@ -14,7 +14,7 @@ process GROUPED_BAM_GENERATION {
     tuple val(meta), path(filtered_bam), path(filtered_bai), path(group_map), val(group_level)
 
     output:
-    tuple val(meta), val(group_level), path("*.grouped.bam"), path("*.grouped.bam.bai"), emit: grouped_bams
+    tuple val(meta), val(group_level), path("*.grouped.bam"), path("*.grouped.bam.bai"), optional: true, emit: grouped_bams
     path "${meta.library_id}.${group_level}.grouping_manifest.tsv",                      emit: grouping_manifest
 
     script:
@@ -29,6 +29,7 @@ process GROUPED_BAM_GENERATION {
         --out-manifest  ${meta.library_id}.${group_level}.grouping_manifest.tsv
 
     # Index all produced BAMs
+    shopt -s nullglob
     for bam_file in *.grouped.bam; do
         if command -v samtools >/dev/null 2>&1; then
             samtools index "\$bam_file" || touch "\${bam_file}.bai"
@@ -40,11 +41,16 @@ process GROUPED_BAM_GENERATION {
 
     stub:
     def stub_gid = meta.library_id.contains('L001') ? 'cluster_1' : 'cluster_2'
+    def skipUninformativeCellType = params.skip_uninformative_cell_type_grouping?.toString()?.toBoolean()
     """
-    touch ${stub_gid}.grouped.bam ${stub_gid}.grouped.bam.bai
     printf "group_level\tgroup_id\tbam_file\tn_reads\n" \
         >  ${meta.library_id}.${group_level}.grouping_manifest.tsv
-    printf "${group_level}\t${stub_gid}\t${stub_gid}.grouped.bam\t100\n" \
-        >> ${meta.library_id}.${group_level}.grouping_manifest.tsv
+    if [ "${group_level}" = "cell_type" ] && [ "${skipUninformativeCellType}" = "true" ]; then
+        :
+    else
+        touch ${stub_gid}.grouped.bam ${stub_gid}.grouped.bam.bai
+        printf "${group_level}\t${stub_gid}\t${stub_gid}.grouped.bam\t100\n" \
+            >> ${meta.library_id}.${group_level}.grouping_manifest.tsv
+    fi
     """
 }
