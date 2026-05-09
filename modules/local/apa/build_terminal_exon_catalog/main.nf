@@ -24,7 +24,7 @@ process BUILD_TERMINAL_EXON_CATALOG {
 
     stub:
     """
-    printf "gene_id\\ttranscript_id\\tchrom\\tstart\\tend\\tstrand\\texon_number\\tterminal_exon_rank\\n" > terminal_exons.tsv
+    printf "gene_id\\tchrom\\tstart\\tend\\tstrand\\texon_number\\tterminal_exon_rank\\n" > terminal_exons.tsv
     touch terminal_exons.bed
     """
 }
