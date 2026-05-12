@@ -50,32 +50,32 @@ def main() -> None:
     args = parser.parse_args()
 
     transcripts = load_exons(Path(args.gtf))
-    terminal_rows = []
+    seen: dict[tuple, dict] = {}
     for transcript_id, exons in transcripts.items():
         strand = exons[0]["strand"]
         if strand == "+":
             terminal = sorted(exons, key=lambda exon: (exon["end"], exon["start"]))[-1]
+            anchor = terminal["end"]
         else:
             terminal = sorted(exons, key=lambda exon: (exon["start"], exon["end"]))[0]
-        terminal_rows.append(
-            {
+            anchor = terminal["start"]
+        key = (terminal["gene_id"], terminal["chrom"], strand, anchor)
+        if key not in seen:
+            seen[key] = {
                 "gene_id": terminal["gene_id"],
-                "transcript_id": transcript_id,
                 "chrom": terminal["chrom"],
                 "start": terminal["start"],
                 "end": terminal["end"],
-                "strand": terminal["strand"],
+                "strand": strand,
                 "exon_number": terminal["exon_number"],
                 "terminal_exon_rank": 1,
             }
-        )
 
-    terminal_rows.sort(key=lambda row: (row["gene_id"], row["transcript_id"]))
+    terminal_rows = sorted(seen.values(), key=lambda row: (row["gene_id"], row["chrom"], row["start"]))
 
     with Path(args.out_tsv).open("w", newline="", encoding="utf-8") as handle:
         fieldnames = [
             "gene_id",
-            "transcript_id",
             "chrom",
             "start",
             "end",
@@ -95,7 +95,7 @@ def main() -> None:
                     row["chrom"],
                     row["start"] - 1,
                     row["end"],
-                    f"{row['gene_id']}|{row['transcript_id']}",
+                    row["gene_id"],
                     0,
                     row["strand"],
                 ]
