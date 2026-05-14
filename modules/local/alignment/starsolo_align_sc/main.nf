@@ -29,7 +29,7 @@ process STARSOLO_ALIGN_SC {
     // STARsolo single-cell params derived from protocol_mode.
     // ext.args is not reliably propagated in Nextflow 25.x when multiple withName
     // selectors exist across config files, so critical params are hardcoded here.
-    def umiLen       = protocol_mode == '10x_5p' ? 10 : 12
+    def umiLen       = (meta.chemistry == '10xv2' || protocol_mode == '10x_5p') ? 10 : 12
     def soloTypeArgs = protocol_mode.startsWith('10x') ?
         "--soloType CB_UMI_Simple --soloCBstart 1 --soloCBlen 16 --soloUMIstart 17 --soloUMIlen ${umiLen} --soloCellFilter CellRanger2.2" :
         "--soloType CB_UMI_Simple"
