@@ -20,10 +20,12 @@ process COVERAGE_TRACKS {
 
     script:
     """
-    # Strand-aware coverage using pysam (bam_to_bedgraph.py)
+    # Strand-aware coverage using pysam (bam_to_bedgraph.py) — single pass for both strands
     if [ -s ${bam} ]; then
-        python3 ${projectDir}/bin/bam_to_bedgraph.py ${bam} --strand + --output ${group_id}.fwd.bedGraph
-        python3 ${projectDir}/bin/bam_to_bedgraph.py ${bam} --strand - --output ${group_id}.rev.bedGraph
+        python3 ${projectDir}/bin/bam_to_bedgraph.py ${bam} \
+            --fwd-output ${group_id}.fwd.bedGraph \
+            --rev-output ${group_id}.rev.bedGraph \
+            --cpus ${task.cpus}
     else
         touch ${group_id}.fwd.bedGraph ${group_id}.rev.bedGraph
     fi

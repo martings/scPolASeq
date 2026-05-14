@@ -1,0 +1,5 @@
+sample_id,library_id,protocol,chemistry,condition,replicate_id,fastq_r1,fastq_r2,barcode_whitelist
+DF,DF_Day_minus_1_run1,10x_3p,10xv2,DF,rep1,/mnt/mother/datasets/Dengue/single_cell/DF_Day_minus_1_run1_S1_L004_R1_001.fastq.gz,/mnt/mother/datasets/Dengue/single_cell/DF_Day_minus_1_run1_S1_L004_R2_001.fastq.gz,
+DF,DF_Day_minus_1_run2,10x_3p,10xv2,DF,rep1,/mnt/mother/datasets/Dengue/single_cell/DF_Day_minus_1_run2_S1_L002_R1_001.fastq.gz,/mnt/mother/datasets/Dengue/single_cell/DF_Day_minus_1_run2_S1_L002_R2_001.fastq.gz,
+DHF,DHF_Day_minus_1_run1,10x_3p,10xv2,DHF,rep1,/mnt/mother/datasets/Dengue/single_cell/DHF_Day_minus_1_run1_S3_L004_R1_001.fastq.gz,/mnt/mother/datasets/Dengue/single_cell/DHF_Day_minus_1_run1_S3_L004_R2_001.fastq.gz,
+DHF,DHF_Day_minus_1_run2,10x_3p,10xv2,DHF,rep1,/mnt/mother/datasets/Dengue/single_cell/DHF_Day_minus_1_run2_S3_L002_R1_001.fastq.gz,/mnt/mother/datasets/Dengue/single_cell/DHF_Day_minus_1_run2_S3_L002_R2_001.fastq.gz,
