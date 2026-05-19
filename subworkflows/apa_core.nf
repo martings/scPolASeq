@@ -202,11 +202,14 @@ workflow APA_CORE {
             : Channel.value(file("${projectDir}/assets/NO_FILE"))
         def ch_scapture_has_resume_pascall_dir = Channel.value(params.scapture_resume_pascall_dir ? true : false)
 
-        // Group per-library filtered BAMs by sample_id and merge into one BAM per sample.
-        // This avoids running SCAPTURE N times for N lanes of the same biological sample.
+        // Group filtered BAMs for SCAPTURE peak calling.
+        // Uses scapture_group_id when present (allows merging/splitting independently of sample_id),
+        // otherwise falls back to sample_id so pipelines without the column behave as before.
         BARCODE_FILTERING.out.filtered_bam
             .map { meta, bam, bai ->
-                def sid = meta.containsKey('sample_id') ? meta.sample_id : meta.library_id
+                def sid = (meta.containsKey('scapture_group_id') && meta.scapture_group_id)
+                            ? meta.scapture_group_id
+                            : (meta.containsKey('sample_id') ? meta.sample_id : meta.library_id)
                 tuple(sid, meta, bam, bai)
             }
             .groupTuple(by: 0)

@@ -1,0 +1,9 @@
+sample_id,library_id,protocol,chemistry,condition,replicate_id,fastq_r1,fastq_r2,barcode_whitelist,scapture_group_id
+DF,DF_Day_minus_1_run1,10x_3p,10xv2,DF,rep1,/mnt/mother/datasets/Dengue/single_cell/DF_Day_minus_1_run1_S1_L004_R1_001.fastq.gz,/mnt/mother/datasets/Dengue/single_cell/DF_Day_minus_1_run1_S1_L004_R2_001.fastq.gz,,DF_day1
+DF,DF_Day_minus_1_run2,10x_3p,10xv2,DF,rep1,/mnt/mother/datasets/Dengue/single_cell/DF_Day_minus_1_run2_S1_L002_R1_001.fastq.gz,/mnt/mother/datasets/Dengue/single_cell/DF_Day_minus_1_run2_S1_L002_R2_001.fastq.gz,,DF_day1
+DHF,DHF_Day_minus_1_run1,10x_3p,10xv2,DHF,rep1,/mnt/mother/datasets/Dengue/single_cell/DHF_Day_minus_1_run1_S3_L004_R1_001.fastq.gz,/mnt/mother/datasets/Dengue/single_cell/DHF_Day_minus_1_run1_S3_L004_R2_001.fastq.gz,,DHF_day1
+DHF,DHF_Day_minus_1_run2,10x_3p,10xv2,DHF,rep1,/mnt/mother/datasets/Dengue/single_cell/DHF_Day_minus_1_run2_S3_L002_R1_001.fastq.gz,/mnt/mother/datasets/Dengue/single_cell/DHF_Day_minus_1_run2_S3_L002_R2_001.fastq.gz,,DHF_day1
+DF_wk2,DF_Wk2_run1_L002,10x_3p,10xv2,DF,rep1,/mnt/mother/datasets/Dengue/single_cell/DF_Wk2_run1_S4_L002_R1_001.fastq.gz,/mnt/mother/datasets/Dengue/single_cell/DF_Wk2_run1_S4_L002_R2_001.fastq.gz,,DF_wk2
+DF_wk2,DF_Wk2_run1_L003,10x_3p,10xv2,DF,rep1,/mnt/mother/datasets/Dengue/single_cell/DF_Wk2_run1_S4_L003_R1_001.fastq.gz,/mnt/mother/datasets/Dengue/single_cell/DF_Wk2_run1_S4_L003_R2_001.fastq.gz,,DF_wk2
+DHF_wk2,DHF_Wk2_run1_L002,10x_3p,10xv2,DHF,rep1,/mnt/mother/datasets/Dengue/single_cell/DHF_Wk2_run1_S2_L002_R1_001.fastq.gz,/mnt/mother/datasets/Dengue/single_cell/DHF_Wk2_run1_S2_L002_R2_001.fastq.gz,,DHF_wk2
+DHF_wk2,DHF_Wk2_run1_L003,10x_3p,10xv2,DHF,rep1,/mnt/mother/datasets/Dengue/single_cell/DHF_Wk2_run1_S2_L003_R1_001.fastq.gz,/mnt/mother/datasets/Dengue/single_cell/DHF_Wk2_run1_S2_L003_R2_001.fastq.gz,,DHF_wk2

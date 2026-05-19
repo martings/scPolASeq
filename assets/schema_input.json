@@ -65,6 +65,13 @@
           "string",
           "null"
         ]
+      },
+      "scapture_group_id": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Optional override for SCAPTURE peak-calling group. When set, libraries sharing the same value are merged into one SCAPTURE run regardless of sample_id. Falls back to sample_id when absent."
       }
     },
     "oneOf": [
