@@ -43,17 +43,18 @@ workflow ALIGN_OR_IMPORT_SC {
             tuple(
                 sampleId,
                 [
-                    sample_id        : sampleId,
-                    source_library_id: normalize(row.library_id),
-                    protocol         : normalize(row.protocol) ?: protocol_mode,
-                    chemistry        : normalize(row.chemistry),
-                    condition        : normalize(row.condition),
-                    replicate_id     : normalize(row.replicate_id) ?: sampleId,
-                    fastq_r1         : fastqR1 ? file(fastqR1, checkIfExists: true) : null,
-                    fastq_r2         : fastqR2 ? file(fastqR2, checkIfExists: true) : null,
-                    bam              : bamPath ? file(bamPath, checkIfExists: true) : nofile,
-                    matrix           : matrixPath ? file(matrixPath, checkIfExists: true) : nofile,
-                    whitelist        : whitelistPath ? file(whitelistPath, checkIfExists: true) : nofile,
+                    sample_id         : sampleId,
+                    source_library_id : normalize(row.library_id),
+                    protocol          : normalize(row.protocol) ?: protocol_mode,
+                    chemistry         : normalize(row.chemistry),
+                    condition         : normalize(row.condition),
+                    replicate_id      : normalize(row.replicate_id) ?: sampleId,
+                    scapture_group_id : normalize(row.scapture_group_id ?: ''),
+                    fastq_r1          : fastqR1 ? file(fastqR1, checkIfExists: true) : null,
+                    fastq_r2          : fastqR2 ? file(fastqR2, checkIfExists: true) : null,
+                    bam               : bamPath ? file(bamPath, checkIfExists: true) : nofile,
+                    matrix            : matrixPath ? file(matrixPath, checkIfExists: true) : nofile,
+                    whitelist         : whitelistPath ? file(whitelistPath, checkIfExists: true) : nofile,
                 ]
             )
         }
@@ -86,6 +87,7 @@ workflow ALIGN_OR_IMPORT_SC {
                 chemistry         : distinctOrThrow(sampleId, entries, 'chemistry', ''),
                 condition         : distinctOrThrow(sampleId, entries, 'condition', ''),
                 replicate_id      : distinctOrThrow(sampleId, entries, 'replicate_id', sampleId),
+                scapture_group_id : distinctOrThrow(sampleId, entries, 'scapture_group_id', ''),
             ]
 
             tuple(meta, read1s, read2s, bamInputs, matrixInputs, whitelistCandidates ? whitelistCandidates[0] : nofile)

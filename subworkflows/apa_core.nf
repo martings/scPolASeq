@@ -36,6 +36,7 @@ workflow APA_CORE {
     def do_sierra_quant = params.enable_sierra_quant.toString().toBoolean()
     def do_pas_scoring = params.enable_pas_scoring.toString().toBoolean()
     def do_scapture = params.enable_scapture.toString().toBoolean()
+    def do_ml_model = params.enable_ml_model.toString().toBoolean()
 
     // Freeze the reference tuple layout here so downstream modules never index
     // into the bundle ad hoc.
@@ -101,13 +102,24 @@ workflow APA_CORE {
         apa_min_pdui_delta
     )
 
-    MODEL_PIPELINE(
-        APA_FEATURE_PIPELINE.out.feature_table,
-        APA_FEATURE_PIPELINE.out.apa_events,
-        apa_model_type,
-        apa_model_group_level,
-        do_single_cell_projection
-    )
+    def ch_model_trained           = Channel.empty()
+    def ch_model_feature_importance = Channel.empty()
+    def ch_model_metrics           = Channel.empty()
+    def ch_model_scored_events     = Channel.empty()
+
+    if (do_ml_model) {
+        MODEL_PIPELINE(
+            APA_FEATURE_PIPELINE.out.feature_table,
+            APA_FEATURE_PIPELINE.out.apa_events,
+            apa_model_type,
+            apa_model_group_level,
+            do_single_cell_projection
+        )
+        ch_model_trained            = MODEL_PIPELINE.out.trained_model
+        ch_model_feature_importance = MODEL_PIPELINE.out.feature_importance
+        ch_model_metrics            = MODEL_PIPELINE.out.model_metrics
+        ch_model_scored_events      = MODEL_PIPELINE.out.scored_events
+    }
 
     def ch_pas_reference
     def ch_pas_reference_manifest
@@ -165,7 +177,7 @@ workflow APA_CORE {
             APA_FEATURE_PIPELINE.out.feature_table,
             APA_FEATURE_PIPELINE.out.apa_events,
             APA_FEATURE_PIPELINE.out.pdui_matrix,
-            MODEL_PIPELINE.out.scored_events,
+            ch_model_scored_events,
             ch_pas_reference
         )
         ch_pas_scored = PAS_SCORING.out.scored_pas
@@ -190,11 +202,14 @@ workflow APA_CORE {
             : Channel.value(file("${projectDir}/assets/NO_FILE"))
         def ch_scapture_has_resume_pascall_dir = Channel.value(params.scapture_resume_pascall_dir ? true : false)
 
-        // Group per-library filtered BAMs by sample_id and merge into one BAM per sample.
-        // This avoids running SCAPTURE N times for N lanes of the same biological sample.
+        // Group filtered BAMs for SCAPTURE peak calling.
+        // Uses scapture_group_id when present (allows merging/splitting independently of sample_id),
+        // otherwise falls back to sample_id so pipelines without the column behave as before.
         BARCODE_FILTERING.out.filtered_bam
             .map { meta, bam, bai ->
-                def sid = meta.containsKey('sample_id') ? meta.sample_id : meta.library_id
+                def sid = (meta.containsKey('scapture_group_id') && meta.scapture_group_id)
+                            ? meta.scapture_group_id
+                            : (meta.containsKey('sample_id') ? meta.sample_id : meta.library_id)
                 tuple(sid, meta, bam, bai)
             }
             .groupTuple(by: 0)
@@ -239,7 +254,7 @@ workflow APA_CORE {
     // Keep the reporting QC surface backward compatible; new sidecar manifests
     // are emitted separately so they can be adopted intentionally later.
     def ch_qc_bundle = BARCODE_FILTERING.out.filter_stats
-        .mix(MODEL_PIPELINE.out.model_metrics)
+        .mix(ch_model_metrics)
         .mix(GROUPED_RECONSTRUCTION.out.grouping_manifest)
         .mix(ch_pas_reference_manifest)
 
@@ -255,10 +270,10 @@ workflow APA_CORE {
     feature_table               = APA_FEATURE_PIPELINE.out.feature_table
     apa_events                  = APA_FEATURE_PIPELINE.out.apa_events
     pdui_matrix                 = APA_FEATURE_PIPELINE.out.pdui_matrix
-    trained_model               = MODEL_PIPELINE.out.trained_model
-    feature_importance          = MODEL_PIPELINE.out.feature_importance
-    model_metrics               = MODEL_PIPELINE.out.model_metrics
-    scored_events               = MODEL_PIPELINE.out.scored_events
+    trained_model               = ch_model_trained
+    feature_importance          = ch_model_feature_importance
+    model_metrics               = ch_model_metrics
+    scored_events               = ch_model_scored_events
     pas_reference               = ch_pas_reference
     pas_reference_manifest      = ch_pas_reference_manifest
     sierra_quant                = ch_sierra_quant
