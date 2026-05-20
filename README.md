@@ -40,40 +40,39 @@ FASTQs / BAMs
 - Apptainer ≥ 1.0 (or Docker/Singularity)
 - Pre-built container images (see `containers/build.sh`)
 
-### 2. Download the PBMC 1k v3 validation dataset
+### 2. Download the PBMC 1k v3 test dataset
 
-The **PBMC 1k v3** dataset (10x Genomics, healthy donor, 10x Chromium 3' v3) is the canonical validation dataset for the pipeline.
+The **PBMC 1k v3** dataset (10x Genomics, healthy donor, 10x Chromium 3' v3) is the canonical test dataset for the pipeline.
 
 ```bash
-# Downloads FASTQs (~5 GB), barcode whitelist, GRCh38 genome + GENCODE v44 GTF,
-# and PolyASite 2.0 atlas. Stages everything under /scratch/data/.
-bash conf/download_pbmc1k.sh /scratch/data/pbmc1k
+# Downloads FASTQs (~5 GB) and the 10x v3 barcode whitelist.
+# Pass any local directory as the destination.
+bash conf/download_pbmc1k.sh /data/pbmc1k
 ```
 
 Or manually:
 
 ```bash
 # FASTQs (2 lanes)
-mkdir -p /scratch/data/pbmc1k/fastqs
+mkdir -p /data/pbmc1k/fastqs
 curl -L https://cf.10xgenomics.com/samples/cell-exp/3.0.0/pbmc_1k_v3/pbmc_1k_v3_fastqs.tar \
-  | tar -xf - -C /scratch/data/pbmc1k/fastqs --strip-components=1
+  | tar -xf - -C /data/pbmc1k/fastqs --strip-components=1
 
 # 10x v3 barcode whitelist
-mkdir -p /scratch/data/10x_whitelists
 curl -L https://cf.10xgenomics.com/supp/cell-exp/whitelists/3M-february-2018.txt.gz \
-  | gunzip > /scratch/data/10x_whitelists/3M-february-2018.txt
+  | gunzip > /data/pbmc1k/3M-february-2018.txt
 ```
 
 Human reference data (GRCh38 + GENCODE v44 + PolyASite 2.0) is staged by:
 
 ```bash
-bash conf/setup_human_references.sh
+bash conf/setup_human_references.sh /data/references
 ```
 
 ### 3. Build container images
 
 ```bash
-bash containers/build.sh --cache-dir /scratch/cache/apptainer/scpolaseq
+bash containers/build.sh --cache-dir /data/apptainer/scpolaseq
 ```
 
 Four SIF images are built: `scpolaseq-alignment`, `scpolaseq-clustering`, `scpolaseq-python`, `scpolaseq-r`.  
@@ -103,14 +102,12 @@ pbmc_1k_v3,pbmc_1k_v3_L002,10x_3p,10xv3,healthy,rep1,/path/L002_R1.fastq.gz,/pat
 
 ### 5. Run the pipeline
 
-**deepthought (local, Apptainer):**
+**Test run (PBMC 1k v3, Apptainer):**
 
 ```bash
-cd /scratch/work/scPolASeq
-
 nextflow run main.nf \
-  -profile deepthought,apptainer,test_pbmc1k_deepthought \
-  -work-dir /scratch/work/scPolASeq_runs/pbmc1k_$(date +%Y%m%d) \
+  -profile apptainer,test_pbmc1k \
+  -work-dir /data/work/scPolASeq_pbmc1k \
   -resume
 ```
 
@@ -118,7 +115,7 @@ nextflow run main.nf \
 
 ```bash
 nextflow run main.nf \
-  -profile deepthought,apptainer \
+  -profile apptainer \
   --input samplesheet.csv \
   --genome_fasta /path/to/genome.fa \
   --gtf /path/to/genes.gtf \
@@ -164,13 +161,11 @@ nextflow run main.nf \
 └── pipeline_info/      execution_trace.txt, execution_report.html, timeline
 ```
 
-## Validated datasets
+## Tested datasets
 
-| Dataset | Organism | Chemistry | Condition | Status |
-|---------|----------|-----------|-----------|--------|
+| Dataset | Organism | Chemistry | Conditions | Status |
+|---------|----------|-----------|------------|--------|
 | PBMC 1k v3 (10x Genomics) | Human (GRCh38) | 10x v3 | Healthy | ✅ Full pipeline |
-| Dengue E-MTAB-9467 Day −1 | Human (GRCh38) | 10x v2 | DF vs DHF | ✅ Full pipeline + SCAPTURE |
-| Dengue E-MTAB-9467 Day −1 + Wk2 | Human (GRCh38) | 10x v2 | DF/DHF × 2 timepoints | ✅ Multi-run resume |
 
 ## Further reading
 
