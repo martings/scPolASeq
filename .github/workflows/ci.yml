@@ -14,6 +14,8 @@ jobs:
   stub-run:
     name: Stub-run all scenarios
     runs-on: ubuntu-latest
+    env:
+      NXF_VER: "25.10.4"
 
     steps:
       - uses: actions/checkout@v4
