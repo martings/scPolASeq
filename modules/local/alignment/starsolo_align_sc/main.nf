@@ -35,9 +35,8 @@ process STARSOLO_ALIGN_SC {
         "--soloType CB_UMI_Simple"
     """
     ${warning}
-    _star_ok=0
-    if command -v STAR >/dev/null 2>&1; then
-        STAR \\
+    command -v STAR >/dev/null 2>&1 || { echo 'STAR executable unavailable' >&2; exit 127; }
+    STAR \\
             --genomeDir ${star_index} \\
             --sjdbGTFfile ${gtf} \\
             --readFilesIn ${read2Arg} ${read1Arg} \\
@@ -48,24 +47,19 @@ process STARSOLO_ALIGN_SC {
             ${soloTypeArgs} \\
             --outFileNamePrefix ${meta.sample_id}. \\
             ${whitelistArg} \\
-            ${task.ext.args ?: ''} && _star_ok=1
-    fi
+            ${task.ext.args ?: ''} ||
+        { echo 'STAR alignment failed' >&2; exit 1; }
 
-    # Fallback placeholders — only if STAR was absent or failed
-    mkdir -p ${meta.sample_id}.Solo.out/Gene
-    if [[ \$_star_ok -eq 0 ]]; then
-        touch ${meta.sample_id}.Log.final.out
-        touch ${meta.sample_id}.Aligned.sortedByCoord.out.bam
-        echo "${meta.sample_id}-CELL001" > ${meta.sample_id}.Solo.out/Gene/barcodes.tsv
-        touch ${meta.sample_id}.Solo.out/Gene/matrix.mtx
-        touch ${meta.sample_id}.Solo.out/Gene/features.tsv
-    fi
-
-    if command -v samtools >/dev/null 2>&1 && [[ -s ${meta.sample_id}.Aligned.sortedByCoord.out.bam ]]; then
-        samtools index ${meta.sample_id}.Aligned.sortedByCoord.out.bam
-    else
-        touch ${meta.sample_id}.Aligned.sortedByCoord.out.bam.bai
-    fi
+    test -s ${meta.sample_id}.Aligned.sortedByCoord.out.bam ||
+        { echo 'STAR produced no alignment BAM' >&2; exit 1; }
+    test -s ${meta.sample_id}.Solo.out/Gene/filtered/matrix.mtx ||
+        { echo 'STAR produced no filtered cell matrix' >&2; exit 1; }
+    command -v samtools >/dev/null 2>&1 ||
+        { echo 'samtools executable unavailable' >&2; exit 127; }
+    samtools index ${meta.sample_id}.Aligned.sortedByCoord.out.bam ||
+        { echo 'samtools indexing failed' >&2; exit 1; }
+    test -s ${meta.sample_id}.Aligned.sortedByCoord.out.bam.bai ||
+        { echo 'samtools produced no BAM index' >&2; exit 1; }
 
     python3 ${projectDir}/bin/extract_barcode_registry.py \\
         --solo-dir ${meta.sample_id}.Solo.out \\
