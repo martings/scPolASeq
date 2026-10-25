@@ -70,8 +70,9 @@ curl -L https://cf.10xgenomics.com/supp/cell-exp/whitelists/3M-february-2018.txt
 ```
 
 `conf/setup_human_references.sh` keeps `/cluster` as its historical default;
-set `SCPOLASEQ_DATA_ROOT` or the individual `SCPOLASEQ_*_DIR` variables to use
-another layout. For example:
+set `SCPOLASEQ_DATA_ROOT` to use another layout. Individual `SCPOLASEQ_*_DIR`
+variables can override subdirectories within an existing writable data root.
+For example:
 
 ```bash
 SCPOLASEQ_DATA_ROOT=/data bash conf/setup_human_references.sh --skip-star-index
