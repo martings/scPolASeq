@@ -10,13 +10,31 @@ mkdir -p "$TMP_ROOT/bin" "$TMP_ROOT/star_index"
 touch "$TMP_ROOT/star_index/SA" "$TMP_ROOT/star_index/Genome"
 cat > "$TMP_ROOT/bin/STAR" <<'EOF'
 #!/usr/bin/env bash
-if [[ "${STAR_MODE:-fail}" == "fail" ]]; then
-    echo 'synthetic STAR failure' >&2
-    exit 42
-fi
+case "${STAR_MODE:-fail}" in
+    fail)
+        echo 'synthetic STAR failure' >&2
+        exit 42
+        ;;
+    matrix_missing)
+        printf 'synthetic BAM\n' > fail_closed.Aligned.sortedByCoord.out.bam
+        ;;
+    bai_missing)
+        printf 'synthetic BAM\n' > fail_closed.Aligned.sortedByCoord.out.bam
+        mkdir -p fail_closed.Solo.out/Gene/filtered
+        printf 'synthetic matrix\n' > fail_closed.Solo.out/Gene/filtered/matrix.mtx
+        ;;
+    success) ;;
+    *) exit 64 ;;
+esac
+exit 0
+EOF
+cat > "$TMP_ROOT/bin/samtools" <<'EOF'
+#!/usr/bin/env bash
+# Simulate samtools success without creating its requested BAI output.
 exit 0
 EOF
 chmod +x "$TMP_ROOT/bin/STAR"
+chmod +x "$TMP_ROOT/bin/samtools"
 export PATH="$TMP_ROOT/bin:$PATH"
 
 run_expected_failure() {
@@ -54,6 +72,12 @@ run_expected_failure alignment_nonzero fail \
 run_expected_failure alignment_empty success \
     tests/modules/alignment/test_starsolo_fail_closed.nf \
     'STAR produced no alignment BAM'
+run_expected_failure alignment_matrix_missing matrix_missing \
+    tests/modules/alignment/test_starsolo_fail_closed.nf \
+    'STAR produced no filtered cell matrix'
+run_expected_failure alignment_bai_missing bai_missing \
+    tests/modules/alignment/test_starsolo_fail_closed.nf \
+    'samtools produced no BAM index'
 run_expected_failure reference_nonzero fail \
     tests/modules/reference/test_prepare_reference_fail_closed.nf \
     'STAR index generation failed'
