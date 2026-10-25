@@ -64,15 +64,17 @@ curl -L https://cf.10xgenomics.com/samples/cell-exp/3.0.0/pbmc_1k_v3/pbmc_1k_v3_
   | tar -xf - -C /data/pbmc1k/fastqs --strip-components=1
 
 # 10x v3 barcode whitelist
+mkdir -p /data/10x_whitelists
 curl -L https://cf.10xgenomics.com/supp/cell-exp/whitelists/3M-february-2018.txt.gz \
-  | gunzip > /data/pbmc1k/3M-february-2018.txt
+  | gunzip > /data/10x_whitelists/3M-february-2018.txt
 ```
 
-Human reference data (GRCh38 + GENCODE v44 + PolyASite 2.0) is staged by:
+`conf/setup_human_references.sh` is a legacy helper for the original QNAP
+layout: it hardcodes `/cluster` and accepts only `--skip-star-index`. It is not
+a portable reference downloader. On other hosts, stage GRCh38 FASTA, GTF, and
+PolyASite files in your chosen directories, then pass those paths in the
+pipeline command below.
 
-```bash
-bash conf/setup_human_references.sh /data/references
-```
 
 ### 3. Build container images
 
