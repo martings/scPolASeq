@@ -10,19 +10,22 @@ mkdir -p "$TMP_ROOT/bin" "$TMP_ROOT/star_index"
 touch "$TMP_ROOT/star_index/SA" "$TMP_ROOT/star_index/Genome"
 cat > "$TMP_ROOT/bin/STAR" <<'EOF'
 #!/usr/bin/env bash
-echo 'synthetic STAR failure' >&2
-exit 42
+if [[ "${STAR_MODE:-fail}" == "fail" ]]; then
+    echo 'synthetic STAR failure' >&2
+    exit 42
+fi
+exit 0
 EOF
 chmod +x "$TMP_ROOT/bin/STAR"
 export PATH="$TMP_ROOT/bin:$PATH"
 
 run_expected_failure() {
-    local name="$1" harness="$2" expected="$3"
+    local name="$1" mode="$2" harness="$3" expected="$4"
     local work_dir="$TMP_ROOT/work_${name}"
     local log_file="$TMP_ROOT/${name}.log"
     local rc=0
 
-    if nextflow run "$REPO_DIR/$harness" \
+    if STAR_MODE="$mode" nextflow run "$REPO_DIR/$harness" \
         -profile test \
         -work-dir "$work_dir" \
         --outdir "$TMP_ROOT/results_${name}" \
@@ -45,9 +48,15 @@ run_expected_failure() {
     echo "PASS: ${name} failed closed as expected (exit ${rc})"
 }
 
-run_expected_failure alignment \
+run_expected_failure alignment_nonzero fail \
     tests/modules/alignment/test_starsolo_fail_closed.nf \
     'STAR alignment failed'
-run_expected_failure reference \
+run_expected_failure alignment_empty success \
+    tests/modules/alignment/test_starsolo_fail_closed.nf \
+    'STAR produced no alignment BAM'
+run_expected_failure reference_nonzero fail \
     tests/modules/reference/test_prepare_reference_fail_closed.nf \
     'STAR index generation failed'
+run_expected_failure reference_empty success \
+    tests/modules/reference/test_prepare_reference_fail_closed.nf \
+    'STAR index is incomplete'
