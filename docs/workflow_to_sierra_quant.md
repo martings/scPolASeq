@@ -1,5 +1,9 @@
 # Workflow to Sierra Quant
 
+> Historical Deepthought workflow notes. The result/work paths below are from
+> an earlier run. The former `prebuilt_star_index` setting was ineffective;
+> current runs use `star_index` or build the index from the supplied references.
+
 ## Purpose
 
 This document explains the execution path from sample sheet ingestion to `SIERRA_QUANT` for the `pbmc1k` validation run, including the relevant processes, parameters, intermediate contracts, and improvement opportunities.

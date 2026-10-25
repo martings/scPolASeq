@@ -1,5 +1,9 @@
 # Issue #10 Activity Summary
 
+> Historical Deepthought run record. The paths and identifiers below describe
+> that older execution; they are not portable defaults or current launch
+> instructions. The generic PBMC profile no longer contains host paths.
+
 ## Scope
 
 This document summarizes the work completed for GitHub issue #10 on branch `10-barcode-mismatch-star`, with emphasis on the barcode identity fix, the downstream impact on `SIERRA_QUANT`, and the later shift to sample-scoped processing from `STARsolo` onward.
