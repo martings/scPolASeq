@@ -31,6 +31,7 @@ them before using them in a run:
 
 ```bash
 bash containers/build.sh --cache-dir /path/to/sif-cache
+bash containers/validate.sh /path/to/sif-cache
 ```
 
 The builder should retain existing SIFs unless `--force` is specified. SCAPTURE
@@ -46,8 +47,9 @@ environments required by scheduled processes. SCAPTURE's historical lockfile
 is preserved as provenance. The checked-in `scpolaseq-scapture.def` is not yet
 proven to reproduce the working SIF: it clones SCAPTURE without a commit pin
 and applies a text-anchored patch. The old Python 3.7 lock also has an
-incompatible NumPy/pandas ABI. The smoke checks below validate the existing
-working SIFs; they do not validate a fresh rebuild from the current recipes.
+incompatible NumPy/pandas ABI. The smoke checks above validate the existing
+working SIFs' package imports and versions; they do not validate a fresh
+rebuild, execute a DeepPASS prediction, or demonstrate GPU use.
 
 ## Docker and Nextflow status
 
