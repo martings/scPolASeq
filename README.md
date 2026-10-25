@@ -69,11 +69,13 @@ curl -L https://cf.10xgenomics.com/supp/cell-exp/whitelists/3M-february-2018.txt
   | gunzip > /data/10x_whitelists/3M-february-2018.txt
 ```
 
-`conf/setup_human_references.sh` is a legacy helper for the original QNAP
-layout: it hardcodes `/cluster` and accepts only `--skip-star-index`. It is not
-a portable reference downloader. On other hosts, stage GRCh38 FASTA, GTF, and
-PolyASite files in your chosen directories, then pass those paths in the
-pipeline command below.
+`conf/setup_human_references.sh` keeps `/cluster` as its historical default;
+set `SCPOLASEQ_DATA_ROOT` or the individual `SCPOLASEQ_*_DIR` variables to use
+another layout. For example, set `SCPOLASEQ_DATA_ROOT=/data` and run
+`bash conf/setup_human_references.sh --skip-star-index`. STAR indexes should be built
+with the same STAR version used for alignment. Set `SCPOLASEQ_STAR_SIF` to
+select that image explicitly, or leave `star_index` unset so the workflow builds
+the index with its configured runtime image.
 
 
 ### 3. Build container images
