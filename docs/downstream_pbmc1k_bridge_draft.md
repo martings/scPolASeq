@@ -24,7 +24,7 @@ nextflow run workflows/pbmc1k_downstream.nf \
   -work-dir /path/to/new_nextflow_work
 ```
 
-Use `--downstream_generate_only true` to validate the connection and generate the notebook without executing it. The output directory must be new. Nextflow stages the existing input directory; this module does not rerun upstream alignment or APA tasks. The package is imported from the supplied source directory; no published wheel is assumed. `bridge_manifest.json` records the source fingerprint, required inputs, run status, notebook paths relative to the published output, and comparison metrics.
+Use `--downstream_generate_only true` to validate the connection and generate the notebook without executing it. The output directory must be new. Nextflow stages the existing input directory; this module does not rerun upstream alignment or APA tasks. The package is imported from the supplied source directory; no published wheel is assumed. `bridge_manifest.json` records the source fingerprint, required inputs, run status, notebook paths relative to the published output, and comparison metrics. A full run also writes `replication_check.md`, with the six reference counts, observed counts, notebook and HTML presence, figure count, and a corrected Reactome FDR count. Its technical concordance status is a file and summary check; scientific review remains pending.
 
 ## Observed replication on the October PBMC1k output
 

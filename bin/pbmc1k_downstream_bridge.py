@@ -104,6 +104,64 @@ def kernel_for_current_python(work_root: Path, package_src: Path) -> None:
     )
 
 
+def write_replication_report(output: Path, manifest: dict) -> None:
+    """Summarize technical concordance without treating it as biological validation."""
+    execution = manifest["execution"]
+    artifacts = {
+        "notebook_nonempty": (output / execution["notebook"]).is_file()
+        and (output / execution["notebook"]).stat().st_size > 0,
+        "html_nonempty": (output / execution["html"]).is_file()
+        and (output / execution["html"]).stat().st_size > 0,
+    }
+    figures_dir = output / "outputs" / "pbmc1k" / "figures"
+    figures = sorted(path for path in figures_dir.glob("*.png") if path.stat().st_size > 0)
+    artifacts["nonempty_figure_count"] = len(figures)
+    artifacts["expected_figure_count"] = 7
+    artifacts["figures_match_expected_count"] = len(figures) == 7
+    metrics_match = all(item["matches"] for item in manifest["comparison"].values())
+    artifact_checks_pass = all(
+        artifacts[key] for key in ("notebook_nonempty", "html_nonempty", "figures_match_expected_count")
+    )
+    manifest["technical_concordance"] = {
+        "matches_reference_summary": metrics_match,
+        "artifact_checks": artifacts,
+        "complete": metrics_match and artifact_checks_pass,
+        "scientific_review_status": "pending",
+    }
+
+    lines = [
+        "# PBMC1k downstream replication check",
+        "",
+        f"Technical concordance: **{'complete' if metrics_match and artifact_checks_pass else 'incomplete'}**.",
+        "Scientific review: **pending**. Matching counts and file presence do not verify labels, PAS assignments, or biological claims.",
+        "",
+        "| Summary metric | Notebook 18 reference | New run | Match |",
+        "|---|---:|---:|:---:|",
+    ]
+    for name, item in manifest["comparison"].items():
+        lines.append(
+            f"| `{name}` | {item['baseline']} | {item['observed']} | {'yes' if item['matches'] else 'no'} |"
+        )
+    lines.extend([
+        "",
+        "## Generated artifacts",
+        "",
+        f"- Executed notebook: {'present' if artifacts['notebook_nonempty'] else 'missing or empty'}.",
+        f"- HTML export: {'present' if artifacts['html_nonempty'] else 'missing or empty'}.",
+        f"- Nonempty PNG figures: {len(figures)} of 7 expected.",
+        "",
+        "## Reactome count audit",
+        "",
+        f"- Displayed pathways: {manifest['reactome_check']['displayed_pathways']}.",
+        f"- Pathways with FDR <= 0.05: {manifest['reactome_check']['pathways_fdr_le_0_05']}.",
+        f"- Package checkpoint field `n_reactome_pathways_fdr05`: {manifest['reactome_check']['package_checkpoint_n_reactome_pathways_fdr05']} (currently counts displayed rows).",
+        "",
+        f"Downstream package source SHA-256: `{manifest['downstream_source_sha256']}`.",
+        "",
+    ])
+    (output / "replication_check.md").write_text("\n".join(lines), encoding="utf-8")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--upstream-results", type=Path, required=True)
@@ -169,6 +227,7 @@ def main() -> int:
             "checkpoint_count_is_displayed_rows": summary.get("n_reactome_pathways_fdr05") == len(pathways),
         }
         manifest["status"] = "completed"
+        write_replication_report(output, manifest)
     (output / "bridge_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return 0
 
