@@ -10,7 +10,9 @@
 - **Sierra::CountPeaks** per-group APA quantification (R, Bioconductor).
 - **SCAPTURE** de novo PAS detection sidecar (optional, disabled by default).
 - **APA calling + ML model**: PDUI-based differential usage detection and a random forest classifier trained on per-site coverage features.
-- **Coverage tracks**: strand-specific bigWig / bedGraph per group level.
+- **Coverage tracks**: strand-specific bedGraph per group level; when
+  `emit_bigwigs=true`, nonempty UCSC BigWigs are required (converter 482 is
+  included in the Python Conda/SIF environment).
 - Multi-sample, multi-condition support via the samplesheet.
 
 ## Pipeline overview

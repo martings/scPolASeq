@@ -34,6 +34,12 @@ bash containers/build.sh --cache-dir /path/to/sif-cache
 bash containers/validate.sh /path/to/sif-cache
 ```
 
+The Python environment pins UCSC `bedGraphToBigWig` 482. Rebuild the Python SIF
+after changing `envs/python.yml`, then run `containers/validate.sh`; the smoke
+check now requires the converter used by `COVERAGE_TRACKS`. When
+`emit_bigwigs=true`, missing converters, failed conversions and empty BigWig
+files fail the task instead of being published as successful placeholders.
+
 The builder should retain existing SIFs unless `--force` is specified. SCAPTURE
 is an opt-in Nextflow module (`--enable_scapture true`) and its image must be
 present when that module is enabled. On Deepthought, use

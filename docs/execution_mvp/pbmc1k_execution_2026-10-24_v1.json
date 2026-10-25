@@ -1,0 +1,160 @@
+{
+  "schema_status": "proposed_handoff_fields_not_approved_api",
+  "dossier_version": 1,
+  "run_id": "c3d2f281-2d73-4d34-99c6-cc876610548a",
+  "dataset_id": "PBMC1k_test",
+  "workflow_identity": {
+    "repository": "martings/scPolASeq",
+    "git_commit": "7eb27942c446ea3d962f03f7961bc7c6e0e1ca99",
+    "nextflow_revision_token": "6b4f463f81",
+    "nextflow_revision_full_sha_mapping": null,
+    "source_tree_fingerprint": null
+  },
+  "execution_source": "human_operated_deepthought",
+  "execution_status": "completed_with_invalid_bigwig_outputs",
+  "source_provenance": {
+    "session_id": "c3d2f281-2d73-4d34-99c6-cc876610548a",
+    "invocations": [
+      {
+        "run_name": "evil_lovelace",
+        "started_utc": "2026-10-24T20:51:00Z",
+        "resume": false,
+        "terminal_status": "unknown_from_available_log_evidence"
+      },
+      {
+        "run_name": "romantic_einstein",
+        "started_utc": "2026-10-25T06:14:00Z",
+        "resume": true,
+        "terminal_status": "OK",
+        "finished_utc": "2026-10-25T11:09:59Z",
+        "elapsed": "4h55m28s"
+      }
+    ],
+    "confidence": "high_for_resumed_invocation_partial_for_initial_invocation"
+  },
+  "runtime_provenance": {
+    "nextflow": "25.10.4",
+    "apptainer": "1.4.5",
+    "profiles": ["deepthought", "apptainer", "test_pbmc1k_deepthought"],
+    "resource_observations": {
+      "completed_tasks": 24,
+      "cached_tasks": 14,
+      "failed_tasks": 0,
+      "retried_tasks": 0,
+      "aborted_tasks": 0,
+      "peak_concurrent_tasks": 4,
+      "peak_cpus": 16,
+      "peak_memory_gb": 80,
+      "minimum_observed_free_scratch_gb": 87,
+      "post_run_free_scratch_gb": 94
+    },
+    "apptainer_images": [
+      {"role": "alignment", "sha256_observed": "b7ecc90e5e1fd17cf6436f2f4952fcbcb7f6e7cdcc7eb3fc38519277b3ab911e", "sha256_expected": null},
+      {"role": "clustering", "sha256_observed": "d16d4fa79f29820f11ccd6003255d1f51f847a9652a63ea811b075e8386d45e1", "sha256_expected": null},
+      {"role": "python", "sha256_observed": "cc0010d9f80e7b8ee60569a7bf690482c38d5f1334f8cf5050020933efa841f7", "sha256_expected": null},
+      {"role": "r", "sha256_observed": "78efbf3b49ba4490733ff7b9417a99336854e5f9f3e0272d370b3b2a2a41bdc2", "sha256_expected": null},
+      {"role": "scapture", "sha256_observed": "fb087f77f3c19083008aa83086669f417426a43b2c52d4901d0732d89aa13a63", "sha256_expected": null}
+    ]
+  },
+  "input_evidence": {
+    "validated_manifest_rows": 2,
+    "fastq_content_read": false,
+    "fastq_content_hashed": false,
+    "independent_input_hashes_available": false,
+    "private_paths_in_public_dossier": false
+  },
+  "technical_assessment": {
+    "resumed_nextflow_status": "OK",
+    "all_enabled_outputs_valid": false,
+    "invalid_output_families": ["bigwig_coverage_tracks"],
+    "bigwig_files_observed": 18,
+    "bigwig_empty_files": 18,
+    "matching_bedgraphs_nonempty": true,
+    "root_cause": "production_module_touched_placeholder_bigwigs_if_converter_missing_or_conversion_failed",
+    "failure_handling": "corrected_in_PR19_after_this_run",
+    "existing_python_sif_converter_verified": false,
+    "new_image_deployed_to_shared_cache": false
+  },
+  "scientific_qc": {
+    "review_status": "human_domain_review_pending",
+    "starsolo": {
+      "input_reads": 66601887,
+      "uniquely_mapped_percent": 87.74,
+      "unique_plus_multiple_mapped_percent": 95.44,
+      "mismatch_percent": 0.55,
+      "filtered_features": 62700,
+      "filtered_cells": 1139,
+      "filtered_matrix_nonzeros": 2633085,
+      "median_umis_per_cell": 7109,
+      "median_genes_per_cell": 2098
+    },
+    "barcode_filter": {
+      "total_alignment_records_not_reads": 73849140,
+      "valid_alignment_records": 67889904,
+      "filter_rate": 0.9193
+    },
+    "clustering": {"clusters": 8, "unassigned_groups": 2, "cell_types": "unlabeled", "condition_labels_available": false, "batch_labels_available": false},
+    "apa": {
+      "apa_event_rows": 147568,
+      "feature_table_rows": 7053948,
+      "scored_event_rows": 7053948,
+      "predicted_at_threshold_0_5": 30129,
+      "random_forest_features": 8,
+      "random_forest_positive_labels": 6651,
+      "cross_validation_auc_mean": 0.7613,
+      "cross_validation_auc_sd": 0.0055,
+      "training_accuracy": 0.9966,
+      "class_imbalance_warning": true,
+      "independent_ground_truth": false
+    },
+    "pas_reference": {"sites_before_merge": 783772, "merged_reference_sites": 741392, "terminal_exon_rows": 214767, "known_polya_rows": 569005},
+    "sierra": {"completed_tasks": 9, "nonempty_outputs_observed": true},
+    "scapture_deeppass": {
+      "process_completed": true,
+      "scored_peaks": 101398,
+      "exonic_peaks": 28464,
+      "intronic_peaks": 70568,
+      "extended_peaks": 2366,
+      "site_catalog_rows": 21906,
+      "manifest_callpas_jobs": "NA",
+      "manifest_site_catalog_rows": null
+    },
+    "gpu": {
+      "tensorflow_gpu_detected": true,
+      "gpu_model": "RTX 3080",
+      "visible_memory_mb": 8935,
+      "deep_pass_prediction_finished": true,
+      "utilization_sample_during_inference": false,
+      "logged_warnings": ["ptxas exit code 256", "libcublas.so.11 undefined symbol cublasGetSmCountTarget"],
+      "gpu_utilization_claim": "not_established"
+    }
+  },
+  "output_evidence": {
+    "trace_report_timeline_dag_present": true,
+    "selected_reference_hashes": {
+      "reference.genome.fa": "e49b92b3e4f321bf254c042f25b726d9931c4d74c7523e8b6bb530e63b0cfd4b",
+      "reference.annotation.gtf": "46fc6e733fc73b236ffa68b770c5ee0cedd998797107cb4691bd8ca5c104df16",
+      "known_polya.reference.tsv": "3466af7496d343aed4dcec704790c91f7bbb045e18da0005b1c520a2a7d1a6bc",
+      "star_index/Genome": "be7ab7de7a9552474a7ae8128326b302a66762ab1295e1ac1970e4704874b0fe",
+      "star_index/SA": "d49e7d547a7c13bc7987d31f45e9912e4cad4bd216379124bb5a12ecb24046f3",
+      "star_index/SAindex": "dda81433f64d620b2d043f9f3e2b4d50ac59b4297f21ac347fdad612398da02f",
+      "star_index/GenomeParameters.txt": "096e8df336f42657d5e629b71ee0aff3ca6f827bc68bf589dcf7e07971ceb772"
+    },
+    "artifact_inventory_hashes": "not_collected_for_all_outputs",
+    "private_output_paths": "omitted"
+  },
+  "limitations": [
+    "First invocation terminal cause/status not established from available evidence.",
+    "Nextflow revision token not mapped to a full source SHA; run checkout commit is recorded.",
+    "No independent expected hashes for inputs, references, or images.",
+    "No FASTQ content reads or hashes were performed.",
+    "All 18 BigWig outputs were empty despite the resumed workflow reporting OK.",
+    "No GPU utilization measurement during DeepPASS inference.",
+    "GPU library/compiler warnings appeared even though prediction finished.",
+    "Random-forest accuracy is not a reliable standalone metric under class imbalance; no independent ground truth.",
+    "SCAPTURE manifest has missing/NA provenance fields.",
+    "Scientific review has not been completed.",
+    "Published STAR index metadata is 2.7.4a while PR recipe uses 2.7.11b; cross-version compatibility is unvalidated.",
+    "This is human-operated evidence, not a controller-authenticated run."
+  ]
+}

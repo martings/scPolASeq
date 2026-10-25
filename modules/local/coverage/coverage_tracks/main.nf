@@ -20,22 +20,28 @@ process COVERAGE_TRACKS {
 
     script:
     """
-    # Strand-aware coverage using pysam (bam_to_bedgraph.py) — single pass for both strands
-    if [ -s ${bam} ]; then
-        python3 ${projectDir}/bin/bam_to_bedgraph.py ${bam} \
-            --fwd-output ${group_id}.fwd.bedGraph \
-            --rev-output ${group_id}.rev.bedGraph \
-            --cpus ${task.cpus}
-    else
-        touch ${group_id}.fwd.bedGraph ${group_id}.rev.bedGraph
-    fi
+    # Strand-aware coverage using pysam (bam_to_bedgraph.py) — single pass for both strands.
+    test -s ${bam} || { echo 'Coverage input BAM is missing or empty' >&2; exit 1; }
+    python3 ${projectDir}/bin/bam_to_bedgraph.py ${bam} \\
+        --fwd-output ${group_id}.fwd.bedGraph \\
+        --rev-output ${group_id}.rev.bedGraph \\
+        --cpus ${task.cpus} || { echo 'Coverage bedGraph generation failed' >&2; exit 1; }
+    test -f ${group_id}.fwd.bedGraph && test -f ${group_id}.rev.bedGraph ||
+        { echo 'Coverage bedGraph output is missing' >&2; exit 1; }
 
-    # bigWig conversion (optional — requires bedGraphToBigWig on PATH)
-    if command -v bedGraphToBigWig >/dev/null 2>&1 && [ -s ${group_id}.fwd.bedGraph ] && [ -s ${chrom_sizes} ]; then
-        bedGraphToBigWig ${group_id}.fwd.bedGraph ${chrom_sizes} ${group_id}.fwd.bw || touch ${group_id}.fwd.bw
-        bedGraphToBigWig ${group_id}.rev.bedGraph ${chrom_sizes} ${group_id}.rev.bw || touch ${group_id}.rev.bw
-    else
-        touch ${group_id}.fwd.bw ${group_id}.rev.bw
+    # If requested, BigWig is a required output: never substitute an empty file.
+    if [ "${params.emit_bigwigs}" = "true" ]; then
+        command -v bedGraphToBigWig >/dev/null 2>&1 ||
+            { echo 'bedGraphToBigWig executable unavailable; install ucsc-bedgraphtobigwig' >&2; exit 127; }
+        test -s ${chrom_sizes} || { echo 'Chromosome sizes file is missing or empty' >&2; exit 1; }
+        test -s ${group_id}.fwd.bedGraph && test -s ${group_id}.rev.bedGraph ||
+            { echo 'Cannot create BigWig from an empty bedGraph' >&2; exit 1; }
+        bedGraphToBigWig ${group_id}.fwd.bedGraph ${chrom_sizes} ${group_id}.fwd.bw ||
+            { echo 'Forward bedGraphToBigWig conversion failed' >&2; exit 1; }
+        test -s ${group_id}.fwd.bw || { echo 'Forward BigWig output is missing or empty' >&2; exit 1; }
+        bedGraphToBigWig ${group_id}.rev.bedGraph ${chrom_sizes} ${group_id}.rev.bw ||
+            { echo 'Reverse bedGraphToBigWig conversion failed' >&2; exit 1; }
+        test -s ${group_id}.rev.bw || { echo 'Reverse BigWig output is missing or empty' >&2; exit 1; }
     fi
 
     # Coverage stats

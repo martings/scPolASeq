@@ -11,6 +11,8 @@ done
 
 apptainer exec "${SIF_DIR}/scpolaseq-python.sif" python -c \
     'import numpy, pandas, pysam; print("python", numpy.__version__, pandas.__version__, pysam.__version__)'
+apptainer exec "${SIF_DIR}/scpolaseq-python.sif" bash -lc \
+    'command -v bedGraphToBigWig >/dev/null'
 apptainer exec "${SIF_DIR}/scpolaseq-alignment.sif" bash -lc \
     'STAR --version; samtools --version | head -1; python -c "import pysam; print(pysam.__version__)"'
 apptainer exec "${SIF_DIR}/scpolaseq-clustering.sif" python -c \
