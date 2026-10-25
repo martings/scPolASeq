@@ -1,8 +1,9 @@
 # Workflow to Sierra Quant
 
-> Historical Deepthought workflow notes. The result/work paths below are from
-> an earlier run. The former `prebuilt_star_index` setting was ineffective;
-> current runs use `star_index` or build the index from the supplied references.
+> Historical Deepthought workflow notes. Host paths and work-task identifiers
+> are represented by symbolic labels. The former `prebuilt_star_index` setting
+> was ineffective; current runs use `star_index` or build the index from the
+> supplied references.
 
 ## Purpose
 
@@ -11,8 +12,8 @@ This document explains the execution path from sample sheet ingestion to `SIERRA
 Run context described here matches the deepthought PBMC config and the current sample-merged execution strategy:
 
 - Config: `conf/test_pbmc1k_deepthought.config`
-- Results: `/scratch/results/scPolASeq/pbmc1k`
-- Work directory: `/scratch/work/scPolASeq_runs/pbmc1k_issue10`
+- Results: `PBMC1K_RESULTS_ROOT`
+- Work directory: `PBMC1K_HISTORICAL_WORK_ROOT`
 
 ## Top-Level Workflow
 
@@ -31,21 +32,24 @@ The path into Sierra is:
 
 `main.nf -> CELL_LABELING_SC -> APA_CORE -> BARCODE_FILTERING -> GROUPED_RECONSTRUCTION -> SIERRA_QUANT`
 
-## Run Parameters Used for PBMC1K
+## Historical Run Parameters and Current Corrections
+
+The following settings are represented by the host-specific profile; reference paths are intentionally elided. Current code reads `star_index`, not the former `prebuilt_star_index` setting.
 
 From `conf/test_pbmc1k_deepthought.config`:
 
 ### Inputs
 
-- `input = /scratch/data/pbmc1k/samplesheet.csv`
-- `genome_fasta = /scratch/data/reference/GRCh38/genome.fa`
-- `gtf = /scratch/data/reference/GRCh38/genes.gtf`
-- `prebuilt_star_index = /scratch/results/scPolASeq/pbmc1k/reference/star_index`
-- `known_polya = /scratch/data/polya_atlas/polyasite2_GRCh38.tsv`
+- `input = $PBMC_SAMPLESHEET`
+- `genome_fasta = $GRCH38_FASTA`
+- `gtf = $GRCH38_GTF`
+- `star_index = null` (current profile regenerates with the selected runtime image)
+- Former `prebuilt_star_index` was ignored and has been removed.
+- `known_polya = $POLYASITE_REFERENCE`
 
 ### Output and execution mode
 
-- `outdir = /scratch/results/scPolASeq/pbmc1k`
+- `outdir = PBMC1K_RESULTS_ROOT`
 - `run_mode = full`
 - `aligner = starsolo`
 - `protocol_mode = 10x_3p`
@@ -375,7 +379,7 @@ Container:
 
 For the current profile:
 
-- `/scratch/cache/apptainer/scpolaseq/scpolaseq-r.sif`
+- `${params.apptainer_cache_dir}/scpolaseq-r.sif`
 
 Input tuple:
 
@@ -424,7 +428,7 @@ Expected log signals for a healthy run:
 
 Validated real example:
 
-- workdir `/scratch/work/scPolASeq_runs/pbmc1k_issue10/2f/a88623ba24f3ed52fcac4ab74accb7`
+- workdir `PBMC1K_HISTORICAL_WORK_ROOT/<task-id>`
 - `Scoped annotations rows: 12`
 - `Whitelist barcodes after scoping: 12`
 - `Matrix loaded: 741003 peaks x 12 cells`

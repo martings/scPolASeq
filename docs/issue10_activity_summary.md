@@ -1,8 +1,8 @@
 # Issue #10 Activity Summary
 
-> Historical Deepthought run record. The paths and identifiers below describe
-> that older execution; they are not portable defaults or current launch
-> instructions. The generic PBMC profile no longer contains host paths.
+> Historical Deepthought run record. Host paths and work-task identifiers are
+> represented by symbolic labels here; they are not portable defaults or
+> current launch instructions. The generic PBMC profile has no host paths.
 
 ## Scope
 
@@ -10,8 +10,8 @@ This document summarizes the work completed for GitHub issue #10 on branch `10-b
 
 Reference dataset and rerun context:
 
-- Results directory: `/scratch/results/scPolASeq/pbmc1k`
-- Active work directory: `/scratch/work/scPolASeq_runs/pbmc1k_issue10`
+- Results directory: `PBMC1K_RESULTS_ROOT`
+- Active work directory: `PBMC1K_HISTORICAL_WORK_ROOT`
 - Cached rerun observed in `screen`: `issue10_cached_20260502_165823`
 
 ## Problem Statement
@@ -64,7 +64,7 @@ Published outputs now include:
 - `*.clustered.pca.png`
 - `*.clustered.umap.png`
 
-Confirmed in `/scratch/results/scPolASeq/pbmc1k/labels`:
+Confirmed in `PBMC1K_RESULTS_ROOT/labels`:
 
 - `pbmc_1k_v3_L001.clustered.h5ad`
 - `pbmc_1k_v3_L001.clustered.pca.png`
@@ -130,7 +130,7 @@ The Sierra module uses the Apptainer image configured by the pipeline:
 
 For the deepthought/apptainer profile used here, that resolves to:
 
-- `/scratch/cache/apptainer/scpolaseq/scpolaseq-r.sif`
+- `${params.apptainer_cache_dir}/scpolaseq-r.sif`
 
 Validation completed inside that container:
 
@@ -139,7 +139,7 @@ Validation completed inside that container:
 
 Observed successful scoped run:
 
-- Workdir: `/scratch/work/scPolASeq_runs/pbmc1k_issue10/2f/a88623ba24f3ed52fcac4ab74accb7`
+- Workdir: `PBMC1K_HISTORICAL_WORK_ROOT/<task-id>`
 - Log highlights:
   - `Scoped annotations rows: 12`
   - `Whitelist barcodes after scoping: 12`
@@ -160,7 +160,7 @@ Observed successful scoped run:
 
 The cached rerun on 2026-05-02 exposed a new mismatch in the APA chain.
 
-Observed in recent Sierra logs under `/scratch/work/scPolASeq_runs/pbmc1k_issue10`:
+Observed in recent Sierra logs under `PBMC1K_HISTORICAL_WORK_ROOT`:
 
 - `Scoped annotations rows: 0`
 - `Whitelist barcodes after scoping: 0`
@@ -168,9 +168,9 @@ Observed in recent Sierra logs under `/scratch/work/scPolASeq_runs/pbmc1k_issue1
 
 Examples:
 
-- `.../72/de1b1aff255c209488be932929884b/pbmc_1k_v3_L002.cluster.pbmc_1k_v3_L002.cluster_1.sierra_quant.log`
-- `.../ff/a1ce358d7945f5b9c47e850add047d/pbmc_1k_v3_L002.cluster.pbmc_1k_v3_L002.cluster_8.sierra_quant.log`
-- `.../0b/a2bd3e4635cabbb252a358d0c8878f/pbmc_1k_v3_L001.cell_type.pbmc_1k_v3_L001.unlabeled.sierra_quant.log`
+- `<task-id>/pbmc_1k_v3_L002.cluster.pbmc_1k_v3_L002.cluster_1.sierra_quant.log`
+- `<task-id>/pbmc_1k_v3_L002.cluster.pbmc_1k_v3_L002.cluster_8.sierra_quant.log`
+- `<task-id>/pbmc_1k_v3_L001.cell_type.pbmc_1k_v3_L001.unlabeled.sierra_quant.log`
 
 Published outputs show the same pattern:
 

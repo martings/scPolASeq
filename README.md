@@ -71,9 +71,14 @@ curl -L https://cf.10xgenomics.com/supp/cell-exp/whitelists/3M-february-2018.txt
 
 `conf/setup_human_references.sh` keeps `/cluster` as its historical default;
 set `SCPOLASEQ_DATA_ROOT` or the individual `SCPOLASEQ_*_DIR` variables to use
-another layout. For example, set `SCPOLASEQ_DATA_ROOT=/data` and run
-`bash conf/setup_human_references.sh --skip-star-index`. STAR indexes should be built
-with the same STAR version used for alignment. Set `SCPOLASEQ_STAR_SIF` to
+another layout. For example:
+
+```bash
+SCPOLASEQ_DATA_ROOT=/data bash conf/setup_human_references.sh --skip-star-index
+```
+
+STAR indexes should be built with the same STAR version used for alignment.
+Set `SCPOLASEQ_STAR_SIF` to
 select the image used to build an index. The helper leaves `star_index` unset by
 default; set `SCPOLASEQ_USE_STAR_INDEX=true` only after confirming that the
 index and the workflow alignment image use compatible STAR versions. Otherwise,
