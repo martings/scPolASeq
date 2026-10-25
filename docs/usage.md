@@ -22,6 +22,13 @@ For an existing STAR index compatible with the supplied FASTA and GTF, pass
 `--star_index /path/to/star_index`. Otherwise, the workflow builds the index.
 The old `prebuilt_star_index` option is not used.
 
+The previously published PBMC1k index records STAR `2.7.4a`, while this
+branch's alignment-image recipe installs STAR `2.7.11b`. Reuse across those
+versions has not been validated. The Deepthought PBMC profile sets
+`star_index = null` and builds the index with the selected alignment image;
+only pass a prebuilt index after checking its reference inputs and STAR
+version against the image used for the run.
+
 ## Reuse aligned BAMs
 
 Use `--run_mode from_bam` with the samplesheet and cell metadata required by
