@@ -37,8 +37,13 @@ FASTQs / BAMs
 ### 1. Requirements
 
 - Nextflow ≥ 24.04
-- Apptainer ≥ 1.0 (or Docker/Singularity)
+- Apptainer ≥ 1.0 for the previously validated Deepthought image workflow. The Nextflow Conda profile exists but has not passed an end-to-end validation.
 - Pre-built container images (see `containers/build.sh`)
+
+The Docker profile is not yet wired to OCI image names; do not use it as a
+working runtime. The SCAPTURE Conda lock is a legacy Python 3.7/CUDA 10
+environment and has a known NumPy/pandas ABI incompatibility. Singularity
+execution has not been validated in the current workflow configuration.
 
 ### 2. Download the PBMC 1k v3 test dataset
 
@@ -75,8 +80,7 @@ bash conf/setup_human_references.sh /data/references
 bash containers/build.sh --cache-dir /data/apptainer/scpolaseq
 ```
 
-Four SIF images are built: `scpolaseq-alignment`, `scpolaseq-clustering`, `scpolaseq-python`, `scpolaseq-r`.  
-A fifth image `scpolaseq-scapture` is built only if `--with-scapture` is passed (required for `enable_scapture = true`).
+The builder creates five SIF images by default: `scpolaseq-alignment`, `scpolaseq-clustering`, `scpolaseq-python`, `scpolaseq-r`, and `scpolaseq-scapture`. Use `--env NAME` to build one image. SCAPTURE remains opt-in at workflow runtime.
 
 ### 4. Create a samplesheet
 
@@ -107,9 +111,20 @@ pbmc_1k_v3,pbmc_1k_v3_L002,10x_3p,10xv3,healthy,rep1,/path/L002_R1.fastq.gz,/pat
 ```bash
 nextflow run main.nf \
   -profile apptainer,test_pbmc1k \
+  --input /data/pbmc1k/samplesheet.csv \
+  --genome_fasta /data/references/GRCh38/genome.fa \
+  --gtf /data/references/GRCh38/genes.gtf \
+  --known_polya /data/references/polyasite2_GRCh38.tsv \
+  --apptainer_cache_dir /data/apptainer/scpolaseq \
+  --outdir /data/results/pbmc1k \
   -work-dir /data/work/scPolASeq_pbmc1k \
   -resume
 ```
+
+The `test_pbmc1k` dataset profile has no machine-specific path defaults. Supply
+the samplesheet, references, SIF cache, work directory, and output directory
+for the host running the pipeline. Use `test_pbmc1k_deepthought` only for the
+staged Deepthought inputs.
 
 **Custom run:**
 
@@ -121,14 +136,14 @@ nextflow run main.nf \
   --gtf /path/to/genes.gtf \
   --known_polya /path/to/polyasite2_GRCh38.tsv \
   --outdir /path/to/results \
-  --prebuilt_star_index /path/to/star_index    # skip genome generation if index exists
+  --star_index /path/to/star_index             # use a compatible pre-built STAR index
 ```
 
 ## Key parameters
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `prebuilt_star_index` | `null` | Path to an existing STAR genome directory. When set, genome generation is skipped (~10–20 min and 28 GB saved). |
+| `star_index` | `null` | Path to an existing STAR genome directory built for the supplied genome and GTF. When set, index generation is skipped. |
 | `grouping_levels` | `cluster,cell_type` | Comma-separated list of grouping levels for BAM reconstruction and coverage. |
 | `apa_group_level` | `cluster` | Primary grouping level for APA feature extraction and ML training. |
 | `enable_internal_clustering` | `true` | Run Scanpy clustering when no external labels are provided. |

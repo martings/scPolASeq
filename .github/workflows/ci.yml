@@ -72,6 +72,9 @@ jobs:
             -stub \
             -ansi-log false
 
+      - name: Production STAR failures fail closed
+        run: bash tests/test_star_fail_closed.sh
+
       - name: Upload Nextflow logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
