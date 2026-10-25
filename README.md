@@ -74,8 +74,10 @@ set `SCPOLASEQ_DATA_ROOT` or the individual `SCPOLASEQ_*_DIR` variables to use
 another layout. For example, set `SCPOLASEQ_DATA_ROOT=/data` and run
 `bash conf/setup_human_references.sh --skip-star-index`. STAR indexes should be built
 with the same STAR version used for alignment. Set `SCPOLASEQ_STAR_SIF` to
-select that image explicitly, or leave `star_index` unset so the workflow builds
-the index with its configured runtime image.
+select the image used to build an index. The helper leaves `star_index` unset by
+default; set `SCPOLASEQ_USE_STAR_INDEX=true` only after confirming that the
+index and the workflow alignment image use compatible STAR versions. Otherwise,
+the workflow builds the index with its configured runtime image.
 
 
 ### 3. Build container images
