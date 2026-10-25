@@ -6,18 +6,19 @@ the per-tool Docker/Apptainer recipes and validation guide used in
 
 ## Evidence from Deepthought
 
-Fabro's successful May 16–17 Nextflow session used
-`-profile deepthought,apptainer,dengue_day1_wk2_deepthought`, the SIFs in
-`/scratch/cache/apptainer`, and the same SCAPTURE stage that this pipeline uses.
+The documented May 16–17 Nextflow session used
+`-profile deepthought,apptainer,dengue_day1_wk2_deepthought`, the top-level
+shared SIF cache selected by the Deepthought profile, and the same SCAPTURE
+stage that this pipeline uses.
 The completed workflow reported 99 succeeded, 9 cached, and 0 failed tasks. The
 trace included completed Sierra and SCAPTURE tasks. Direct import/version probes
 also passed for the top-level SCAPTURE SIF (Python 3.8.19, NumPy 1.19.5,
 pandas 1.1.5, TensorFlow 2.4.1). This is evidence that Apptainer can run the
 SCAPTURE workload on Deepthought, including its TensorFlow/DeepPASS stack.
 
-The nested `/scratch/cache/apptainer/scpolaseq` copy is not equivalent: its old
-SCAPTURE image has a NumPy/pandas binary ABI failure. Keep using the proven
-top-level cache until replacement images pass validation.
+The older nested per-project cache is not equivalent: its SCAPTURE image has a
+NumPy/pandas binary ABI failure. Keep using the profile-selected cache until
+replacement images pass validation.
 
 ## Build and run
 
@@ -29,15 +30,15 @@ Build the Apptainer images in a writable local/cache directory, then validate
 them before using them in a run:
 
 ```bash
-bash containers/build.sh --cache-dir /scratch/cache/apptainer
+bash containers/build.sh --cache-dir /path/to/sif-cache
 ```
 
 The builder should retain existing SIFs unless `--force` is specified. SCAPTURE
 is an opt-in Nextflow module (`--enable_scapture true`) and its image must be
 present when that module is enabled. On Deepthought, use
-`-profile deepthought,apptainer` and `--apptainer_cache_dir
-/scratch/cache/apptainer`; this is the cache path observed in Fabro's completed
-run.
+`-profile deepthought,apptainer`; the profile selects the cache used by the
+documented completed run. On other hosts, set `--apptainer_cache_dir` to the
+directory containing the SIF images.
 
 For Conda execution, use `-profile conda` (and the relevant machine profile).
 The Conda environment files are module-specific so Nextflow creates only the
