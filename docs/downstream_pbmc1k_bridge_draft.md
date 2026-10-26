@@ -42,9 +42,19 @@ The full module completed on the October 24–25 PBMC1k execution output with Ne
 
 Matching summary counts support technical reproducibility for this package version and input pair. They do not independently validate cell labels, PAS assignments, differential tests, or therapeutic claims. The upstream October run's 18 BigWigs were empty; this downstream notebook uses Sierra counts, the PAS catalog, STARsolo matrices, and the clustered AnnData, so those BigWigs were not required for this replication.
 
+After rebasing onto the PR #19 candidate on October 26, the revised bridge
+also passed a fresh `generate-only` Nextflow run against the existing PBMC1k
+result tree: it produced a nonempty notebook and a manifest with
+`status=generated_only` and the pinned package fingerprint. This recheck did
+not execute the notebook or query enrichment services. The full analysis
+evidence above predates the output-claim and Python-path guards in this PR.
+
 **Enrichment correction:** the original package checkpoint wrote `n_reactome_pathways_fdr05 = len(reactome_df)`, which counted displayed pathways. The earlier fresh table displayed 20 rows and had **zero** pathways with FDR ≤ 0.05 (minimum FDR 0.923). The published package now applies the FDR threshold in the checkpoint. In the pinned full run, the table again displayed 20 rows and both the checkpoint and the bridge independently reported **0** pathways with FDR ≤ 0.05. The bridge's `replication_check.md` reports technical concordance as complete and scientific review as pending.
 
 ## Integration limits
+
+- The bridge atomically claims a **new** output directory, even outside Nextflow; an existing empty directory is rejected. `--downstream_python` accepts only `python3` or a simple absolute executable path without shell characters.
+- This is a human-operated, opt-in workflow, not a Megas Infra agent tool or approved controller workflow. Do not expose dynamic input paths or Python selection through the agent broker. `generate-only` checks input availability and notebook generation, not H5AD/matrix schema or biological correctness.
 
 - The package template now accepts the configured upstream and workspace locations. The bridge verifies that the generated notebook contains both paths before executing it.
 - The bridge targets the PBMC1k result schema. Other datasets and cross-condition comparisons require explicit adapters and independent validation.

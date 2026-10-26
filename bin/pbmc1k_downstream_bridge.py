@@ -51,6 +51,11 @@ def source_fingerprint(package_src: Path) -> str:
     return digest.hexdigest()
 
 
+def claim_output(output: Path) -> None:
+    """Atomically reserve a fresh publication directory; never reuse even an empty one."""
+    output.mkdir(parents=True, exist_ok=False)
+
+
 def write_replication_report(output: Path, manifest: dict) -> None:
     """Summarize technical concordance without treating it as biological validation."""
     execution = manifest["execution"]
@@ -126,10 +131,7 @@ def main() -> int:
     upstream = args.upstream_results.resolve()
     package_src = args.package_src.resolve()
     output = args.output_dir.resolve()
-    if output.exists() and any(output.iterdir()):
-        raise ValueError(f"Refusing to reuse a nonempty downstream output directory: {output}")
     inputs = require_inputs(upstream, package_src)
-    output.mkdir(parents=True, exist_ok=True)
     sys.path.insert(0, str(package_src))
     os.environ["PYTHONPATH"] = os.pathsep.join(filter(None, [str(package_src), os.environ.get("PYTHONPATH")]))
     import nbformat
@@ -143,6 +145,7 @@ def main() -> int:
         if missing:
             raise ValueError("Full enrichment requires external science tools: " + ", ".join(missing))
 
+    claim_output(output)
     config = PipelineConfig.for_pbmc1k(base_dir=upstream, workspace_dir=output)
     notebook = output / "notebooks" / "18_pbmc1k_template_downstream_analysis.ipynb"
     generate_template_notebook(config, notebook)

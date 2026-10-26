@@ -15,6 +15,12 @@ workflow {
     if (file(params.downstream_outdir).exists()) {
         error "Downstream output already exists; choose a new --downstream_outdir: ${params.downstream_outdir}"
     }
+    def python_exec = params.downstream_python?.toString()
+    if (!(python_exec == 'python3' ||
+          (python_exec?.startsWith('/') && python_exec.matches('/[A-Za-z0-9_./-]+') &&
+           !python_exec.tokenize('/').contains('..') && !python_exec.endsWith('/')))) {
+        error 'Invalid --downstream_python: use python3 or an absolute executable path without shell characters'
+    }
     PBMC1K_DOWNSTREAM(
         Channel.value(file(params.upstream_results, checkIfExists: true)),
         Channel.value(file(params.downstream_package_src, checkIfExists: true)),
