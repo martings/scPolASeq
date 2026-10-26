@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Run the unpublished downstream package on one scPolASeq PBMC1k result tree.
-
-Only the first generated notebook cell is replaced. All analytical stages,
-plots and enrichment continue to call scpolaseq_downstream itself.
-"""
+"""Run the pinned downstream package on one scPolASeq PBMC1k result tree."""
 
 from __future__ import annotations
 
@@ -54,56 +50,6 @@ def source_fingerprint(package_src: Path) -> str:
     return digest.hexdigest()
 
 
-def first_cell(package_src: Path, upstream: Path, work_root: Path) -> str:
-    # Keep imports identical to the package-generated notebook while making
-    # source and result locations explicit for this isolated invocation.
-    return f'''import json
-import sys
-from pathlib import Path
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-PACKAGE_SRC = Path({str(package_src)!r})
-sys.path.insert(0, str(PACKAGE_SRC))
-from scpolaseq_downstream.config import PipelineConfig
-from scpolaseq_downstream.qc import run_qc_stage
-from scpolaseq_downstream.celltyping import run_celltyping_stage
-from scpolaseq_downstream.apa import run_apa_stage
-from scpolaseq_downstream.enrichment import run_enrichment_stage
-from scpolaseq_downstream.plotting import (
-    plot_celltype_landscape, plot_marker_validation_heatmap,
-    plot_apa_global_overview, plot_volcano_apa,
-    plot_magnetization_concordance, plot_multilineage_gene_architecture,
-    plot_reactome_and_targets,
-)
-
-config = PipelineConfig.for_pbmc1k(
-    base_dir={str(upstream)!r},
-    workspace_dir={str(work_root)!r},
-)
-subdirs = config.ensure_dirs()
-print("Loaded PipelineConfig for:", config.dataset_name)
-print("Output directory:", config.output_dir)
-'''
-
-
-def kernel_for_current_python(work_root: Path, package_src: Path) -> None:
-    kernel_dir = work_root / ".jupyter" / "kernels" / "scpolaseq_bridge"
-    kernel_dir.mkdir(parents=True)
-    kernel = {
-        "argv": [sys.executable, "-m", "ipykernel_launcher", "-f", "{connection_file}"],
-        "display_name": "scPolASeq downstream bridge",
-        "language": "python",
-        "env": {"PYTHONPATH": os.pathsep.join([str(package_src), os.environ.get("PYTHONPATH", "")])},
-    }
-    (kernel_dir / "kernel.json").write_text(json.dumps(kernel), encoding="utf-8")
-    os.environ["JUPYTER_PATH"] = os.pathsep.join(
-        [str(work_root / ".jupyter"), os.environ.get("JUPYTER_PATH", "")]
-    )
-
-
 def write_replication_report(output: Path, manifest: dict) -> None:
     """Summarize technical concordance without treating it as biological validation."""
     execution = manifest["execution"]
@@ -142,6 +88,12 @@ def write_replication_report(output: Path, manifest: dict) -> None:
         lines.append(
             f"| `{name}` | {item['baseline']} | {item['observed']} | {'yes' if item['matches'] else 'no'} |"
         )
+    reactome = manifest["reactome_check"]
+    checkpoint_count = reactome["package_checkpoint_n_reactome_pathways_fdr05"]
+    count_note = (
+        "matches the FDR-filtered count" if checkpoint_count == reactome["pathways_fdr_le_0_05"]
+        else "differs from the FDR-filtered count; review package checkpoint"
+    )
     lines.extend([
         "",
         "## Generated artifacts",
@@ -152,9 +104,9 @@ def write_replication_report(output: Path, manifest: dict) -> None:
         "",
         "## Reactome count audit",
         "",
-        f"- Displayed pathways: {manifest['reactome_check']['displayed_pathways']}.",
-        f"- Pathways with FDR <= 0.05: {manifest['reactome_check']['pathways_fdr_le_0_05']}.",
-        f"- Package checkpoint field `n_reactome_pathways_fdr05`: {manifest['reactome_check']['package_checkpoint_n_reactome_pathways_fdr05']} (currently counts displayed rows).",
+        f"- Displayed pathways: {reactome['displayed_pathways']}.",
+        f"- Pathways with FDR <= 0.05: {reactome['pathways_fdr_le_0_05']}.",
+        f"- Package checkpoint field `n_reactome_pathways_fdr05`: {checkpoint_count} ({count_note}).",
         "",
         f"Downstream package source SHA-256: `{manifest['downstream_source_sha256']}`.",
         "",
@@ -178,6 +130,7 @@ def main() -> int:
     inputs = require_inputs(upstream, package_src)
     output.mkdir(parents=True, exist_ok=True)
     sys.path.insert(0, str(package_src))
+    os.environ["PYTHONPATH"] = os.pathsep.join(filter(None, [str(package_src), os.environ.get("PYTHONPATH")]))
     import nbformat
     from scpolaseq_downstream.config import PipelineConfig
     from scpolaseq_downstream.templates import generate_template_notebook, execute_and_export_notebook
@@ -186,11 +139,10 @@ def main() -> int:
     notebook = output / "notebooks" / "18_pbmc1k_template_downstream_analysis.ipynb"
     generate_template_notebook(config, notebook)
     nb = nbformat.read(notebook, as_version=4)
-    if len(nb.cells) < 10 or nb.cells[1].cell_type != "code" or "PipelineConfig.for_pbmc1k" not in nb.cells[1].source:
-        raise ValueError("The unpublished package template changed; review the bridge before execution")
-    nb.cells[1].source = first_cell(package_src, upstream, output)
-    nbformat.write(nb, notebook)
-    kernel_for_current_python(output, package_src)
+    if (len(nb.cells) < 10 or nb.cells[1].cell_type != "code"
+            or str(upstream) not in nb.cells[1].source
+            or str(output) not in nb.cells[1].source):
+        raise ValueError("The package template did not use the requested input and output paths")
 
     manifest = {
         "status": "generated_only" if args.generate_only else "running",
@@ -202,7 +154,7 @@ def main() -> int:
         "baseline_metrics": BASELINE,
     }
     if not args.generate_only:
-        result = execute_and_export_notebook(notebook, kernel_name="scpolaseq_bridge")
+        result = execute_and_export_notebook(notebook)
         summary_file = config.output_dir / "checkpoints" / "pipeline_execution_summary.json"
         summary = json.loads(summary_file.read_text(encoding="utf-8"))
         manifest["execution"] = {
