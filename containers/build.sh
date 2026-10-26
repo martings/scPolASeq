@@ -3,21 +3,21 @@
 # Build all scPolASeq Apptainer SIF images from conda environment specs.
 #
 # Usage:
-#   cd /scratch/work/scPolASeq
-#   bash containers/build.sh [--cache-dir /scratch/cache/apptainer/scpolaseq]
+#   cd /path/to/scPolASeq
+#   bash containers/build.sh [--cache-dir /path/to/sif-cache]
 #
 # Options:
-#   --cache-dir DIR   Output directory for .sif files (default: /scratch/cache/apptainer/scpolaseq)
-#   --env NAME        Build only one env (python|alignment|clustering|r)
+#   --cache-dir DIR   Output directory for .sif files (default: ${XDG_CACHE_HOME:-$HOME/.cache}/scpolaseq/apptainer)
+#   --env NAME        Build only one env (python|alignment|clustering|r|scapture)
 #   --force           Rebuild even if .sif already exists
 #
-# Requirements: apptainer >= 1.0, mamba accessible in base conda env
+# Requirements: Apptainer >= 1.0 with fakeroot enabled for this user.
 # =============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "${SCRIPT_DIR}")"
-CACHE_DIR="/scratch/cache/apptainer/scpolaseq"
+CACHE_DIR="${SCPOLASEQ_APPTAINER_CACHE:-${XDG_CACHE_HOME:-${HOME}/.cache}/scpolaseq/apptainer}"
 FORCE=0
 ONLY_ENV=""
 
@@ -32,7 +32,7 @@ done
 
 mkdir -p "${CACHE_DIR}"
 
-ENVS=(python alignment clustering r)
+ENVS=(python alignment clustering r scapture)
 if [[ -n "${ONLY_ENV}" ]]; then
     ENVS=("${ONLY_ENV}")
 fi
@@ -42,8 +42,8 @@ for env in "${ENVS[@]}"; do
     sif="${CACHE_DIR}/scpolaseq-${env}.sif"
 
     if [[ ! -f "${def}" ]]; then
-        echo "[SKIP] No .def file for env '${env}': ${def}"
-        continue
+        echo "[ERROR] No .def file for env '${env}': ${def}" >&2
+        exit 1
     fi
 
     if [[ -f "${sif}" && "${FORCE}" -eq 0 ]]; then
@@ -59,8 +59,20 @@ for env in "${ENVS[@]}"; do
     (cd "${REPO_ROOT}" && \
         apptainer build --fakeroot "${sif}" "${def}")
 
+    apptainer exec "${sif}" true
     echo "[OK] Built: ${sif}"
 done
+
+(
+    cd "${CACHE_DIR}"
+    shopt -s nullglob
+    images=(scpolaseq-*.sif)
+    if ((${#images[@]})); then
+        sha256sum "${images[@]}" > SHA256SUMS
+    else
+        : > SHA256SUMS
+    fi
+)
 
 echo ""
 echo "Done. SIF paths:"
