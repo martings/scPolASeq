@@ -41,6 +41,7 @@ WL_DIR="${SCPOLASEQ_WHITELIST_DIR:-${DATA_ROOT}/datasets/10x_whitelists}"
 PBMC_DIR="${SCPOLASEQ_PBMC_DIR:-${DATA_ROOT}/datasets/pbmc1k/fastqs}"
 SAMPLESHEET="${SCPOLASEQ_SAMPLESHEET:-${DATA_ROOT}/datasets/pbmc1k/samplesheet.csv}"
 RESULTS_DIR="${SCPOLASEQ_RESULTS_DIR:-${DATA_ROOT}/projects/scPolASeq_pbmc1k/results}"
+SIF_DIR="${SCPOLASEQ_SIF_DIR:-${DATA_ROOT}/containers/scpolaseq}"
 NCPUS="${NCPUS:-8}"
 # URLs
 GENOME_URL="https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38.primary_assembly.genome.fa.gz"
@@ -156,6 +157,7 @@ elif [[ -n "${SCPOLASEQ_STAR_SIF:-}" ]]; then
         --genomeFastaFiles "${REF_DIR}/genome.fa" \
         --sjdbGTFfile     "${REF_DIR}/genes.gtf" \
         --outFileNamePrefix "${STAR_INDEX}/"
+    [[ -s "${STAR_INDEX}/SA" && -s "${STAR_INDEX}/Genome" ]] || err "STAR exited without a complete index: ${STAR_INDEX}"
     log "STAR index complete: ${STAR_INDEX}/"
 elif ! command -v STAR >/dev/null 2>&1; then
     skip "No STAR executable found; leave star_index unset so the workflow builds it with its selected runtime image."
@@ -169,6 +171,7 @@ else
         --genomeFastaFiles "${REF_DIR}/genome.fa" \
         --sjdbGTFfile     "${REF_DIR}/genes.gtf" \
         --outFileNamePrefix "${STAR_INDEX}/"
+    [[ -s "${STAR_INDEX}/SA" && -s "${STAR_INDEX}/Genome" ]] || err "STAR exited without a complete index: ${STAR_INDEX}"
     log "STAR index complete: ${STAR_INDEX}/"
 fi
 
@@ -185,9 +188,11 @@ echo "  whitelist: ${WL_DIR}/3M-february-2018.txt"
 echo "  FASTQs   : ${PBMC_DIR}/"
 echo
 echo "Launch the pipeline (an existing index is reused only with explicit version-compatibility opt-in):"
+echo "  Build and validate images first: bash containers/build.sh --cache-dir ${SIF_DIR} && bash containers/validate.sh ${SIF_DIR}"
 launch_args=(
     nextflow run main.nf
     -profile apptainer,test_pbmc1k
+    --apptainer_cache_dir "${SIF_DIR}"
     --input "${SAMPLESHEET}"
     --genome_fasta "${REF_DIR}/genome.fa"
     --gtf "${REF_DIR}/genes.gtf"

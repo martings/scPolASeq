@@ -80,6 +80,12 @@ For example:
 SCPOLASEQ_DATA_ROOT=/data bash conf/setup_human_references.sh --skip-star-index
 ```
 
+The helper prints an Apptainer launch command with `--apptainer_cache_dir`
+pointing to `${SCPOLASEQ_DATA_ROOT}/containers/scpolaseq` by default. Set
+`SCPOLASEQ_SIF_DIR` when validated SIF images live elsewhere, and build and
+validate those images before launching the printed command. The helper does
+not build images itself.
+
 STAR indexes should be built with the same STAR version used for alignment.
 Set `SCPOLASEQ_STAR_SIF` to
 select the image used to build an index. The helper leaves `star_index` unset by
