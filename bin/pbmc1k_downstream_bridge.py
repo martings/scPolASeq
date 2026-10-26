@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import sys
 
 
@@ -134,6 +135,13 @@ def main() -> int:
     import nbformat
     from scpolaseq_downstream.config import PipelineConfig
     from scpolaseq_downstream.templates import generate_template_notebook, execute_and_export_notebook
+    if not args.generate_only:
+        from scpolaseq_downstream.enrichment import REACTOME_SCRIPT, QUICKGO_SCRIPT, PUBMED_SCRIPT, UV_BIN
+        missing = [str(path) for path in (REACTOME_SCRIPT, QUICKGO_SCRIPT, PUBMED_SCRIPT) if not path.is_file()]
+        if not UV_BIN.is_file() and shutil.which("uv") is None:
+            missing.append("uv executable")
+        if missing:
+            raise ValueError("Full enrichment requires external science tools: " + ", ".join(missing))
 
     config = PipelineConfig.for_pbmc1k(base_dir=upstream, workspace_dir=output)
     notebook = output / "notebooks" / "18_pbmc1k_template_downstream_analysis.ipynb"

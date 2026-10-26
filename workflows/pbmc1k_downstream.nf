@@ -12,6 +12,9 @@ workflow {
     if (!params.upstream_results || !params.downstream_outdir) {
         error 'Set --upstream_results and --downstream_outdir'
     }
+    if (file(params.downstream_outdir).exists()) {
+        error "Downstream output already exists; choose a new --downstream_outdir: ${params.downstream_outdir}"
+    }
     PBMC1K_DOWNSTREAM(
         Channel.value(file(params.upstream_results, checkIfExists: true)),
         Channel.value(file(params.downstream_package_src, checkIfExists: true)),
