@@ -84,6 +84,9 @@ jobs:
       - name: Downstream bridge contract (synthetic, no external queries)
         run: python3 -m unittest discover -s tests -p 'test_downstream_bridge.py' -v
 
+      - name: Downstream Nextflow preflight (no task submission)
+        run: bash tests/test_downstream_preflight.sh
+
       - name: Upload Nextflow logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
