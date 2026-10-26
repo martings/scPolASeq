@@ -36,7 +36,20 @@ bash containers/validate.sh /path/to/sif-cache
 
 The Python environment pins UCSC `bedGraphToBigWig` 482. Rebuild the Python SIF
 after changing `envs/python.yml`, then run `containers/validate.sh`; the smoke
-check now requires the converter used by `COVERAGE_TRACKS`. When
+check now requires the converter used by `COVERAGE_TRACKS` and a real
+synthetic bedGraph-to-BigWig conversion with a valid BigWig header. A new
+Python image can be validated without copying the other four images into the
+staging directory:
+
+```bash
+bash containers/build.sh --cache-dir /path/to/new-staging-cache --env python
+bash containers/validate.sh /path/to/new-staging-cache --env python
+```
+
+The staging path must be new and outside the shared production SIF cache;
+do not use `--force` on that shared cache to test a new recipe. This validates
+the Python image only, not the full Nextflow profile or a PBMC1k result.
+When
 `emit_bigwigs=true`, missing converters, failed conversions and empty BigWig
 files fail the task instead of being published as successful placeholders.
 

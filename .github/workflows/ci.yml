@@ -78,6 +78,9 @@ jobs:
       - name: BigWig outputs fail closed
         run: bash tests/test_coverage_bigwig_fail_closed.sh
 
+      - name: Python SIF validation contract (synthetic, mocked Apptainer)
+        run: bash tests/test_container_python_bigwig_validation.sh
+
       - name: Upload Nextflow logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
