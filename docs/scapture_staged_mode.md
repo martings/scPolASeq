@@ -27,6 +27,16 @@ The catalog, evaluated and merged BEDs, combined BED12 reference, PASquant
 matrix and manifest, metrics, and stage logs are published under
 `${params.outdir}/scapture`; `versions.yml` files remain in task workdirs.
 
+On Deepthought, PAScall carries the `gpu` label and requests one accelerator.
+The host's broad GPU label config also sets `containerOptions=--nv`, which
+would hide the task's DeepPASS predictor bind. The name-specific PAScall
+selector keeps that bind, while `apptainer.runOptions` supplies `--nv`.
+A bounded real invalid-BAM probe on 27 October 2026 generated
+`/scratch/tmp/scapture_orch_gpu_probe_override_work/db/780867b9ffc3dec6a31e401b89e237/.command.run`
+with both `--nv` and `--bind DeepPASS_Predict.py:/opt/scapture/DeepPASS/Predict.py`.
+That probe verifies the launcher and expected failure propagation; it does not
+measure DeepPASS GPU computation.
+
 Use a persistent work directory and explicit Nextflow session UUID when
 resuming. For example, after the first run records its UUID:
 
