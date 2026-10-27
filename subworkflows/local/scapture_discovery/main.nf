@@ -1,7 +1,7 @@
 /*
- * Incremental SCAPTURE discovery. This subworkflow stops after DeepPASS and
- * intentionally does not replace SCAPTURE_FILTER until PASmerge/PASquant and
- * real-output equivalence have been validated (issues #27-29).
+ * Incremental SCAPTURE discovery. This subworkflow stops after PASmerge and
+ * intentionally does not replace SCAPTURE_FILTER until PASquant and real-output
+ * equivalence have been validated (issues #28-29).
  *
  * Input: tuple(meta, bam, bai, fasta, fai, gtf, chrom_sizes, polya_db,
  *              has_polya_db). library_id must be unique in this channel.
@@ -9,6 +9,7 @@
 include { SCAPTURE_PREPARE } from '../../../modules/local/apa/scapture_prepare/main'
 include { SCAPTURE_ANNOTATION } from '../../../modules/local/apa/scapture_annotation/main'
 include { SCAPTURE_PASCALL } from '../../../modules/local/apa/scapture_pascall/main'
+include { SCAPTURE_MERGE } from '../scapture_merge/main'
 
 workflow SCAPTURE_DISCOVERY {
     take:
@@ -38,9 +39,13 @@ workflow SCAPTURE_DISCOVERY {
                   file("${moduleDir}/../../../bin/DeepPASS_Predict.py", checkIfExists: true))
         }
     SCAPTURE_PASCALL(ch_annotated)
+    SCAPTURE_MERGE(SCAPTURE_PASCALL.out.evaluated)
 
     emit:
     evaluated = SCAPTURE_PASCALL.out.evaluated
+    reference = SCAPTURE_MERGE.out.reference
+    reference_metrics = SCAPTURE_MERGE.out.reference_metrics
+    merge_status = SCAPTURE_MERGE.out.category_status
     pascall_metrics = SCAPTURE_PASCALL.out.metrics
     gene_name_map = SCAPTURE_PREPARE.out.gene_name_map
     duplicate_gene_names = SCAPTURE_PREPARE.out.duplicate_gene_names

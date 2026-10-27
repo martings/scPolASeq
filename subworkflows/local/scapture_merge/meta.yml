@@ -1,0 +1,18 @@
+name: scapture_merge
+description: Run PASmerge independently for three peak categories, then create a BED12 reference.
+keywords: [scapture, pasmerge, bed12]
+components:
+  - scapture_pasmerge
+  - scapture_pasreference
+input:
+  - ch_evaluated:
+      description: Library metadata and exonic, intronic, 3primeExtended evaluated BEDs.
+output:
+  - reference:
+      description: Sorted BED12 PAS reference for PASquant.
+  - reference_metrics:
+      description: Per-category and total reference counts.
+  - category_integrated:
+      description: One Integrated.bed per category.
+  - category_status:
+      description: Explicit merged or empty_input status per category.

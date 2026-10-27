@@ -12,6 +12,8 @@ test are complete. A stub run cannot establish this equivalence.
 | `SCAPTURE_PREPARE` | library metadata, GTF | collision-free GTF and gene map | GTF rewrite survives downstream errors |
 | `SCAPTURE_ANNOTATION` | prepared GTF, FASTA/FAI, chromosome sizes | `${library_id}_annot.*`, log | annotation survives DeepPASS and merge failures |
 | `SCAPTURE_PASCALL` | indexed BAM, FASTA/FAI, annotation files, optional poly(A) DB | three evaluated BEDs, counts, log | DeepPASS survives merge and quantification failures |
+| `SCAPTURE_PASMERGE` | one evaluated BED and category | Integrated.bed plus explicit status | Each category resumes independently |
+| `SCAPTURE_PASREFERENCE` | three category Integrated.bed files | sorted BED12 reference and row counts | PASquant can rerun without PASmerge |
 
 The process modules have `meta.yml` contracts and `versions.yml` output. In the
 container, SCAPTURE's Git commit is recorded when available, alongside a script
@@ -71,3 +73,26 @@ exited 1 at `31/4a6b8b...` because no valid scored peaks existed. This checks
 the subworkflow joins, predictor staging and Apptainer bind, and failure
 propagation. The deliberately invalid BAM cannot test DeepPASS prediction or
 scientific concordance. A full real-input PAScall run remains issue #29.
+
+## Bounded real PASmerge gate (#27)
+
+`tests/scapture_merge_historical.nf` takes `--scapture_evaluated_dir` and uses
+the three already-evaluated BEDs from the read-only historical task; it does not
+rerun PAScall or DeepPASS. With the validated SCAPTURE SIF, each category ran
+separately and the combined BED12 reference was written. The category row
+counts were 28,452 exonic, 70,568 intronic, and 2,366 3primeExtended; total
+101,386. SHA256 matched the historical monolith output **exactly for each of
+the four BED files**. The combined BED12 SHA256 was
+`80afa97bdfe64f0b01f1200905ccbe97036f91087f86bace9a0e37614724e45d`.
+The first attempt failed closed because GNU Parallel needed a task-local
+`TMPDIR`; the module now creates one, matching the monolith's environment.
+
+An unchanged `-resume` reused all four task hashes: exonic `bd/96b2ed`,
+intronic `3f/81ec61`, 3primeExtended `49/abe153`, combined `a3/3c4796`.
+With the final test harness revision, switching only 3primeExtended to an empty
+BED produced `empty_input` status and a valid 99,020-row reference; switching
+back cached exonic `07/32e96f` and intronic `24/8c5ef4`, reran only the changed
+3primeExtended category (`c5/44642a`) and combined reference (`6f/97d998`).
+The final combined SHA256 again matched the historical monolith. When all three
+categories were empty, the category tasks recorded `empty_input` and the
+reference task failed with `all SCAPTURE PASmerge categories were empty`.

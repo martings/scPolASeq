@@ -5,12 +5,19 @@ components:
   - scapture_prepare
   - scapture_annotation
   - scapture_pascall
+  - scapture_merge
 input:
   - ch_input:
       description: Unique library meta, indexed BAM, reference, annotation and optional poly(A) database.
 output:
   - evaluated:
       description: Three SCAPTURE evaluated BED categories, ready for PASmerge.
+  - reference:
+      description: Combined BED12 reference for PASquant.
+  - reference_metrics:
+      description: Per-category and total reference counts.
+  - merge_status:
+      description: Per-category PASmerge states.
   - pascall_metrics:
       description: Scored peak counts by category.
   - gene_name_map:
