@@ -1,0 +1,53 @@
+name: scapture_pascall
+description: Call and score polyadenylation peaks with SCAPTURE PAScall and DeepPASS.
+keywords: [scapture, pascall, deeppass, polyadenylation]
+tools:
+  - scapture:
+      description: Single-cell poly(A) site analysis
+      homepage: https://github.com/YangLab/SCAPTURE
+input:
+  - - meta:
+        type: map
+        description: Sample metadata including library_id.
+    - bam:
+        type: file
+        description: Indexed library BAM.
+    - bai:
+        type: file
+        description: BAM index.
+    - genome_fasta:
+        type: file
+        description: Reference genome FASTA.
+    - genome_fai:
+        type: file
+        description: FASTA index.
+    - annotation_files:
+        type: file
+        description: SCAPTURE annotation products.
+    - polya_db:
+        type: file
+        description: Optional SCAPTURE poly(A) database or NO_FILE sentinel.
+    - has_polya_db:
+        type: boolean
+        description: Whether poly(A) database is supplied.
+    - predict_script:
+        type: file
+        description: Content-addressed patched DeepPASS predictor bound into SIF.
+        pattern: DeepPASS_Predict.py
+output:
+  - evaluated:
+      type: file
+      description: Exonic, intronic, and 3primeExtended evaluated BEDs.
+      pattern: "*.peaks.evaluated.bed"
+  - log:
+      type: file
+      description: PAScall and DeepPASS log.
+      pattern: "*.PAScall.log"
+  - metrics:
+      type: file
+      description: Valid and scored row counts by category.
+      pattern: "*.scapture.pascall.metrics.tsv"
+  - versions:
+      type: file
+      description: SCAPTURE executable fingerprint.
+      pattern: versions.yml

@@ -1,0 +1,36 @@
+name: scapture_annotation
+description: Build SCAPTURE annotation products from collision-free GTF.
+keywords: [scapture, annotation, polyadenylation]
+tools:
+  - scapture:
+      description: Single-cell poly(A) site analysis
+      homepage: https://github.com/YangLab/SCAPTURE
+input:
+  - - meta:
+        type: map
+        description: Sample metadata including library_id.
+    - scapture_gtf:
+        type: file
+        description: Collision-free SCAPTURE GTF.
+    - genome_fasta:
+        type: file
+        description: Reference genome FASTA.
+    - genome_fai:
+        type: file
+        description: FASTA index.
+    - chrom_sizes:
+        type: file
+        description: Chromosome sizes.
+output:
+  - annotation:
+      type: file
+      description: SCAPTURE annotation files sharing a library prefix.
+      pattern: "*_annot.*"
+  - log:
+      type: file
+      description: Annotation log.
+      pattern: "*.annotation.log"
+  - versions:
+      type: file
+      description: Tool versions.
+      pattern: versions.yml
