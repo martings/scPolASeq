@@ -1,0 +1,36 @@
+name: scapture_catalog
+description: Normalize DeepPASS-evaluated SCAPTURE BEDs to the scPolASeq site catalog.
+keywords: [scapture, deeppass, site_catalog, polyadenylation]
+tools:
+  - scapture:
+      description: Single-cell poly(A) site analysis
+      homepage: https://github.com/YangLab/SCAPTURE
+input:
+  - - meta:
+        type: map
+        description: Library metadata with a safe library_id.
+    - exonic:
+        type: file
+        description: Exonic evaluated BED.
+    - intronic:
+        type: file
+        description: Intronic evaluated BED.
+    - extended:
+        type: file
+        description: 3primeExtended evaluated BED.
+    - catalog_helper:
+        type: file
+        description: Pinned catalog normalization script staged as a hash-tracked input.
+output:
+  - catalog:
+      type: file
+      description: Nonempty normalized site catalog TSV.
+      pattern: '*.scapture.site_catalog.tsv'
+  - metrics:
+      type: file
+      description: Catalog row count and DeepPASS threshold.
+      pattern: '*.scapture.catalog.metrics.tsv'
+  - versions:
+      type: file
+      description: Python version and catalog helper fingerprint.
+      pattern: versions.yml

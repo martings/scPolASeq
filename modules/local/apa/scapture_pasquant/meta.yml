@@ -1,0 +1,47 @@
+name: scapture_pasquant
+description: Quantify SCAPTURE PAS sites per selected cell from a BED12 PAS reference.
+keywords: [scapture, pasquant, umi, polyadenylation]
+tools:
+  - scapture:
+      description: Single-cell poly(A) site analysis
+      homepage: https://github.com/YangLab/SCAPTURE
+input:
+  - - meta:
+        type: map
+        description: Library metadata with safe library_id and optional safe sample_id; one sample per group.
+    - bam:
+        type: file
+        description: Filtered barcoded BAM.
+    - bai:
+        type: file
+        description: BAM index.
+    - pas_reference:
+        type: file
+        description: Nonempty sorted SCAPTURE BED12 PAS reference.
+    - cell_annotations:
+        type: file
+        description: TSV containing barcodes and optional sample_id.
+    - filter_helper:
+        type: file
+        description: Pinned FilterBamByTag helper staged as a hash-tracked input.
+output:
+  - matrix:
+      type: file
+      description: Gzip PAS site by cell UMI matrix with at least one site and cell.
+      pattern: '*.KeepCell.UMIs.tsv.gz'
+  - metrics:
+      type: file
+      description: Barcode, site, and cell counts.
+      pattern: '*.PASquant.metrics.tsv'
+  - manifest:
+      type: file
+      description: Successful quantification status and output names.
+      pattern: '*.PASquant.manifest.tsv'
+  - log:
+      type: file
+      description: PASquant command output.
+      pattern: '*.PASquant.log'
+  - versions:
+      type: file
+      description: SCAPTURE commit and executable/helper fingerprints.
+      pattern: versions.yml
