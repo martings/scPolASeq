@@ -16,15 +16,21 @@ The original `group_id` remains the value used to filter cells and is recorded
 in the manifest. File names use a sanitized group token matching the grouped
 BAM writer's allowed characters. Shell arguments quote the original value;
 labels containing spaces, `/`, `+`, or apostrophes therefore do not become
-paths or shell syntax. The adapter rejects duplicate group IDs/BAM filenames
-and requires the manifest to cover the exact BAM/index set.
+paths or shell syntax. The BAM writer fails before opening files when two
+labels sanitize to the same name. Input validation rejects distinct library
+IDs that sanitize to the same filename token. The adapter rejects duplicate
+group IDs/BAM filenames and requires the manifest to cover the exact
+BAM/index set.
 
 The R wrapper records the Sierra and R versions before quantification. The
 module checks nonempty staged inputs and requires both its TSV and version
 file. The group-scoped version filename prevents concurrent tasks from
 publishing to one `versions.yml` path. A TSV with only a header remains a
 possible scientific outcome for a group without matching cells/reads; this
-contract does not treat that as a quantification success claim.
+contract does not treat that as a quantification success claim. A corrupt BAM,
+`scanBam` or `CountPeaks` error, or a missing matrix after matching barcodes
+fails the task. An empty scoped whitelist or zero barcode overlap produces an
+explicitly logged header-only TSV.
 
 ## Validation
 
@@ -49,3 +55,12 @@ not quantification biology.
 The portable module test is `tests/modules/apa/test_sierra_quant.nf`. It
 requires explicit file parameters for a real run; no Deepthought paths are
 committed to the test or module.
+
+After the fail-closed fixes, the real cluster_5 rerun completed at hash
+`01/663c82` in the same session, retained the historical SHA-256, and a
+second explicit `-resume` cached `01/663c82`. A nonempty corrupt BAM caused
+the real Apptainer module test to exit 1 at hash `ad/30a0db`; its log shows
+the `scanBam` failure and no successful quantification was published. The
+full local stub suite (23 processes and two module tests) and 12 barcode
+identity/regression checks passed. These tests do not replace a fresh
+nine-group PBMC1k run.

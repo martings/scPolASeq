@@ -290,6 +290,45 @@ def test_write_group_bams_names_outputs_with_library_prefix(tmp_path):
     assert write_group_bams.grouped_bam_name(None, "cluster_1") == "cluster_1.grouped.bam"
 
 
+def test_write_group_bams_rejects_colliding_group_names(tmp_path):
+    group_map = tmp_path / "group_map.tsv"
+    write_tsv(group_map, ["sample_id", "library_id", "group_level", "group_id"], [
+        {"sample_id": "sample", "library_id": "lib", "group_level": "cell_type", "group_id": "T cell/A+B"},
+        {"sample_id": "sample", "library_id": "lib", "group_level": "cell_type", "group_id": "T cell A+B"},
+    ])
+    out_dir = tmp_path / "bams"
+    completed = subprocess.run([
+        sys.executable, str(REPO_ROOT / "bin/write_group_bams.py"),
+        "--group-map", str(group_map), "--sample-id", "sample", "--library-id", "lib",
+        "--out-dir", str(out_dir), "--out-manifest", str(tmp_path / "manifest.tsv"),
+    ], capture_output=True, text=True, cwd=REPO_ROOT)
+    assert completed.returncode != 0
+    assert "filename collision" in completed.stderr
+    assert not list(out_dir.glob("*.bam"))
+
+
+def test_validate_inputs_rejects_colliding_library_names(tmp_path):
+    samplesheet = tmp_path / "samples.csv"
+    with samplesheet.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=[
+            "sample_id", "library_id", "protocol", "chemistry", "condition", "bam"])
+        writer.writeheader()
+        writer.writerows([
+            {"sample_id": "one", "library_id": "a/b", "protocol": "bam_only",
+             "chemistry": "test", "condition": "case", "bam": "one.bam"},
+            {"sample_id": "two", "library_id": "a b", "protocol": "bam_only",
+             "chemistry": "test", "condition": "case", "bam": "two.bam"},
+        ])
+    completed = subprocess.run([
+        sys.executable, str(REPO_ROOT / "bin/validate_inputs.py"),
+        "--input", str(samplesheet), "--out", str(tmp_path / "valid.csv"),
+        "--manifest", str(tmp_path / "manifest.json"),
+    ], capture_output=True, text=True, cwd=REPO_ROOT)
+    assert completed.returncode != 0
+    assert "collides" in completed.stderr
+    assert not (tmp_path / "valid.csv").exists()
+
+
 def test_alignment_subworkflow_collapses_samplesheet_rows_by_sample_id(tmp_path):
     del tmp_path
     alignment_nf = (REPO_ROOT / "subworkflows" / "local" / "alignment_or_import" / "main.nf").read_text(
@@ -303,8 +342,8 @@ def test_alignment_subworkflow_collapses_samplesheet_rows_by_sample_id(tmp_path)
 def test_apa_core_normalizes_group_id_before_sierra(tmp_path):
     del tmp_path
     apa_core_nf = (REPO_ROOT / "subworkflows" / "apa_core.nf").read_text(encoding="utf-8")
-    assert "def prefix = meta.library_id ? \"${meta.library_id}.\" : ''" in apa_core_nf
-    assert "group_id.startsWith(prefix)" in apa_core_nf
+    assert "def group_id = record[1]" in apa_core_nf
+    assert "manifestFiles.toSet() != files.keySet()" in apa_core_nf
 
 
 def test_scapture_wiring_uses_distinct_stage_aliases_and_boolean_flags(tmp_path):
@@ -390,6 +429,8 @@ def run_all_tests() -> None:
         test_grouped_3prime_coverage_scopes_shared_barcodes_by_library,
         test_scanpy_cluster_emits_embedding_plots_when_embeddings_exist,
         test_write_group_bams_names_outputs_with_library_prefix,
+        test_write_group_bams_rejects_colliding_group_names,
+        test_validate_inputs_rejects_colliding_library_names,
         test_alignment_subworkflow_collapses_samplesheet_rows_by_sample_id,
         test_apa_core_normalizes_group_id_before_sierra,
         test_scapture_wiring_uses_distinct_stage_aliases_and_boolean_flags,

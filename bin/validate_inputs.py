@@ -3,6 +3,7 @@
 import argparse
 import csv
 import json
+import re
 from pathlib import Path
 
 
@@ -37,6 +38,7 @@ def main() -> None:
     input_path = Path(args.input)
     rows = []
     errors = []
+    canonical_library_ids = {}
 
     with input_path.open("r", newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
@@ -52,6 +54,17 @@ def main() -> None:
             for column in REQUIRED_COLUMNS:
                 if not clean.get(column):
                     errors.append(f"Line {index}: missing required value for {column}")
+
+            library_id = clean.get("library_id", "")
+            if library_id:
+                canonical_id = re.sub(r"[^A-Za-z0-9._-]+", "_", library_id)
+                previous = canonical_library_ids.get(canonical_id)
+                if previous is not None and previous != library_id:
+                    errors.append(
+                        f"Line {index}: library_id {library_id!r} collides with "
+                        f"{previous!r} after filename sanitization ({canonical_id!r})"
+                    )
+                canonical_library_ids[canonical_id] = library_id
 
             protocol = clean.get("protocol", "")
             if protocol and protocol not in ALLOWED_PROTOCOLS:

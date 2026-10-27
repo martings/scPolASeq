@@ -24,14 +24,16 @@ process SIERRA_QUANT {
     path quant_script
 
     output:
-    tuple val(meta), val(group_level), val(group_id), path("${meta.library_id}.${group_level}.${group_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.sierra_quant.tsv"), emit: quantified_pas
-    path "${meta.library_id}.${group_level}.${group_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.sierra_quant.manifest.tsv", emit: manifest
-    path "${meta.library_id}.${group_level}.${group_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.sierra_quant.log", emit: log
-    path "${meta.library_id}.${group_level}.${group_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.versions.yml", emit: versions
+    tuple val(meta), val(group_level), val(group_id), path("${meta.library_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.${group_level.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.${group_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.sierra_quant.tsv"), emit: quantified_pas
+    path "${meta.library_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.${group_level.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.${group_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.sierra_quant.manifest.tsv", emit: manifest
+    path "${meta.library_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.${group_level.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.${group_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.sierra_quant.log", emit: log
+    path "${meta.library_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.${group_level.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.${group_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.versions.yml", emit: versions
 
     script:
     def safeGroupId = group_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')
-    def prefix = "${meta.library_id}.${group_level}.${safeGroupId}"
+    def safeLibraryId = meta.library_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')
+    def safeGroupLevel = group_level.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')
+    def prefix = "${safeLibraryId}.${safeGroupLevel}.${safeGroupId}"
     def quotedGroupId = "'" + group_id.toString().replace("'", "'\"'\"'") + "'"
     def quotedLibraryId = "'" + meta.library_id.toString().replace("'", "'\"'\"'") + "'"
     def quotedGroupLevel = "'" + group_level.toString().replace("'", "'\"'\"'") + "'"
@@ -65,7 +67,9 @@ process SIERRA_QUANT {
 
     stub:
     def safeGroupId = group_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')
-    def prefix = "${meta.library_id}.${group_level}.${safeGroupId}"
+    def safeLibraryId = meta.library_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')
+    def safeGroupLevel = group_level.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')
+    def prefix = "${safeLibraryId}.${safeGroupLevel}.${safeGroupId}"
     def quotedGroupId = "'" + group_id.toString().replace("'", "'\"'\"'") + "'"
     def quotedLibraryId = "'" + meta.library_id.toString().replace("'", "'\"'\"'") + "'"
     def quotedGroupLevel = "'" + group_level.toString().replace("'", "'\"'\"'") + "'"
