@@ -72,9 +72,10 @@ files; do not reset or check it out to another commit.
 The historical Python SIF in `/scratch/cache/apptainer` has SHA-256
 `cc0010d9f80e7b8ee60569a7bf690482c38d5f1334f8cf5050020933efa841f7`
 and lacks `bedGraphToBigWig`. It cannot pass this gate. A corrected image was
-built and checked in isolated staging on 2026-10-27, as recorded below. The
-other four images have not been staged with it. **No candidate resume has yet
-run.**
+built and checked in isolated staging on 2026-10-27, as recorded below. Four
+historical SIFs were linked into that staging directory and all five passed
+`containers/validate.sh` on 2026-10-27. **No full candidate PBMC1k resume has
+yet run.**
 
 ## Focused real-data converter probe — 2026-10-27
 
@@ -140,6 +141,15 @@ APPTAINER_CACHEDIR="$stage_dir/cache" nextflow run \
 This is a **single real coverage process** test. The candidate full PBMC1k
 resume is still pending; this run does not validate STAR, Sierra, SCAPTURE,
 or all 18 BigWigs under the candidate workflow.
+
+The full candidate preflight resolved the Deepthought Apptainer profile and
+PBMC1k input/reference settings with `nextflow config`; the staged five-image
+smoke check passed. At preflight, `/scratch` had about 87 GB free and the
+historical work directory occupied 62 GB; the historical output occupied 49 GB.
+The full resume is deferred until space for potentially invalidated tasks and
+a separate output location are committed to the run plan, and until the
+SCAPTURE phase work has a bounded real-data gate. Do not assume the prior
+62 GB of tasks will all be cache hits after source and image changes.
 
 After the helper-input change, all six fail-closed coverage regression cases
 passed. `bash tests/run_tests.sh` also passed five stub pipeline scenarios and
