@@ -15,6 +15,7 @@ process GROUPED_BAM_GENERATION {
 
     output:
     tuple val(meta), val(group_level), path("*.grouped.bam"), path("*.grouped.bam.bai"), optional: true, emit: grouped_bams
+    tuple val(meta), val(group_level), path("*.grouped.bam"), path("*.grouped.bam.bai"), path("${meta.library_id}.${group_level}.grouping_manifest.tsv"), optional: true, emit: grouped_bams_with_manifest
     path "${meta.library_id}.${group_level}.grouping_manifest.tsv",                      emit: grouping_manifest
 
     script:

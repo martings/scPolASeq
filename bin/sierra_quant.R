@@ -17,9 +17,14 @@ option_list <- list(
     make_option("--group-id",          type = "character", help = "Group ID"),
     make_option("--output",            type = "character", help = "Output TSV path"),
     make_option("--log",               type = "character", help = "Log file path"),
+    make_option("--versions",          type = "character", help = "YAML runtime version output"),
     make_option("--ncores",            type = "integer",   default = 1L)
 )
 opt <- parse_args(OptionParser(option_list = option_list))
+
+writeLines(c("SIERRA_QUANT:",
+             paste0("  Sierra: '", as.character(packageVersion("Sierra")), "'"),
+             paste0("  R: '", getRversion(), "'")), opt$versions)
 
 log_con <- file(opt$log, open = "wt")
 log <- function(...) {

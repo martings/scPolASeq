@@ -8,6 +8,7 @@
  *     tuple val(meta), val(group_level), val(group_id), path("<library>.<group_level>.<group_id>.sierra_quant.tsv")
  *     path "<library>.<group_level>.<group_id>.sierra_quant.manifest.tsv"
  *     path "<library>.<group_level>.<group_id>.sierra_quant.log"
+ *     path "<library>.<group_level>.<group_id>.versions.yml" (Sierra and R runtime versions)
  */
 process SIERRA_QUANT {
     tag "${meta.library_id}:${group_level}:${group_id}"
@@ -26,11 +27,14 @@ process SIERRA_QUANT {
     tuple val(meta), val(group_level), val(group_id), path("${meta.library_id}.${group_level}.${group_id}.sierra_quant.tsv"), emit: quantified_pas
     path "${meta.library_id}.${group_level}.${group_id}.sierra_quant.manifest.tsv", emit: manifest
     path "${meta.library_id}.${group_level}.${group_id}.sierra_quant.log", emit: log
+    path "${meta.library_id}.${group_level}.${group_id}.versions.yml", emit: versions
 
     script:
     def prefix = "${meta.library_id}.${group_level}.${group_id}"
     def ncores = task.cpus ?: 1
     """
+    test -s ${grouped_bam} && test -s ${grouped_bai} || { echo 'Sierra BAM/index missing or empty' >&2; exit 1; }
+    test -s ${pas_reference} && test -s ${cell_annotations} && test -s ${gtf} || { echo 'Sierra reference/annotations missing or empty' >&2; exit 1; }
     Rscript ${quant_script} \\
         --bam               ${grouped_bam} \\
         --gtf               ${gtf} \\
@@ -41,6 +45,7 @@ process SIERRA_QUANT {
         --group-id          ${group_id} \\
         --output            ${prefix}.sierra_quant.tsv \\
         --log               ${prefix}.sierra_quant.log \\
+        --versions          ${prefix}.versions.yml \\
         --ncores            ${ncores}
 
     printf "field\\tvalue\\n"                                    > ${prefix}.sierra_quant.manifest.tsv
@@ -50,6 +55,8 @@ process SIERRA_QUANT {
     printf "pas_reference\\t${pas_reference.name}\\n"          >> ${prefix}.sierra_quant.manifest.tsv
     printf "cell_annotations\\t${cell_annotations.name}\\n"    >> ${prefix}.sierra_quant.manifest.tsv
     printf "quant_source\\tSierra::CountPeaks\\n"              >> ${prefix}.sierra_quant.manifest.tsv
+    printf "group_id\\t${group_id}\\n"                        >> ${prefix}.sierra_quant.manifest.tsv
+    test -s ${prefix}.sierra_quant.tsv && test -s ${prefix}.versions.yml || { echo 'Sierra outputs missing or empty' >&2; exit 1; }
     """
 
     stub:
@@ -59,5 +66,6 @@ process SIERRA_QUANT {
     printf "${meta.library_id}\\t${group_level}\\t${group_id}\\tstub_site_001\\tSTUBBARC001\\t1\\n" >> ${prefix}.sierra_quant.tsv
     printf "field\\tvalue\\nmode\\tstub\\n" > ${prefix}.sierra_quant.manifest.tsv
     printf "SIERRA_QUANT stub executed\\n" > ${prefix}.sierra_quant.log
+    printf "SIERRA_QUANT:\\n  Sierra: stub\\n  R: stub\\n" > ${prefix}.versions.yml
     """
 }

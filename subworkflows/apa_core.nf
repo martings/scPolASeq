@@ -141,15 +141,29 @@ workflow APA_CORE {
     def ch_sierra_quant
     def ch_sierra_manifest
     if (do_sierra_quant) {
-        GROUPED_RECONSTRUCTION.out.grouped_bams
-            .flatMap { meta, group_level, bams, bais ->
+        GROUPED_RECONSTRUCTION.out.grouped_bams_with_manifest
+            .flatMap { meta, group_level, bams, bais, grouping_manifest ->
                 def bam_list = (bams instanceof List) ? bams : [bams]
                 def bai_list = (bais instanceof List) ? bais : [bais]
-                [bam_list, bai_list].transpose().collect { bam, bai ->
-                    def group_id = bam.baseName.replaceAll(/\.grouped(\.bam)?$/, '')
-                    def prefix = meta.library_id ? "${meta.library_id}." : ''
-                    if (prefix && group_id.startsWith(prefix)) {
-                        group_id = group_id.substring(prefix.length())
+                def files = bam_list.collectEntries { bam -> [(bam.name): bam] }
+                def indexes = bai_list.collectEntries { bai -> [(bai.name): bai] }
+                def lines = java.nio.file.Files.readAllLines(grouping_manifest)
+                if (!lines || lines[0] != 'group_level\tgroup_id\tbam_file\tn_reads') {
+                    error "Invalid grouping manifest: ${grouping_manifest}"
+                }
+                def records = lines.drop(1).collect { line -> line.split('\t', -1) }
+                if (records.size() != bam_list.size()) {
+                    error "Grouping manifest/BAM count mismatch: ${grouping_manifest}"
+                }
+                records.collect { record ->
+                    if (record.size() != 4 || record[0] != group_level || !record[1]) {
+                        error "Invalid grouping record in ${grouping_manifest}: ${record}"
+                    }
+                    def group_id = record[1]
+                    def bam = files[record[2]]
+                    def bai = indexes["${record[2]}.bai"]
+                    if (!bam || !bai) {
+                        error "Grouping manifest references missing BAM/index: ${record[2]}"
                     }
                     tuple(meta, group_level, group_id, bam, bai)
                 }
