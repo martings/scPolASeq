@@ -17,9 +17,16 @@ option_list <- list(
     make_option("--group-id",          type = "character", help = "Group ID"),
     make_option("--output",            type = "character", help = "Output TSV path"),
     make_option("--log",               type = "character", help = "Log file path"),
+    make_option("--versions",          type = "character", help = "YAML runtime version output"),
     make_option("--ncores",            type = "integer",   default = 1L)
 )
 opt <- parse_args(OptionParser(option_list = option_list))
+
+if (!is.null(opt$versions)) {
+    writeLines(c("SIERRA_QUANT:",
+                 paste0("  Sierra: '", as.character(packageVersion("Sierra")), "'"),
+                 paste0("  R: '", getRversion(), "'")), opt$versions)
+}
 
 log_con <- file(opt$log, open = "wt")
 log <- function(...) {
@@ -100,19 +107,23 @@ if (length(whitelist_barcodes) == 0) {
 param_diag <- ScanBamParam(tag = "CB", what = character(0))
 diag_aln   <- tryCatch(
     scanBam(opt$bam, param = param_diag)[[1]],
-    error = function(e) { log("WARNING: BAM diagnostic scan failed: ", conditionMessage(e)); NULL }
+    error = function(e) {
+        log("ERROR: BAM diagnostic scan failed: ", conditionMessage(e))
+        close(log_con)
+        stop(e)
+    }
 )
-if (is.null(diag_aln)) {
-    log("WARNING: could not read BAM — writing empty TSV and skipping")
-    fwrite(empty_dt, opt$output, sep = "\t")
-    close(log_con)
-    quit(status = 0)
-}
 bam_cbs    <- unique(na.omit(diag_aln$tag$CB))
 n_overlap   <- sum(bam_cbs %in% whitelist_barcodes)
 log("BAM CB tags sampled: ", length(bam_cbs), " unique",
     if (length(bam_cbs) > 0) paste0(" (first: ", bam_cbs[1], ")") else "")
 log("Barcode overlap with whitelist: ", n_overlap, " / ", length(bam_cbs))
+if (n_overlap == 0) {
+    log("No BAM barcodes overlap the scoped whitelist — writing an empty TSV")
+    fwrite(empty_dt, opt$output, sep = "\t")
+    close(log_con)
+    quit(status = 0)
+}
 
 whitelist_file <- tempfile(fileext = ".txt")
 writeLines(whitelist_barcodes, whitelist_file)
@@ -155,7 +166,7 @@ out_dir <- paste0(opt$output, "_sierra_mex")
 dir.create(out_dir, showWarnings = FALSE)
 
 log("Running Sierra::CountPeaks on: ", opt$bam)
-result <- tryCatch(
+tryCatch(
     Sierra::CountPeaks(
         peak.sites.file = peak_file,
         gtf.file        = opt$gtf,
@@ -166,21 +177,21 @@ result <- tryCatch(
         ncores          = opt$ncores
     ),
     error = function(e) {
-        log("CountPeaks error: ", conditionMessage(e))
-        NULL
+        log("ERROR: CountPeaks failed: ", conditionMessage(e))
+        close(log_con)
+        stop(e)
     }
 )
 
-# ── Parse output or write empty TSV if no reads were found ───────────────────
+# ── Parse Sierra output; a missing matrix after valid input is a task failure ──
 mat_file     <- file.path(out_dir, "matrix.mtx.gz")
 barcode_file <- file.path(out_dir, "barcodes.tsv.gz")
 feature_file <- file.path(out_dir, "sitenames.tsv.gz")
 
 if (!file.exists(mat_file)) {
-    log("WARNING: no matrix output from Sierra — writing empty TSV")
-    fwrite(empty_dt, opt$output, sep = "\t")
+    log("ERROR: Sierra returned without a matrix for a BAM with matching barcodes")
     close(log_con)
-    quit(status = 0)
+    stop("Sierra matrix.mtx.gz is missing")
 }
 
 log("CountPeaks complete, reading MEX output")

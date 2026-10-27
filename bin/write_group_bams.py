@@ -54,6 +54,19 @@ def main() -> None:
             if level and group_id and (level, group_id) not in groups:
                 groups.append((level, group_id))
 
+    # The manifest must map each original group to a distinct output path.
+    # Check before opening any BAM: pysam otherwise truncates colliding files.
+    output_names = {}
+    for level, group_id in groups:
+        bam_name = grouped_bam_name(args.library_id, group_id)
+        previous = output_names.get(bam_name)
+        if previous is not None:
+            raise ValueError(
+                f"Grouped BAM filename collision: {previous!r} and "
+                f"{(level, group_id)!r} both map to {bam_name!r}"
+            )
+        output_names[bam_name] = (level, group_id)
+
     # Attempt real BAM splitting; fall back to placeholder output
     bam_valid = False
     if args.bam:
