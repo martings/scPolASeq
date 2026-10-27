@@ -1,9 +1,10 @@
 # SCAPTURE discovery split: status and real-data gate
 
-This branch introduces `SCAPTURE_DISCOVERY` as a separate DSL2 subworkflow. It
-is not wired into `APA_CORE` yet. `SCAPTURE_FILTER` remains the production path
-until PASmerge, PASquant, catalog conversion, and a real `-resume` equivalence
-test are complete. A stub run cannot establish this equivalence.
+This branch introduces `SCAPTURE_DISCOVERY` as a separate DSL2 subworkflow and
+connects it through the opt-in `--scapture_execution_mode staged` path in
+`APA_CORE`. `SCAPTURE_FILTER` remains the default production path while the
+complete staged PBMC1k run and its `-resume` equivalence gate are pending. A
+stub run cannot establish this equivalence.
 
 ## Stage contracts
 
@@ -38,7 +39,7 @@ log; the other categories still have to pass validation.
   3primeExtended scored rows. The source task and published output are read-only
   evidence, not a replacement for a fresh split run.
 
-Before enabling the subworkflow in `APA_CORE`, run the split on the same frozen
+Before promoting the opt-in staged path to the default, run the split on the same frozen
 inputs and compare evaluated BED row counts and content hashes, the normalized
 catalog, PASquant matrix, and manifest. Deliberately fail a downstream stage,
 then rerun with the same `-work-dir` and `-resume`; verify the PAScall task hash

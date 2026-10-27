@@ -60,3 +60,21 @@ and manifest against the frozen PBMC1k monolith outputs. It should then
 deliberately fail a downstream task and demonstrate that PAScall is cached on
 an explicit `-resume` run. The historical run and hashes are recorded in
 `docs/scapture_split_draft.md`.
+
+## Bounded integration checks (27 October 2026)
+
+The integrated `SCAPTURE_STAGED` graph parsed with an empty input channel, and
+the repository's full local stub suite passed (23 pipeline processes, three
+module contract runs, and the manifest helper test). On frozen PBMC1k
+evaluated BEDs, a real Apptainer `SCAPTURE_CATALOG` task published its TSV
+and metrics to a new outdir. The published TSV SHA256
+`1621066b0cd864a589b45f7d882ff20cbbae594e5a537bb5adbf00a22d507dc4`
+matched the historical catalog exactly. This checks catalog publication and
+conversion in the integrated branch; it does not exercise a complete staged
+PBMC1k PAScall/DeepPASS run or publication from every later process.
+
+The separate real PASquant gate, including exact matrix parity and cached
+`-resume`, is documented in `docs/scapture_split_draft.md`. The remaining
+release gate is a complete staged PBMC1k execution through `APA_CORE`, with
+output and manifest comparison and a downstream failure/resume check after
+DeepPASS. Until that gate, this mode remains opt-in and this PR remains draft.
