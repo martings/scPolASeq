@@ -107,6 +107,12 @@
         "emit_bigwigs": {
           "type": "boolean",
           "default": true
+        },
+        "scapture_execution_mode": {
+          "type": "string",
+          "enum": ["monolith", "staged"],
+          "default": "monolith",
+          "description": "SCAPTURE execution path. The staged mode requires --enable_scapture true and resumes each stage independently with Nextflow -resume."
         }
       }
     }

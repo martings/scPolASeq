@@ -1,6 +1,7 @@
 process SCAPTURE_PASCALL {
     tag "${meta.library_id}"
     label 'process_high'
+    label 'gpu'
 
     conda "${projectDir}/envs/scapture.yml"
     container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-scapture.sif" : null

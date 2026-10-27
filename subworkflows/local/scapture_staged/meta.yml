@@ -1,0 +1,22 @@
+name: scapture_staged
+description: Opt-in SCAPTURE discovery, catalog conversion, and PAS quantification with separate Nextflow cache boundaries.
+keywords: [scapture, deeppass, polyadenylation]
+components:
+  - scapture_discovery
+  - scapture_catalog
+  - scapture_pasquant
+  - scapture_manifest
+input:
+  - ch_input:
+      type: tuple
+      description: Library metadata, indexed filtered BAM, indexed FASTA, GTF, chromosome sizes, cell annotations, optional poly(A) database, and presence flag.
+output:
+  - site_catalog:
+      type: file
+      description: Normalized SCAPTURE site catalog TSV, keyed by library metadata.
+  - quant:
+      type: file
+      description: PASquant per-cell UMI matrix TSV.gz, keyed by library metadata.
+  - manifest:
+      type: file
+      description: Consolidated field/value SCAPTURE manifest TSV.

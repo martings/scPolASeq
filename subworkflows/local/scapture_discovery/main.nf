@@ -42,6 +42,7 @@ workflow SCAPTURE_DISCOVERY {
     SCAPTURE_MERGE(SCAPTURE_PASCALL.out.evaluated)
 
     emit:
+    prepared_gtf = SCAPTURE_PREPARE.out.gtf
     evaluated = SCAPTURE_PASCALL.out.evaluated
     reference = SCAPTURE_MERGE.out.reference
     reference_metrics = SCAPTURE_MERGE.out.reference_metrics
