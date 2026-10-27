@@ -69,10 +69,33 @@ files; do not reset or check it out to another commit.
    selective recomputation when source, parameters, inputs, or containers
    change. A clean run in a new work directory is a separate later gate.
 
-The Python SIF in `/scratch/cache/apptainer` has SHA-256
+The historical Python SIF in `/scratch/cache/apptainer` has SHA-256
 `cc0010d9f80e7b8ee60569a7bf690482c38d5f1334f8cf5050020933efa841f7`
-and lacks `bedGraphToBigWig`. It cannot pass this gate. No replacement SIF had
-been found at the time of this document. **No candidate resume has yet run.**
+and lacks `bedGraphToBigWig`. It cannot pass this gate. A corrected image was
+built and checked in isolated staging on 2026-10-27, as recorded below. The
+other four images have not been staged with it. **No candidate resume has yet
+run.**
+
+## Focused real-data converter probe — 2026-10-27
+
+`containers/build.sh --env python` built a new image at
+`/scratch/tmp/scpolaseq-pr19-python-20261027/scpolaseq-python.sif` with private
+Apptainer build cache and temporary directory. Its SHA-256 is
+`37a1627ccad4b71f06cf28f443ad15457635476417b5ce1bf2378cdfc53f5ee1`.
+`containers/validate.sh ... --env python` passed its synthetic conversion and
+BigWig header check. The built image reports NumPy 2.4.6, pandas 2.2.3,
+and pysam 0.22.1; keep this exact image digest with the run record.
+
+Next, the image converted both **actual** PBMC1k cluster 5 bedGraphs from
+historical coverage task `7b/cd0c46` using that task's chromosome sizes.
+The isolated outputs were 1,157,896 bytes (forward) and 1,044,833 bytes
+(reverse), both nonempty; both files start with `26 fc 8f 88`, the BigWig
+magic. Their SHA-256 values
+were `a34eb2d0a00a38eb629895e63ae0a3744ad14d67dc4a59e750026fc48722f3b8`
+and `b2553229492dd02c63e73bc1843d2ec96ef1bf8387cd09573d12e8536f0b5ebc`.
+The converted files remain under the isolated staging directory, separate
+from the historical outputs. This probe validates the real converter on one
+group; it does not test Nextflow's new coverage process or all 18 tracks.
 
 ## Candidate resume command (execute only after preconditions)
 
