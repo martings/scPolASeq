@@ -12,6 +12,7 @@ process COVERAGE_TRACKS {
     input:
     tuple val(meta), val(group_level), val(group_id), path(bam), path(bai)
     path chrom_sizes
+    path coverage_script
 
     output:
     tuple val(meta), val(group_level), val(group_id), path("${group_id}.fwd.bedGraph"), path("${group_id}.rev.bedGraph"), emit: bedgraphs
@@ -22,7 +23,7 @@ process COVERAGE_TRACKS {
     """
     # Strand-aware coverage using pysam (bam_to_bedgraph.py) — single pass for both strands.
     test -s ${bam} || { echo 'Coverage input BAM is missing or empty' >&2; exit 1; }
-    python3 ${projectDir}/bin/bam_to_bedgraph.py ${bam} \\
+    python3 ${coverage_script} ${bam} \\
         --fwd-output ${group_id}.fwd.bedGraph \\
         --rev-output ${group_id}.rev.bedGraph \\
         --cpus ${task.cpus} || { echo 'Coverage bedGraph generation failed' >&2; exit 1; }

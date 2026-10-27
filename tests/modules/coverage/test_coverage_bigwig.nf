@@ -4,7 +4,7 @@ include { COVERAGE_TRACKS } from '../../../modules/local/coverage/coverage_track
 
 params.outdir = params.outdir ?: "${launchDir}/tests/results/coverage_bigwig"
 params.publish_dir_mode = 'copy'
-params.apptainer_cache_dir = null
+params.apptainer_cache_dir = params.apptainer_cache_dir ?: null
 params.emit_bigwigs = params.emit_bigwigs == null ? true : params.emit_bigwigs.toString().toBoolean()
 
 workflow {
@@ -16,5 +16,9 @@ workflow {
         file(params.test_bam),
         file(params.test_bai)
     ))
-    COVERAGE_TRACKS(bam_ch, Channel.value(file(params.test_chrom_sizes)))
+    COVERAGE_TRACKS(
+        bam_ch,
+        Channel.value(file(params.test_chrom_sizes)),
+        Channel.value(file("${projectDir}/../../../bin/bam_to_bedgraph.py", checkIfExists: true))
+    )
 }

@@ -18,7 +18,7 @@ for bin in "$TMP_ROOT"/bin/*; do
     ln -s "$(command -v awk)" "$bin/awk"
     cat > "$bin/python3" <<'PYTHON'
 #!/bin/bash
-if [[ "${1:-}" == */bam_to_bedgraph.py ]]; then
+if [[ "${1:-}" == */bam_to_bedgraph.py || "${1:-}" == bam_to_bedgraph.py ]]; then
     shift
     while (($#)); do
         case "$1" in
