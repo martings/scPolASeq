@@ -69,8 +69,10 @@ module contract runs, and the manifest helper test). On frozen PBMC1k
 evaluated BEDs, a real Apptainer `SCAPTURE_CATALOG` task published its TSV
 and metrics to a new outdir. The published TSV SHA256
 `1621066b0cd864a589b45f7d882ff20cbbae594e5a537bb5adbf00a22d507dc4`
-matched the historical catalog exactly. This checks catalog publication and
-conversion in the integrated branch; it does not exercise a complete staged
+matched the historical catalog exactly. A separate 1,200 bp real annotation
+fixture published only `tiny.annotation.log` to its fresh outdir, confirming
+the selective log rule without copying annotation intermediates. These checks
+cover publication and conversion in the integrated branch; they do not exercise a complete staged
 PBMC1k PAScall/DeepPASS run or publication from every later process.
 
 The separate real PASquant gate, including exact matrix parity and cached
