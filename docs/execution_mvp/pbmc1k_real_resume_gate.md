@@ -97,6 +97,55 @@ The converted files remain under the isolated staging directory, separate
 from the historical outputs. This probe validates the real converter on one
 group; it does not test Nextflow's new coverage process or all 18 tracks.
 
+## Bounded real Nextflow coverage run — 2026-10-27
+
+The test entrypoint `tests/modules/coverage/test_coverage_bigwig.nf` was run
+without `-stub-run`, using the actual cluster 5 BAM/BAI and chromosome sizes
+from historical task `7b/cd0c46`, the new Python SIF, and isolated output/work
+directories under `/scratch/tmp/scpolaseq-pr19-python-20261027`. The first
+attempt in session `1bbaaec5-9286-4f64-b2f0-d0c0cd7a826a` failed at
+`cf/f4cbaf`: the standalone test's `projectDir` pointed inside `tests/`, so
+the coverage helper path was wrong. The module now accepts
+`bam_to_bedgraph.py` as a staged `path` input; this also makes helper content
+part of the Nextflow task hash. The corrected source used for the successful
+run was subsequently committed as `e8c49d366dc4b8e2a3a5c104f03313441b5768dd`.
+
+The explicit `-resume 1bbaaec5-9286-4f64-b2f0-d0c0cd7a826a` submitted the
+corrected real task as `1b/919fa1` and completed with exit 0 in 1m 19s. It
+published two real bedGraphs and BigWigs of 1,157,896 and 1,044,833 bytes,
+both with valid BigWig magic, to the isolated output directory. Repeating the
+same command with the same session ID logged `Cached process > COVERAGE_TRACKS`
+at **the same hash** `1b/919fa1`. Thus task execution and later cache reuse
+were both observed. The test harness task names its single input `cluster_1`;
+the input file is the historical cluster 5 grouped BAM.
+
+Reproduce this bounded gate from the candidate checkout (set `task_dir` and
+`stage_dir` to the paths above):
+
+```bash
+task_dir=/scratch/work/scPolASeq_runs/pbmc1k_20261024_replicate/7b/cd0c462ff5ee8f9438bf0a5640ebbe
+stage_dir=/scratch/tmp/scpolaseq-pr19-python-20261027
+APPTAINER_CACHEDIR="$stage_dir/cache" nextflow run \
+  tests/modules/coverage/test_coverage_bigwig.nf \
+  -profile deepthought,apptainer \
+  --test_bam "$task_dir/pbmc_1k_v3.cluster_5.grouped.bam" \
+  --test_bai "$task_dir/pbmc_1k_v3.cluster_5.grouped.bam.bai" \
+  --test_chrom_sizes "$task_dir/reference.chrom.sizes" \
+  --apptainer_cache_dir "$stage_dir" \
+  --outdir "$stage_dir/nextflow_coverage_out" --emit_bigwigs true \
+  -work-dir "$stage_dir/nextflow_coverage_work" \
+  -resume 1bbaaec5-9286-4f64-b2f0-d0c0cd7a826a -ansi-log false
+```
+
+This is a **single real coverage process** test. The candidate full PBMC1k
+resume is still pending; this run does not validate STAR, Sierra, SCAPTURE,
+or all 18 BigWigs under the candidate workflow.
+
+After the helper-input change, all six fail-closed coverage regression cases
+passed. `bash tests/run_tests.sh` also passed five stub pipeline scenarios and
+two module wiring tests; those stubs are supplementary checks, not evidence of
+real APA execution.
+
 ## Candidate resume command (execute only after preconditions)
 
 Run from the historical launch directory so Nextflow sees its original
