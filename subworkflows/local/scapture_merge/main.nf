@@ -17,10 +17,13 @@ workflow SCAPTURE_MERGE {
         .map { meta, category, bed -> tuple(meta.library_id, meta, category, bed) }
         .groupTuple(by: 0, size: 3)
         .map { library_id, metas, categories, beds ->
-            if (categories.toSet() != ['exonic', 'intronic', '3primeExtended'].toSet()) {
+            def orderedCategories = ['exonic', 'intronic', '3primeExtended']
+            if (categories.toSet() != orderedCategories.toSet()) {
                 error "Incomplete PASmerge categories for ${library_id}: ${categories}"
             }
-            tuple(metas[0], beds)
+            def byCategory = [:]
+            categories.eachWithIndex { category, index -> byCategory[category] = beds[index] }
+            tuple(metas[0], orderedCategories.collect { byCategory[it] })
         }
     SCAPTURE_PASREFERENCE(ch_reference_input)
 

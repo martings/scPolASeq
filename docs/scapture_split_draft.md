@@ -96,3 +96,13 @@ back cached exonic `07/32e96f` and intronic `24/8c5ef4`, reran only the changed
 The final combined SHA256 again matched the historical monolith. When all three
 categories were empty, the category tasks recorded `empty_input` and the
 reference task failed with `all SCAPTURE PASmerge categories were empty`.
+
+Independent review found two portability/cache refinements. The merge
+subworkflow now orders categories explicitly before passing BEDs to the
+reference task, so asynchronous completion cannot perturb its task hash. The
+reference process now selects the same SCAPTURE Conda/SIF environment as the
+merge processes instead of depending on host GNU `sort`. A subsequent real
+PBMC1k rerun produced combined reference hash `7b/f51bf2`, with SHA256 still
+`80afa97bdfe64f0b01f1200905ccbe97036f91087f86bace9a0e37614724e45d`;
+the next explicit `-resume ba59fd49-47ff-492c-949c-71c2b7d43e69` cached
+all four PASmerge/reference tasks, including `7b/f51bf2`.

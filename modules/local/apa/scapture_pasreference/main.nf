@@ -2,6 +2,9 @@ process SCAPTURE_PASREFERENCE {
     tag "${meta.library_id}"
     label 'process_low'
 
+    conda "${projectDir}/envs/scapture.yml"
+    container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-scapture.sif" : null
+
     input:
     tuple val(meta), path(category_beds)
 
