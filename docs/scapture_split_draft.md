@@ -19,6 +19,8 @@ SHA256 fingerprint. The current container recipe clones a moving upstream HEAD;
 pin that commit before proposing these as portable nf-core modules. Their
 `meta.library_id` key is also a local pipeline contract; portable nf-core
 modules should use `meta.id` or `task.ext.prefix`.
+The GTF helper and patched DeepPASS predictor are explicit staged process
+inputs, so changes to either invalidate the relevant Nextflow task hash.
 
 `SCAPTURE_PASCALL` fails if no category has a valid evaluated BED row or if no
 row has a non-`NA` DeepPASS label. The label is not a numeric probability. An
@@ -54,4 +56,18 @@ channel. This only verifies wiring and parsing; it creates no biological files.
 sharing a name. It produced an explicit two-gene collision report and distinct
 gene-id tokens. A second `nextflow run ... -resume` reported the same
 `4d/652cc8...` task as `Cached process`, demonstrating hash reuse for the
-preparation stage. Annotation and PAScall still require a real, bounded run.
+preparation stage. That first test used host Python. A later bounded run used
+the validated `/scratch/cache/apptainer/scpolaseq-scapture.sif` on a 1,200 bp
+synthetic chromosome. `tests/scapture_annotation_real.nf` completed PREPARE at
+`f1/d2f528...` and ANNOTATION at `50/006eff...`; both were cached on the next
+`-resume`. The SIF used Python 3.8.19 and its SCAPTURE checkout was
+`8845e84aa1b1f7c66759074437fe4df774f89318`. Annotation emitted six
+nonempty files (`tiny_annot.*`). This is an actual SCAPTURE annotation run,
+not a stub and not PBMC1k equivalence.
+
+`tests/scapture_discovery_fail_closed.nf` supplies the same tiny reference with
+an intentionally invalid BAM. PREPARE and ANNOTATION completed, while PAScall
+exited 1 at `31/4a6b8b...` because no valid scored peaks existed. This checks
+the subworkflow joins, predictor staging and Apptainer bind, and failure
+propagation. The deliberately invalid BAM cannot test DeepPASS prediction or
+scientific concordance. A full real-input PAScall run remains issue #29.

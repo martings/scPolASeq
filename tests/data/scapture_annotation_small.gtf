@@ -1,0 +1,6 @@
+chr1	fixture	gene	101	400	.	+	.	gene_id "GENE_A"; gene_name "DUP";
+chr1	fixture	transcript	101	400	.	+	.	gene_id "GENE_A"; transcript_id "GENE_A_TX"; gene_name "DUP";
+chr1	fixture	exon	101	400	.	+	.	gene_id "GENE_A"; transcript_id "GENE_A_TX"; gene_name "DUP";
+chr1	fixture	gene	601	900	.	+	.	gene_id "GENE_B"; gene_name "DUP";
+chr1	fixture	transcript	601	900	.	+	.	gene_id "GENE_B"; transcript_id "GENE_B_TX"; gene_name "DUP";
+chr1	fixture	exon	601	900	.	+	.	gene_id "GENE_B"; transcript_id "GENE_B_TX"; gene_name "DUP";

@@ -19,7 +19,7 @@ workflow SCAPTURE_DISCOVERY {
         tuple(meta.library_id, meta, bam, bai, fasta, fai, chrom_sizes, polya_db, has_polya_db)
     }
     SCAPTURE_PREPARE(ch_input.map { meta, bam, bai, fasta, fai, gtf, chrom_sizes, polya_db, has_polya_db ->
-        tuple(meta, gtf)
+        tuple(meta, gtf, file("${moduleDir}/../../../bin/prepare_scapture_gtf.py", checkIfExists: true))
     })
 
     ch_prepared = SCAPTURE_PREPARE.out.gtf
@@ -34,7 +34,8 @@ workflow SCAPTURE_DISCOVERY {
         .map { meta, annotation_files -> tuple(meta.library_id, annotation_files) }
         .join(ch_by_library, failOnDuplicate: true, failOnMismatch: true)
         .map { id, annotation_files, meta, bam, bai, fasta, fai, chrom_sizes, polya_db, has_polya_db ->
-            tuple(meta, bam, bai, fasta, fai, annotation_files, polya_db, has_polya_db)
+            tuple(meta, bam, bai, fasta, fai, annotation_files, polya_db, has_polya_db,
+                  file("${moduleDir}/../../../bin/DeepPASS_Predict.py", checkIfExists: true))
         }
     SCAPTURE_PASCALL(ch_annotated)
 

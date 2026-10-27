@@ -4,10 +4,12 @@ process SCAPTURE_PASCALL {
 
     conda "${projectDir}/envs/scapture.yml"
     container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-scapture.sif" : null
-    containerOptions params.apptainer_cache_dir ? "--bind ${projectDir}/bin/DeepPASS_Predict.py:/opt/scapture/DeepPASS/Predict.py" : ""
+    // The patched predictor is a staged input, so changing its content changes
+    // the PAScall task hash. The bind must point at this staged path.
+    containerOptions { params.apptainer_cache_dir ? "--bind ${predict_script}:/opt/scapture/DeepPASS/Predict.py" : "" }
 
     input:
-    tuple val(meta), path(bam), path(bai), path(genome_fasta), path(genome_fai), path(annotation_files), path(polya_db), val(has_polya_db)
+    tuple val(meta), path(bam), path(bai), path(genome_fasta), path(genome_fai), path(annotation_files), path(polya_db), val(has_polya_db), path(predict_script)
 
     output:
     tuple val(meta), path("${meta.library_id}.exonic.peaks.evaluated.bed"), path("${meta.library_id}.intronic.peaks.evaluated.bed"), path("${meta.library_id}.3primeExtended.peaks.evaluated.bed"), emit: evaluated

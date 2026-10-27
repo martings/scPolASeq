@@ -13,6 +13,10 @@ input:
         type: file
         description: Source gene annotation.
         pattern: "*.gtf"
+    - prepare_script:
+        type: file
+        description: Content-addressed GTF normalization helper.
+        pattern: prepare_scapture_gtf.py
 output:
   - gtf:
       type: file

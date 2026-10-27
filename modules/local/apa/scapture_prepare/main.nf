@@ -6,7 +6,7 @@ process SCAPTURE_PREPARE {
     container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-scapture.sif" : null
 
     input:
-    tuple val(meta), path(gtf)
+    tuple val(meta), path(gtf), path(prepare_script)
 
     output:
     tuple val(meta), path("${meta.library_id}.scapture.annotation.gtf"), emit: gtf
@@ -18,7 +18,7 @@ process SCAPTURE_PREPARE {
     def prefix = meta.library_id
     """
     set -euo pipefail
-    python ${moduleDir}/../../../../bin/prepare_scapture_gtf.py \
+    python ${prepare_script} \
         --gtf ${gtf} \
         --out-gtf ${prefix}.scapture.annotation.gtf \
         --out-map ${prefix}.scapture.gene_name_map.tsv \

@@ -30,6 +30,10 @@ input:
     - has_polya_db:
         type: boolean
         description: Whether poly(A) database is supplied.
+    - predict_script:
+        type: file
+        description: Content-addressed patched DeepPASS predictor bound into SIF.
+        pattern: DeepPASS_Predict.py
 output:
   - evaluated:
       type: file
