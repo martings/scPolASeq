@@ -11,8 +11,8 @@
 # =============================================================================
 set -euo pipefail
 
-DEST_DIR="${1:-/cluster/datasets/pbmc1k}"
-WHITELIST_DIR="/cluster/datasets/10x_whitelists"
+DEST_DIR="${1:-${SCPOLASEQ_PBMC_DIR:-/cluster/datasets/pbmc1k}}"
+WHITELIST_DIR="${SCPOLASEQ_WHITELIST_DIR:-$(dirname "${DEST_DIR%/}")/10x_whitelists}"
 
 FASTQ_URL="https://cf.10xgenomics.com/samples/cell-exp/3.0.0/pbmc_1k_v3/pbmc_1k_v3_fastqs.tar"
 WHITELIST_URL="https://cf.10xgenomics.com/supp/cell-exp/whitelists/3M-february-2018.txt.gz"
@@ -58,12 +58,14 @@ echo
 echo "=== Download complete ==="
 echo
 echo "Next steps:"
-echo "  1. Build or download a GRCh38 STAR index:"
-echo "     mkdir -p /cluster/datasets/reference/GRCh38"
-echo "     # Download from GENCODE or use REFERENCE_PREPARE to build it"
+echo "  1. Stage GRCh38 FASTA, GTF, and the PolyASite reference for your host."
 echo
-echo "  2. Launch the PBMC 1k test:"
+echo "  2. Create a samplesheet that points to these FASTQs and whitelist:"
+echo "     ${DEST_DIR}/samplesheet.csv (whitelist: ${WHITELIST_FILE})"
+echo
+echo "  3. Launch with the generic test profile and host-specific reference paths:"
 echo "     nextflow run main.nf \\"
-echo "       -profile test_pbmc1k,singularity \\"
-echo "       -c /cluster/projects/nextflow.config \\"
-echo "       --outdir /cluster/projects/scPolASeq_pbmc1k/results"
+echo "       -profile apptainer,test_pbmc1k \\"
+echo "       --input <samplesheet.csv> --genome_fasta <genome.fa> \\"
+echo "       --gtf <genes.gtf> --known_polya <polyasite.tsv> \\"
+echo "       --outdir <results-directory>"

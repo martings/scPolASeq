@@ -53,18 +53,17 @@ process PREPARE_REFERENCE_BUNDLE {
         fi
     else
         mkdir -p star_index
-        if command -v STAR >/dev/null 2>&1; then
-            STAR \\
-                --runMode genomeGenerate \\
-                --runThreadN ${task.cpus} \\
-                --genomeDir star_index \\
-                --genomeFastaFiles reference.genome.fa \\
-                --sjdbGTFfile reference.annotation.gtf || true
-        fi
+        command -v STAR >/dev/null 2>&1 || { echo 'STAR executable unavailable' >&2; exit 127; }
+        STAR \\
+            --runMode genomeGenerate \\
+            --runThreadN ${task.cpus} \\
+            --genomeDir star_index \\
+            --genomeFastaFiles reference.genome.fa \\
+            --sjdbGTFfile reference.annotation.gtf ||
+            { echo 'STAR index generation failed' >&2; exit 1; }
     fi
-    # Only create sentinel stubs if STAR did not produce the real index files.
-    [ -f star_index/SA ]     || touch star_index/SA
-    [ -f star_index/Genome ] || touch star_index/Genome
+    test -s star_index/SA && test -s star_index/Genome ||
+        { echo 'STAR index is incomplete' >&2; exit 1; }
     """
 
     stub:

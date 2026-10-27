@@ -8,19 +8,20 @@ process PREPARE_POLYA_REFERENCES {
     publishDir "${params.outdir}/reference", mode: params.publish_dir_mode
 
     input:
-    path known_polya
+    path known_polya, stageAs: 'known_polya_input'
     val polya_db
-    path polya_db_file
+    path polya_db_file, stageAs: 'polya_db_file_input'
     val polyasite
-    path polyasite_file
+    path polyasite_file, stageAs: 'polyasite_file_input'
 
     output:
     path "prepared_known_polya.tsv", emit: known_polya
     path "prepared_known_polya.manifest.tsv", emit: manifest
 
     script:
-    def polya_db_file_arg = polya_db_file.name.startsWith('NO_FILE') ? '' : polya_db_file
-    def polyasite_file_arg = polyasite_file.name.startsWith('NO_FILE') ? '' : polyasite_file
+    def skip_values = ['skip', 'none', 'null', 'false', 'no', '0', '']
+    def polya_db_file_arg = polya_db?.toString()?.trim()?.toLowerCase() in skip_values ? '' : polya_db_file
+    def polyasite_file_arg = polyasite?.toString()?.trim()?.toLowerCase() in skip_values ? '' : polyasite_file
     def default_cache_dir = params.outdir.toString().startsWith('/') ? "${params.outdir}/reference_cache" : "${launchDir}/${params.outdir}/reference_cache"
     def cache_dir = params.pas_reference_cache_dir ?: default_cache_dir
     """

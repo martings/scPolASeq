@@ -31,14 +31,18 @@
 set -euo pipefail
 
 SKIP_STAR=false
+USE_STAR_INDEX="${SCPOLASEQ_USE_STAR_INDEX:-false}"
 for arg in "$@"; do [[ "$arg" == "--skip-star-index" ]] && SKIP_STAR=true; done
 
-REF_DIR="/cluster/datasets/reference/GRCh38"
-POLYA_DIR="/cluster/datasets/polya_atlas"
-WL_DIR="/cluster/datasets/10x_whitelists"
-PBMC_DIR="/cluster/datasets/pbmc1k/fastqs"
+DATA_ROOT="${SCPOLASEQ_DATA_ROOT:-/cluster}"
+REF_DIR="${SCPOLASEQ_REF_DIR:-${DATA_ROOT}/datasets/reference/GRCh38}"
+POLYA_DIR="${SCPOLASEQ_POLYA_DIR:-${DATA_ROOT}/datasets/polya_atlas}"
+WL_DIR="${SCPOLASEQ_WHITELIST_DIR:-${DATA_ROOT}/datasets/10x_whitelists}"
+PBMC_DIR="${SCPOLASEQ_PBMC_DIR:-${DATA_ROOT}/datasets/pbmc1k/fastqs}"
+SAMPLESHEET="${SCPOLASEQ_SAMPLESHEET:-${DATA_ROOT}/datasets/pbmc1k/samplesheet.csv}"
+RESULTS_DIR="${SCPOLASEQ_RESULTS_DIR:-${DATA_ROOT}/projects/scPolASeq_pbmc1k/results}"
+SIF_DIR="${SCPOLASEQ_SIF_DIR:-${DATA_ROOT}/containers/scpolaseq}"
 NCPUS="${NCPUS:-8}"
-
 # URLs
 GENOME_URL="https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38.primary_assembly.genome.fa.gz"
 GTF_URL="https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz"
@@ -49,12 +53,13 @@ PBMC_URL="https://cf.10xgenomics.com/samples/cell-exp/3.0.0/pbmc_1k_v3/pbmc_1k_v
 log() { echo -e "\033[1;32m[$(date '+%H:%M:%S')]\033[0m $*"; }
 skip() { echo -e "\033[1;33m[SKIP]\033[0m $*"; }
 err() { echo -e "\033[1;31m[ERROR]\033[0m $*" >&2; exit 1; }
+[[ "${USE_STAR_INDEX}" == "true" || "${USE_STAR_INDEX}" == "false" ]] || err "SCPOLASEQ_USE_STAR_INDEX must be true or false."
 
 # ── 0. Connectivity check ─────────────────────────────────────────────────────
-log "Checking /cluster mount..."
-[[ -d /cluster ]] || err "/cluster not mounted. Run: sudo mount -t nfs 192.168.0.224:/cluster /cluster"
-[[ -w /cluster ]] || err "/cluster is not writable. Check NFS permissions."
-log "/cluster is reachable and writable."
+log "Checking data root: ${DATA_ROOT}"
+[[ -d "${DATA_ROOT}" ]] || err "Data root does not exist: ${DATA_ROOT}. Set SCPOLASEQ_DATA_ROOT to a writable location."
+[[ -w "${DATA_ROOT}" ]] || err "Data root is not writable: ${DATA_ROOT}"
+log "${DATA_ROOT} is reachable and writable."
 
 # ── 1. Genome (GRCh38 primary assembly) ───────────────────────────────────────
 mkdir -p "${REF_DIR}"
@@ -136,16 +141,28 @@ fi
 STAR_INDEX="${REF_DIR}/star_index"
 if [[ "${SKIP_STAR}" == "true" ]]; then
     skip "STAR index build skipped (--skip-star-index)"
-elif [[ -f "${STAR_INDEX}/SA" ]]; then
-    skip "STAR index already present: ${STAR_INDEX}/"
+elif [[ -s "${STAR_INDEX}/SA" && -s "${STAR_INDEX}/Genome" ]]; then
+    skip "Complete STAR index already present: ${STAR_INDEX}/"
+elif [[ -e "${STAR_INDEX}" ]]; then
+    err "STAR index directory exists but SA/Genome are missing or empty: ${STAR_INDEX}. Inspect and remove/rebuild it explicitly."
+elif [[ -n "${SCPOLASEQ_STAR_SIF:-}" ]]; then
+    [[ -f "${SCPOLASEQ_STAR_SIF}" ]] || err "STAR SIF not found: ${SCPOLASEQ_STAR_SIF}"
+    command -v apptainer >/dev/null 2>&1 || err "Apptainer is required to use SCPOLASEQ_STAR_SIF."
+    log "Building STAR index with explicitly selected SIF: ${SCPOLASEQ_STAR_SIF}"
+    mkdir -p "${STAR_INDEX}"
+    apptainer exec --bind "${REF_DIR}:${REF_DIR}" "${SCPOLASEQ_STAR_SIF}" STAR \
+        --runMode         genomeGenerate \
+        --runThreadN      "${NCPUS}" \
+        --genomeDir       "${STAR_INDEX}" \
+        --genomeFastaFiles "${REF_DIR}/genome.fa" \
+        --sjdbGTFfile     "${REF_DIR}/genes.gtf" \
+        --outFileNamePrefix "${STAR_INDEX}/"
+    [[ -s "${STAR_INDEX}/SA" && -s "${STAR_INDEX}/Genome" ]] || err "STAR exited without a complete index: ${STAR_INDEX}"
+    log "STAR index complete: ${STAR_INDEX}/"
 elif ! command -v STAR >/dev/null 2>&1; then
-    echo
-    echo "  STAR not found in PATH. Install STAR and re-run, or run via Apptainer:"
-    echo "  apptainer exec /cluster/containers/star_2.7.sif STAR --runMode genomeGenerate \\"
-    echo "    --genomeDir ${STAR_INDEX} --genomeFastaFiles ${REF_DIR}/genome.fa \\"
-    echo "    --sjdbGTFfile ${REF_DIR}/genes.gtf --runThreadN ${NCPUS}"
+    skip "No STAR executable found; leave star_index unset so the workflow builds it with its selected runtime image."
 else
-    log "Building STAR index (~30 min, ${NCPUS} CPUs)..."
+    log "Building STAR index with PATH STAR ($(STAR --version 2>&1 | head -1)); ensure this version matches the workflow image before reusing it."
     mkdir -p "${STAR_INDEX}"
     STAR \
         --runMode         genomeGenerate \
@@ -154,6 +171,7 @@ else
         --genomeFastaFiles "${REF_DIR}/genome.fa" \
         --sjdbGTFfile     "${REF_DIR}/genes.gtf" \
         --outFileNamePrefix "${STAR_INDEX}/"
+    [[ -s "${STAR_INDEX}/SA" && -s "${STAR_INDEX}/Genome" ]] || err "STAR exited without a complete index: ${STAR_INDEX}"
     log "STAR index complete: ${STAR_INDEX}/"
 fi
 
@@ -169,9 +187,24 @@ echo "  polyA    : ${POLYA_DIR}/polyasite2_GRCh38.tsv"
 echo "  whitelist: ${WL_DIR}/3M-february-2018.txt"
 echo "  FASTQs   : ${PBMC_DIR}/"
 echo
-echo "Launch the pipeline:"
-echo "  cd $(pwd)"
-echo "  nextflow run main.nf \\"
-echo "    -profile test_pbmc1k,local_qnap \\"
-echo "    -c /cluster/projects/nextflow.config \\"
-echo "    --outdir /cluster/projects/scPolASeq_pbmc1k/results"
+echo "Launch the pipeline (an existing index is reused only with explicit version-compatibility opt-in):"
+echo "  Build and validate images first: bash containers/build.sh --cache-dir ${SIF_DIR} && bash containers/validate.sh ${SIF_DIR}"
+launch_args=(
+    nextflow run main.nf
+    -profile apptainer,test_pbmc1k
+    --apptainer_cache_dir "${SIF_DIR}"
+    --input "${SAMPLESHEET}"
+    --genome_fasta "${REF_DIR}/genome.fa"
+    --gtf "${REF_DIR}/genes.gtf"
+    --known_polya "${POLYA_DIR}/polyasite2_GRCh38.tsv"
+    --outdir "${RESULTS_DIR}"
+)
+if [[ "${USE_STAR_INDEX}" == "true" && -s "${STAR_INDEX}/SA" && -s "${STAR_INDEX}/Genome" ]]; then
+    launch_args+=(--star_index "${STAR_INDEX}")
+elif [[ -s "${STAR_INDEX}/SA" && -s "${STAR_INDEX}/Genome" ]]; then
+    echo "  (complete index found but not passed; set SCPOLASEQ_USE_STAR_INDEX=true only after verifying STAR version compatibility)"
+else
+    echo "  (no complete index; Nextflow will generate it with the selected runtime image)"
+fi
+printf '  %q' "${launch_args[@]}"
+printf '\n'

@@ -19,7 +19,7 @@ workflow COVERAGE_GENERATION {
         }
         .set { ch_flat_bams }
 
-    COVERAGE_TRACKS(ch_flat_bams, chrom_sizes)
+    COVERAGE_TRACKS(ch_flat_bams, chrom_sizes, Channel.value(file("${projectDir}/bin/bam_to_bedgraph.py", checkIfExists: true)))
 
     emit:
     bedgraphs      = COVERAGE_TRACKS.out.bedgraphs      // tuple(meta, group_level, group_id, fwd_bg, rev_bg)

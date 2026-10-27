@@ -4,8 +4,8 @@
 # Local CI runner for scPolASeq.
 #
 # Runs all test scenarios (stub and optionally real) and reports per-scenario
-# pass/fail with process-count validation. Meant to be run on deepthought or
-# any machine with Nextflow in PATH.
+# pass/fail with process-count validation. Work files go to a temporary
+# directory unless TEST_WORK_ROOT is set explicitly.
 #
 # Usage:
 #   ./tests/run_tests.sh            # stub-run only (fast, ~1 min total)
@@ -18,6 +18,8 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_DIR"
+TEST_WORK_ROOT="${TEST_WORK_ROOT:-$(mktemp -d "${TMPDIR:-/tmp}/scpolaseq-nf-tests.XXXXXX")}"
+mkdir -p "$TEST_WORK_ROOT"
 
 # ── Colours ───────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
@@ -41,11 +43,11 @@ done
 # Format: "name|params_file|expected_stub_processes"
 # expected_stub_processes is the number of "Succeeded : N" lines in the log.
 declare -a SCENARIOS=(
-    "full|tests/config/params_full.json|22"
-    "toggles_off|tests/config/params_toggles_off.json|18"
-    "from_bam|tests/config/params_from_bam.json|22"
-    "feedback|tests/config/params_feedback.json|22"
-    "polya_refs|tests/config/params_polya_refs.json|23"
+    "full|tests/config/params_full.json|23"
+    "toggles_off|tests/config/params_toggles_off.json|19"
+    "from_bam|tests/config/params_from_bam.json|23"
+    "feedback|tests/config/params_feedback.json|23"
+    "polya_refs|tests/config/params_polya_refs.json|24"
 )
 # NOTE: Nextflow engine flags use single dash (-stub-run, -resume, -profile).
 # Double dash (--flag) is reserved for pipeline params (params.*).
@@ -62,7 +64,7 @@ run_scenario() {
     local params_file="$2"
     local expected_procs="$3"
     local stub_flag="${4:--stub-run}"    # -stub-run or ""
-    local work_dir="/scratch/.nf_work/test/${name}_$(date +%s)"
+    local work_dir="${TEST_WORK_ROOT}/${name}_$(date +%s%N)"
 
     local mode_label="stub"
     [[ "$stub_flag" == "" ]] && mode_label="real"
@@ -106,7 +108,7 @@ run_scenario() {
 run_module_test() {
     local name="$1"
     local nf_file="$2"
-    local work_dir="/scratch/.nf_work/test/module_${name}_$(date +%s)"
+    local work_dir="${TEST_WORK_ROOT}/module_${name}_$(date +%s%N)"
 
     info "Running module test '${name}' (stub)..."
 
