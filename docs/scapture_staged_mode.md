@@ -80,3 +80,35 @@ The separate real PASquant gate, including exact matrix parity and cached
 release gate is a complete staged PBMC1k execution through `APA_CORE`, with
 output and manifest comparison and a downstream failure/resume check after
 DeepPASS. Until that gate, this mode remains opt-in and this PR remains draft.
+
+## Full frozen-input gate in progress (27 October 2026)
+
+`tests/scapture_staged_historical.nf` invokes the complete staged graph on the
+read-only historical SCAPTURE task's BAM, references, and cell annotations. It
+starts with a deliberate failure gate after PASquant so a later explicit resume
+can test cache reuse without repeating DeepPASS. The run uses Nextflow 25.10.4,
+`deepthought,apptainer`, session UUID
+`0ab7d746-6dfe-48d4-afb7-8c680c9ce639`, work directory
+`/tmp/scapture_staged_full_20261027_work`, and a separate output directory
+`/tmp/scapture_staged_full_20261027_out`.
+
+```bash
+nextflow run tests/scapture_staged_historical.nf -profile deepthought,apptainer \
+  --scapture_task_dir /scratch/work/scPolASeq_runs/pbmc1k_20261024_replicate/85/5407a938ac61cb168479ca6cc8a528 \
+  --scapture_library_id pbmc_1k_v3 --scapture_test_fail_after_quant true \
+  --outdir /tmp/scapture_staged_full_20261027_out \
+  --apptainer_cache_dir /scratch/cache/apptainer \
+  -work-dir /tmp/scapture_staged_full_20261027_work \
+  -resume 0ab7d746-6dfe-48d4-afb7-8c680c9ce639
+```
+
+The first attempt found that SCAPTURE annotation inherited `TMPDIR=/scratch/tmp`,
+which did not exist inside the Apptainer task. Commit `e234013` sets a task-local
+TMPDIR. The same explicit `-resume` then cached PREPARE (`61/ad622e`), completed
+ANNOTATION (`83/19c80e`), and submitted PAScall (`9a/f6ae8f`). The real
+PAScall `.command.run` includes both `--nv` and the staged predictor bind. Peak
+calling is still in progress. The historical monolith took 4h12m for that
+phase, so this document does not yet claim full staged equivalence. Once the
+run finishes, compare the three evaluated BEDs, combined reference, catalog,
+PASquant matrix and manifest against the historical outputs, then change only
+`--scapture_test_fail_after_quant false` and repeat with the same UUID.
