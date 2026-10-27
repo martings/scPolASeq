@@ -22,9 +22,11 @@ option_list <- list(
 )
 opt <- parse_args(OptionParser(option_list = option_list))
 
-writeLines(c("SIERRA_QUANT:",
-             paste0("  Sierra: '", as.character(packageVersion("Sierra")), "'"),
-             paste0("  R: '", getRversion(), "'")), opt$versions)
+if (!is.null(opt$versions)) {
+    writeLines(c("SIERRA_QUANT:",
+                 paste0("  Sierra: '", as.character(packageVersion("Sierra")), "'"),
+                 paste0("  R: '", getRversion(), "'")), opt$versions)
+}
 
 log_con <- file(opt$log, open = "wt")
 log <- function(...) {

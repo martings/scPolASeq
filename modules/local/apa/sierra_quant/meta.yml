@@ -1,0 +1,56 @@
+name: sierra_quant
+description: Quantify PAS usage for one explicit cell group with Sierra.
+keywords: [sierra, polyadenylation, single-cell, quantification]
+tools:
+  - sierra:
+      description: Sierra single-cell polyadenylation analysis
+      homepage: https://github.com/VCCRI/Sierra
+input:
+  - - meta:
+        type: map
+        description: Library metadata, including library_id.
+    - group_level:
+        type: string
+        description: cluster, cell_type, or cell.
+    - group_id:
+        type: string
+        description: Original group label used to filter cell annotations.
+    - grouped_bam:
+        type: file
+        description: BAM for the selected group.
+        pattern: "*.bam"
+    - grouped_bai:
+        type: file
+        description: BAM index.
+        pattern: "*.bam.bai"
+    - pas_reference:
+        type: file
+        description: PAS reference table.
+    - cell_annotations:
+        type: file
+        description: Cell annotation table with group labels.
+    - gtf:
+        type: file
+        description: Gene annotation.
+        pattern: "*.gtf"
+  - - quant_script:
+        type: file
+        description: Staged Sierra R wrapper, tracked by Nextflow cache.
+        pattern: sierra_quant.R
+output:
+  - quantified_pas:
+      type: file
+      description: Per-cell PAS UMI counts; filename uses a safe group token.
+      pattern: "*.sierra_quant.tsv"
+  - manifest:
+      type: file
+      description: Input and original group identity record.
+      pattern: "*.sierra_quant.manifest.tsv"
+  - log:
+      type: file
+      description: Sierra execution log.
+      pattern: "*.sierra_quant.log"
+  - versions:
+      type: file
+      description: Sierra and R runtime versions for this group.
+      pattern: "*.versions.yml"

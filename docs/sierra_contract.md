@@ -12,6 +12,13 @@ October PBMC1k cluster run contains eight clusters and `unassigned`, so this
 adapter preserves nine Sierra tasks for that profile. An empty cell-type group
 still yields no Sierra task.
 
+The original `group_id` remains the value used to filter cells and is recorded
+in the manifest. File names use a sanitized group token matching the grouped
+BAM writer's allowed characters. Shell arguments quote the original value;
+labels containing spaces, `/`, `+`, or apostrophes therefore do not become
+paths or shell syntax. The adapter rejects duplicate group IDs/BAM filenames
+and requires the manifest to cover the exact BAM/index set.
+
 The R wrapper records the Sierra and R versions before quantification. The
 module checks nonempty staged inputs and requires both its TSV and version
 file. The group-scoped version filename prevents concurrent tasks from
@@ -29,6 +36,15 @@ identical: `329fc77cf5e737fe0ea9ed1a9ee9bc8d0bb76b898db6601b7ac28dbbd029f6c4`.
 The version output reports Sierra 0.99.27 and R 4.3.3. This is one group,
 not a new nine-group run or scientific validation. The SIF is the historical
 unversioned local image; pinning/build reproducibility is tracked in #31.
+
+After review fixes, the real `cluster_5` task ran again at hash `59/a19585`
+in session `1b21f9d5-e12e-4615-93c3-b05dc718d91c`, retained the exact TSV
+SHA256 above, and was cached on the next explicit `-resume`. Two additional
+real module invocations with unmatched labels `T cell/A+B` and `T'cell`
+completed exit 0, wrote safe output names `T_cell_A_B` and `T_cell`, and kept
+the original labels in their manifests. They correctly produced header-only
+TSVs because no PBMC1k cells had those labels; they test quoting and naming,
+not quantification biology.
 
 The portable module test is `tests/modules/apa/test_sierra_quant.nf`. It
 requires explicit file parameters for a real run; no Deepthought paths are

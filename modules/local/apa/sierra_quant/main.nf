@@ -24,13 +24,17 @@ process SIERRA_QUANT {
     path quant_script
 
     output:
-    tuple val(meta), val(group_level), val(group_id), path("${meta.library_id}.${group_level}.${group_id}.sierra_quant.tsv"), emit: quantified_pas
-    path "${meta.library_id}.${group_level}.${group_id}.sierra_quant.manifest.tsv", emit: manifest
-    path "${meta.library_id}.${group_level}.${group_id}.sierra_quant.log", emit: log
-    path "${meta.library_id}.${group_level}.${group_id}.versions.yml", emit: versions
+    tuple val(meta), val(group_level), val(group_id), path("${meta.library_id}.${group_level}.${group_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.sierra_quant.tsv"), emit: quantified_pas
+    path "${meta.library_id}.${group_level}.${group_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.sierra_quant.manifest.tsv", emit: manifest
+    path "${meta.library_id}.${group_level}.${group_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.sierra_quant.log", emit: log
+    path "${meta.library_id}.${group_level}.${group_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')}.versions.yml", emit: versions
 
     script:
-    def prefix = "${meta.library_id}.${group_level}.${group_id}"
+    def safeGroupId = group_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')
+    def prefix = "${meta.library_id}.${group_level}.${safeGroupId}"
+    def quotedGroupId = "'" + group_id.toString().replace("'", "'\"'\"'") + "'"
+    def quotedLibraryId = "'" + meta.library_id.toString().replace("'", "'\"'\"'") + "'"
+    def quotedGroupLevel = "'" + group_level.toString().replace("'", "'\"'\"'") + "'"
     def ncores = task.cpus ?: 1
     """
     test -s ${grouped_bam} && test -s ${grouped_bai} || { echo 'Sierra BAM/index missing or empty' >&2; exit 1; }
@@ -40,9 +44,9 @@ process SIERRA_QUANT {
         --gtf               ${gtf} \\
         --pas-reference     ${pas_reference} \\
         --cell-annotations  ${cell_annotations} \\
-        --library-id        ${meta.library_id} \\
-        --group-level       ${group_level} \\
-        --group-id          ${group_id} \\
+        --library-id        ${quotedLibraryId} \\
+        --group-level       ${quotedGroupLevel} \\
+        --group-id          ${quotedGroupId} \\
         --output            ${prefix}.sierra_quant.tsv \\
         --log               ${prefix}.sierra_quant.log \\
         --versions          ${prefix}.versions.yml \\
@@ -55,15 +59,19 @@ process SIERRA_QUANT {
     printf "pas_reference\\t${pas_reference.name}\\n"          >> ${prefix}.sierra_quant.manifest.tsv
     printf "cell_annotations\\t${cell_annotations.name}\\n"    >> ${prefix}.sierra_quant.manifest.tsv
     printf "quant_source\\tSierra::CountPeaks\\n"              >> ${prefix}.sierra_quant.manifest.tsv
-    printf "group_id\\t${group_id}\\n"                        >> ${prefix}.sierra_quant.manifest.tsv
+    printf 'group_id\\t%s\\n' ${quotedGroupId}                >> ${prefix}.sierra_quant.manifest.tsv
     test -s ${prefix}.sierra_quant.tsv && test -s ${prefix}.versions.yml || { echo 'Sierra outputs missing or empty' >&2; exit 1; }
     """
 
     stub:
-    def prefix = "${meta.library_id}.${group_level}.${group_id}"
+    def safeGroupId = group_id.toString().replaceAll(/[^A-Za-z0-9._-]+/, '_')
+    def prefix = "${meta.library_id}.${group_level}.${safeGroupId}"
+    def quotedGroupId = "'" + group_id.toString().replace("'", "'\"'\"'") + "'"
+    def quotedLibraryId = "'" + meta.library_id.toString().replace("'", "'\"'\"'") + "'"
+    def quotedGroupLevel = "'" + group_level.toString().replace("'", "'\"'\"'") + "'"
     """
     printf "library_id\\tgroup_level\\tgroup_id\\tsite_id\\tcell_barcode\\tumi_count\\n" > ${prefix}.sierra_quant.tsv
-    printf "${meta.library_id}\\t${group_level}\\t${group_id}\\tstub_site_001\\tSTUBBARC001\\t1\\n" >> ${prefix}.sierra_quant.tsv
+    printf '%s\\t%s\\t%s\\tstub_site_001\\tSTUBBARC001\\t1\\n' ${quotedLibraryId} ${quotedGroupLevel} ${quotedGroupId} >> ${prefix}.sierra_quant.tsv
     printf "field\\tvalue\\nmode\\tstub\\n" > ${prefix}.sierra_quant.manifest.tsv
     printf "SIERRA_QUANT stub executed\\n" > ${prefix}.sierra_quant.log
     printf "SIERRA_QUANT:\\n  Sierra: stub\\n  R: stub\\n" > ${prefix}.versions.yml

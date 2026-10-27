@@ -155,6 +155,14 @@ workflow APA_CORE {
                 if (records.size() != bam_list.size()) {
                     error "Grouping manifest/BAM count mismatch: ${grouping_manifest}"
                 }
+                def manifestIds = records.collect { it[1] }
+                def manifestFiles = records.collect { it[2] }
+                if (manifestIds.size() != manifestIds.toSet().size() ||
+                    manifestFiles.size() != manifestFiles.toSet().size() ||
+                    manifestFiles.toSet() != files.keySet() ||
+                    manifestFiles.collect { "${it}.bai" }.toSet() != indexes.keySet()) {
+                    error "Grouping manifest does not map each BAM/index exactly once: ${grouping_manifest}"
+                }
                 records.collect { record ->
                     if (record.size() != 4 || record[0] != group_level || !record[1]) {
                         error "Invalid grouping record in ${grouping_manifest}: ${record}"
