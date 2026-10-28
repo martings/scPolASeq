@@ -81,7 +81,7 @@ release gate is a complete staged PBMC1k execution through `APA_CORE`, with
 output and manifest comparison and a downstream failure/resume check after
 DeepPASS. Until that gate, this mode remains opt-in and this PR remains draft.
 
-## Full frozen-input gate in progress (27 October 2026)
+## Full frozen-input staged gate (28 October 2026)
 
 `tests/scapture_staged_historical.nf` invokes the complete staged graph on the
 read-only historical SCAPTURE task's BAM, references, and cell annotations. It
@@ -105,10 +105,32 @@ nextflow run tests/scapture_staged_historical.nf -profile deepthought,apptainer 
 The first attempt found that SCAPTURE annotation inherited `TMPDIR=/scratch/tmp`,
 which did not exist inside the Apptainer task. Commit `e234013` sets a task-local
 TMPDIR. The same explicit `-resume` then cached PREPARE (`61/ad622e`), completed
-ANNOTATION (`83/19c80e`), and submitted PAScall (`9a/f6ae8f`). The real
-PAScall `.command.run` includes both `--nv` and the staged predictor bind. Peak
-calling is still in progress. The historical monolith took 4h12m for that
-phase, so this document does not yet claim full staged equivalence. Once the
-run finishes, compare the three evaluated BEDs, combined reference, catalog,
-PASquant matrix and manifest against the historical outputs, then change only
-`--scapture_test_fail_after_quant false` and repeat with the same UUID.
+ANNOTATION (`83/19c80e`), and submitted PAScall (`9a/f6ae8f`). That task was
+interrupted externally without a Nextflow error or `.exitcode` while calling
+peaks. A persistent session resumed the same UUID on 27 October and completed
+PAScall (`68/72cd8d`) in 4h 42s, all three PASmerge tasks, PASreference,
+catalog, PASquant, and manifest. The deliberate post-quantification gate exited
+42 as designed. Repeating the command with only
+`--scapture_test_fail_after_quant false` cached all ten scientific tasks and
+finished with exit 0; the final gate ran in a new task (`28/a6923b`).
+
+The published outputs are in `/tmp/scapture_staged_full_20261027_out/scapture`.
+The manifest reports `status=complete`, 101,340 valid and scored peaks, 21,904
+catalog sites, and a 101,330-site by 1,139-cell PASquant matrix. `gzip -t`
+passed; the decompressed matrix has one header and 101,330 data lines with
+1,139 barcode columns. The historical monolith used the same 1,139 barcodes,
+but its catalog had 21,906 sites and its matrix had 101,386 rows. Catalogs
+share 21,774 exact site IDs with identical shared records (130 staged-only,
+132 historical-only). Matrices share 101,006 row IDs (324 staged-only, 380
+historical-only); 1,564 shared rows have different values. This establishes
+end-to-end operation, not byte-for-byte scientific parity. The source of the
+small differences is not yet proven and should be resolved before declaring
+exact reproducibility.
+
+The PAScall launcher contains `apptainer exec --nv`. Each DeepPASS log reports
+TensorFlow creating `/device:GPU:0` on the NVIDIA GeForce RTX 3080, loading
+CUDA/cuDNN libraries and completing prediction. The logs also contain a
+nonfatal `cublasGetSmCountTarget` symbol warning; all three predictions and
+PAScall returned exit 0. This gate validates the staged SCAPTURE subworkflow
+on frozen PBMC1k inputs. An integrated `APA_CORE` run remains a separate
+release gate.
