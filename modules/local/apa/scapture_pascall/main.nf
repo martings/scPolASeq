@@ -10,7 +10,7 @@ process SCAPTURE_PASCALL {
     containerOptions { params.apptainer_cache_dir ? "--bind ${predict_script}:/opt/scapture/DeepPASS/Predict.py" : "" }
 
     input:
-    tuple val(meta), path(bam), path(bai), path(genome_fasta), path(genome_fai), path(annotation_files), path(polya_db), val(has_polya_db), path(predict_script)
+    tuple val(meta), path(bam), path(bai), path(genome_fasta), path(genome_fai), path(annotation_files), path(polya_db), val(has_polya_db), path(predict_script), path(normality_profile)
 
     output:
     tuple val(meta), path("${meta.library_id}.exonic.peaks.evaluated.bed"), path("${meta.library_id}.intronic.peaks.evaluated.bed"), path("${meta.library_id}.3primeExtended.peaks.evaluated.bed"), emit: evaluated
@@ -23,11 +23,17 @@ process SCAPTURE_PASCALL {
     def read_len = params.scapture_read_length ?: 90
     def species = params.scapture_species ?: 'human'
     def peak_width = params.scapture_peak_width ?: 400
+    def normality_seed = params.scapture_normality_seed == null ? 1 : params.scapture_normality_seed
+    if (!(normality_seed.toString() ==~ /[0-9]+/) || normality_seed.toString().toBigInteger() >= 2147483647) {
+        error "scapture_normality_seed must be an integer from 0 to 2147483646"
+    }
     def db_arg = has_polya_db ? "--polyaDB ${polya_db}" : ''
     """
     set -euo pipefail
     export TMPDIR=\$(pwd)/tmp
     export MPLCONFIGDIR=\$(pwd)/tmp/mpl
+    export R_PROFILE_USER=\$(pwd)/${normality_profile}
+    export SCPOLASEQ_SCAPTURE_NORMALITY_SEED=${normality_seed}
     mkdir -p "\$TMPDIR" "\$MPLCONFIGDIR"
     test -s ${bam}
     test -s ${bai}
@@ -98,7 +104,9 @@ process SCAPTURE_PASCALL {
         echo 'INFO: 3primeExtended category absent from PAScall output' >> ${prefix}.PAScall.log
     fi
     commit=\$(git -C /opt/scapture rev-parse HEAD 2>/dev/null || printf 'unknown')
-    printf '"SCAPTURE_PASCALL":\n  scapture_commit: "%s"\n  scapture_script_sha256: "%s"\n' \
-        "\$commit" "\$(sha256sum "\$(command -v scapture)" | cut -d' ' -f1)" > versions.yml
+    printf '"SCAPTURE_PASCALL":\n  scapture_commit: "%s"\n  scapture_script_sha256: "%s"\n  normality_profile_sha256: "%s"\n  normality_seed: "%s"\n  r_version: "%s"\n' \
+        "\$commit" "\$(sha256sum "\$(command -v scapture)" | cut -d' ' -f1)" \
+        "\$(sha256sum ${normality_profile} | cut -d' ' -f1)" '${normality_seed}' \
+        "\$(Rscript -e 'cat(as.character(getRversion()))')" > versions.yml
     """
 }

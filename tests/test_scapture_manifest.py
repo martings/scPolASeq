@@ -38,13 +38,15 @@ class ManifestTest(unittest.TestCase):
                 "--duplicate-report", str(duplicate), "--pascall-metrics", str(pascall),
                 "--reference-metrics", str(reference), "--catalog-metrics", str(catalog),
                 "--quant-manifest", str(quant), "--species", "human", "--read-length", "90",
-                "--peak-width", "400", "--threshold", "0", "--output", str(output)]
+                "--peak-width", "400", "--normality-seed", "7",
+                "--threshold", "0", "--output", str(output)]
             subprocess.run(args, check=True, capture_output=True, text=True)
             with output.open(newline="") as handle:
                 rows = list(csv.reader(handle, delimiter="\t"))
             self.assertEqual(rows[0], ["field", "value"])
             result = dict(rows[1:])
             self.assertEqual(result["deeppass_threshold"], "0")
+            self.assertEqual(result["normality_seed"], "7")
             self.assertEqual(result["site_catalog_rows"], "4")
             self.assertEqual(result["merged_categories"], "2")
             self.assertEqual(result["duplicate_original_gene_names"], "1")

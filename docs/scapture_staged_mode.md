@@ -164,6 +164,31 @@ are therefore not fully explained by local site changes. A separate bounded
 PASquant test on identical frozen historical
 inputs produced byte-identical matrix output, so this full-run comparison
 does not implicate the split PASquant module itself. Exact reproducibility
-would require a deliberate, documented random-seed policy in SCAPTURE and a
-fresh comparison; changing that policy could change peak calls and must be
-treated as a scientific-method change.
+requires two independent PAScall runs with the same explicit seed; changing
+the seed policy can change peak calls and is a scientific-method change.
+
+### Reproducible normality sampling
+
+The staged PAScall now sets `--scapture_normality_seed` (default `1`, allowed
+integer range `0` to `2147483646`). Its staged
+`bin/scapture_normality_profile.R` is loaded through `R_PROFILE_USER` only
+when Rscript runs SCAPTURE's `Normality.R`. It combines the base seed with the
+stable basename of the transcript peak input, then calls `set.seed()` before
+the original SCAPTURE script starts. This makes each transcript's random
+stream independent of GNU Parallel scheduling and works with Apptainer or
+Conda without editing the upstream source. Monolith mode retains upstream's
+unseeded behavior. The profile is a declared Nextflow
+input, and the seed appears in the task script and `versions.yml`; changing
+either invalidates the PAScall task hash.
+
+With one synthetic coverage/peak fixture, the original `Normality.R` produced
+different p-values on two invocations without the profile; with base seed `1`,
+the two output files were byte-identical. A small Nextflow Apptainer run
+staged the profile in PAScall. Changing the seed from `1` to `2` with
+`-resume 195e248d-3da3-4ed0-ba0c-93649a71860c` cached PREPARE
+(`c8/9d5834`) and ANNOTATION (`0b/2a845a`) but assigned PAScall a new hash
+(`f1/9057cd` rather than `dc/faecca`). That tiny fixture intentionally has an
+invalid BAM, so PAScall fails closed; it does not establish biological output
+parity. A full independent seeded PBMC1k repeat is still needed. The upstream
+request for a native seed option is
+[YangLab/SCAPTURE issue #15](https://github.com/YangLab/SCAPTURE/issues/15).

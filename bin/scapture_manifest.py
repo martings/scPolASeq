@@ -34,7 +34,8 @@ def main():
     for name in ("library_id", "bam", "gtf", "fasta", "fai", "prepared_gtf",
                  "gene_map", "duplicate_report", "pascall_metrics",
                  "reference_metrics", "catalog_metrics", "quant_manifest",
-                 "species", "read_length", "peak_width", "threshold", "output"):
+                 "species", "read_length", "peak_width", "normality_seed",
+                 "threshold", "output"):
         parser.add_argument("--" + name.replace("_", "-"), required=True)
     args = parser.parse_args()
     pascall = read_pairs(args.pascall_metrics)
@@ -49,6 +50,7 @@ def main():
         ("genome_fasta", args.fasta), ("genome_fai", args.fai),
         ("rescue_pascall_dir", "none"), ("species", args.species),
         ("read_length", args.read_length), ("peak_width", args.peak_width),
+        ("normality_seed", args.normality_seed),
         ("deeppass_threshold", args.threshold),
     ]
     categories = (("exonic", "exonic"), ("intronic", "intronic"),

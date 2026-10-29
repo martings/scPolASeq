@@ -113,6 +113,13 @@
           "enum": ["monolith", "staged"],
           "default": "monolith",
           "description": "SCAPTURE execution path. The staged mode requires --enable_scapture true and resumes each stage independently with Nextflow -resume."
+        },
+        "scapture_normality_seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483646,
+          "default": 1,
+          "description": "Base seed for reproducible SCAPTURE Normality.R sampling in staged mode; each transcript gets a stable derived seed."
         }
       }
     }

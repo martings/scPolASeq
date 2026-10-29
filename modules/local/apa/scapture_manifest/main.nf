@@ -15,6 +15,7 @@ process SCAPTURE_MANIFEST {
     script:
     def prefix = meta.library_id?.toString()
     def threshold = params.scapture_deeppass_threshold != null ? params.scapture_deeppass_threshold : 0.5
+    def normality_seed = params.scapture_normality_seed == null ? 1 : params.scapture_normality_seed
     if (!(prefix ==~ /[A-Za-z0-9][A-Za-z0-9._-]*/)) {
         error "SCAPTURE_MANIFEST requires a safe library_id: ${prefix}"
     }
@@ -32,6 +33,7 @@ process SCAPTURE_MANIFEST {
       --species '${params.scapture_species ?: 'human'}' \\
       --read-length '${params.scapture_read_length ?: 90}' \\
       --peak-width '${params.scapture_peak_width ?: 400}' \\
+      --normality-seed '${normality_seed}' \\
       --threshold '${threshold}' \\
       --output '${prefix}.scapture.manifest.tsv'
     printf '"SCAPTURE_MANIFEST":\\n  python: "%s"\\n  manifest_helper_sha256: "%s"\\n' \\
