@@ -123,9 +123,7 @@ but its catalog had 21,906 sites and its matrix had 101,386 rows. Catalogs
 share 21,774 exact site IDs with identical shared records (130 staged-only,
 132 historical-only). Matrices share 101,006 row IDs (324 staged-only, 380
 historical-only); 1,564 shared rows have different values. This establishes
-end-to-end operation, not byte-for-byte scientific parity. The source of the
-small differences is not yet proven and should be resolved before declaring
-exact reproducibility.
+end-to-end operation, not byte-for-byte scientific parity.
 
 The PAScall launcher contains `apptainer exec --nv`. Each DeepPASS log reports
 TensorFlow creating `/device:GPU:0` on the NVIDIA GeForce RTX 3080, loading
@@ -134,3 +132,37 @@ nonfatal `cublasGetSmCountTarget` symbol warning; all three predictions and
 PAScall returned exit 0. This gate validates the staged SCAPTURE subworkflow
 on frozen PBMC1k inputs. An integrated `APA_CORE` run remains a separate
 release gate.
+
+### Investigation of the row differences
+
+Both PAScall tasks use the same resolved BAM and reference, the six generated
+SCAPTURE annotation files are byte-identical, and PAScall uses the same read
+length (90), peak width (400), species (human), and thread count (14). The
+first divergence is inside SCAPTURE's own peak caller, before DeepPASS:
+all 25,931 shared per-gene `exonic.peak.isoform.bed` files are byte-identical,
+but 2,502 `exonic.peak.isoform.normality.bed` files differ. The raw global
+exonic and intronic peak BEDs then contain 36,639 versus 36,636 and 75,101
+versus 75,037 rows, respectively (historical versus staged).
+
+In the SIF, `/opt/scapture/scripts/Normality.R` samples read coverage with
+R's `sample()` for the Anderson-Darling, symmetry, and dip tests (lines
+39–57), without `set.seed()`. `/opt/scapture/scapture_callpeak` uses these
+p-values to keep or reject exonic peaks at `0.0001` (line 150). This is a
+directly observed source of run-to-run variation, even with identical inputs
+and parameters. All 704 matrix row IDs present in only one run belong to
+genes whose normality-filtered BED changed. Of the 262 catalog site IDs
+present in only one run, 261 belong to such genes; the last is the same
+genomic interval assigned to a different overlapping gene by the catalog.
+
+The two matrices have exactly the same 1,139 barcodes. Their total UMI counts
+are 9,079,774 historical and 9,089,259 staged (0.10% difference). Among
+shared row IDs, 1,564 rows differ in at least one cell: 1,450 belong to genes
+with a changed normality-filtered BED, while 114 belong to 102 genes whose own
+combined reference BED is unchanged. The latter may reflect assignments
+influenced by changed neighboring sites, but that mechanism has not been
+isolated. A separate bounded PASquant test on identical frozen historical
+inputs produced byte-identical matrix output, so this full-run comparison
+does not implicate the split PASquant module itself. Exact reproducibility
+would require a deliberate, documented random-seed policy in SCAPTURE and a
+fresh comparison; changing that policy could change peak calls and must be
+treated as a scientific-method change.
