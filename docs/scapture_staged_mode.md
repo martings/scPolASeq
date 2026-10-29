@@ -158,9 +158,10 @@ The two matrices have exactly the same 1,139 barcodes. Their total UMI counts
 are 9,079,774 historical and 9,089,259 staged (0.10% difference). Among
 shared row IDs, 1,564 rows differ in at least one cell: 1,450 belong to genes
 with a changed normality-filtered BED, while 114 belong to 102 genes whose own
-combined reference BED is unchanged. The latter may reflect assignments
-influenced by changed neighboring sites, but that mechanism has not been
-isolated. A separate bounded PASquant test on identical frozen historical
+combined reference BED is unchanged. Of those 102 genes, 23 have a changed
+site overlapping their reference intervals and 79 do not; their count changes
+are therefore not fully explained by local site changes. A separate bounded
+PASquant test on identical frozen historical
 inputs produced byte-identical matrix output, so this full-run comparison
 does not implicate the split PASquant module itself. Exact reproducibility
 would require a deliberate, documented random-seed policy in SCAPTURE and a
