@@ -192,3 +192,17 @@ invalid BAM, so PAScall fails closed; it does not establish biological output
 parity. A full independent seeded PBMC1k repeat is still needed. The upstream
 request for a native seed option is
 [YangLab/SCAPTURE issue #15](https://github.com/YangLab/SCAPTURE/issues/15).
+
+The full seeded repeat gate started on 29 October 2026 with base seed `1`.
+The first run uses the historical session UUID
+`0ab7d746-6dfe-48d4-afb7-8c680c9ce639` and work directory
+`/tmp/scapture_staged_full_20261027_work`; PREPARE (`61/ad622e`) and
+ANNOTATION (`83/19c80e`) were cached, while PAScall received the new hash
+`1e/cf7633`. It publishes to `/tmp/scapture_seeded_pbmc1k_first_out`.
+The second run uses an independent work directory
+`/tmp/scapture_seeded_pbmc1k_second_work` and publishes to
+`/tmp/scapture_seeded_pbmc1k_second_out`. The persistent launcher records
+logs and exit codes under `/tmp/scapture_seeded_pbmc1k_{first,second}.*` and
+compares the evaluated BEDs, catalog, and decompressed matrix after both
+complete. No full-run reproducibility claim should be made until that
+comparison finishes.
