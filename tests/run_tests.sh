@@ -56,6 +56,7 @@ declare -a SCENARIOS=(
 declare -a MODULE_TESTS=(
     "pas_reference_build|tests/modules/apa/test_pas_reference_build.nf"
     "prepare_polya_references|tests/modules/reference/test_prepare_polya_references.nf"
+    "scapture_staged_contract|tests/scapture_staged_contract.nf"
 )
 
 # ── Helper: run one scenario ──────────────────────────────────────────────────
@@ -163,6 +164,13 @@ for module_def in "${MODULE_TESTS[@]}"; do
     IFS='|' read -r name nf_file <<< "$module_def"
     run_module_test "$name" "$nf_file" || FAILED=$((FAILED + 1))
 done
+
+if python tests/test_scapture_manifest.py; then
+    pass "SCAPTURE manifest contract"
+else
+    fail "SCAPTURE manifest contract"
+    FAILED=$((FAILED + 1))
+fi
 
 # ── 3. Real integration test (opt-in) ────────────────────────────────────────
 if [[ "$RUN_REAL" == "true" ]]; then

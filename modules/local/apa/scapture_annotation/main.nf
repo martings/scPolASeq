@@ -17,6 +17,8 @@ process SCAPTURE_ANNOTATION {
     def prefix = meta.library_id
     """
     set -euo pipefail
+    export TMPDIR=\$(pwd)/tmp
+    mkdir -p "\$TMPDIR"
     test -s ${genome_fasta}
     test -s ${genome_fai}
     test -s ${chrom_sizes}
