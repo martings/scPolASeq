@@ -46,6 +46,7 @@ process STARSOLO_ALIGN_SC {
             --runThreadN ${task.cpus} \\
             --outSAMtype BAM SortedByCoordinate \\
             --outSAMattributes NH HI nM AS CR UR CB UB GX GN sS sQ sM \\
+            --limitBAMsortRAM 36000000000 \
             ${soloTypeArgs} \\
             --outFileNamePrefix ${meta.sample_id}. \\
             ${whitelistArg} \\
