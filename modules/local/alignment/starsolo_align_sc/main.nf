@@ -26,12 +26,14 @@ process STARSOLO_ALIGN_SC {
     def readFilesCmd = read1s[0].name.endsWith('.gz') ? '--readFilesCommand zcat' : ''
     def read1Arg = read1s.collect { it.toString() }.join(',')
     def read2Arg = read2s.collect { it.toString() }.join(',')
-    // STARsolo single-cell params derived from protocol_mode.
+    // STARsolo single-cell params derived from protocol_mode and chemistry.
     // ext.args is not reliably propagated in Nextflow 25.x when multiple withName
     // selectors exist across config files, so critical params are hardcoded here.
-    def umiLen       = (meta.chemistry == '10xv2' || protocol_mode == '10x_5p') ? 10 : 12
+    def cbLen        = meta.chemistry == '10xv1' ? 14 : 16
+    def umiStart     = cbLen + 1
+    def umiLen       = (meta.chemistry == '10xv1' || meta.chemistry == '10xv2' || protocol_mode == '10x_5p') ? 10 : 12
     def soloTypeArgs = protocol_mode.startsWith('10x') ?
-        "--soloType CB_UMI_Simple --soloCBstart 1 --soloCBlen 16 --soloUMIstart 17 --soloUMIlen ${umiLen} --soloCellFilter CellRanger2.2" :
+        "--soloType CB_UMI_Simple --soloCBstart 1 --soloCBlen ${cbLen} --soloUMIstart ${umiStart} --soloUMIlen ${umiLen} --soloCellFilter CellRanger2.2" :
         "--soloType CB_UMI_Simple"
     """
     ${warning}
