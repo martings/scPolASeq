@@ -107,15 +107,19 @@ def _split_bam(bam_path, groups, out_dir, library_id, log):
             out_bam = out_dir / grouped_bam_name(library_id, group_id)
             handles[(level, group_id)] = pysam.AlignmentFile(str(out_bam), "wb", header=header)
 
+        # Pre-group target levels to avoid redundant tag lookups
+        levels = sorted({level for level, _ in groups})
+
         for read in bam_in.fetch(until_eof=True):
-            for level, group_id in groups:
+            for level in levels:
                 tag_name = tag_for_group.get(level, "CL")
                 try:
                     group_tag = read.get_tag(tag_name)
                 except KeyError:
                     continue
-                if group_tag == group_id:
-                    handles[(level, group_id)].write(read)
+                target_handle = handles.get((level, group_tag))
+                if target_handle is not None:
+                    target_handle.write(read)
 
     for h in handles.values():
         h.close()

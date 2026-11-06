@@ -15,6 +15,7 @@ include { PAS_REFERENCE_BUILD                } from '../modules/local/apa/pas_re
 include { SIERRA_QUANT                       } from '../modules/local/apa/sierra_quant/main'
 include { PAS_SCORING                        } from '../modules/local/apa/pas_scoring/main'
 include { SCAPTURE_FILTER                    } from '../modules/local/apa/scapture/main'
+include { SCAPTURE_STAGED                    } from './local/scapture_staged/main'
 include { BAM_MERGE_SAMPLE                   } from '../modules/local/bam/merge_sample_bams/main'
 
 workflow APA_CORE {
@@ -36,6 +37,13 @@ workflow APA_CORE {
     def do_sierra_quant = params.enable_sierra_quant.toString().toBoolean()
     def do_pas_scoring = params.enable_pas_scoring.toString().toBoolean()
     def do_scapture = params.enable_scapture.toString().toBoolean()
+    def scapture_execution_mode = params.scapture_execution_mode ?: 'monolith'
+    if (!(scapture_execution_mode in ['monolith', 'staged'])) {
+        error "Invalid --scapture_execution_mode '${scapture_execution_mode}'; choose monolith or staged"
+    }
+    if (do_scapture && scapture_execution_mode == 'staged' && params.scapture_resume_pascall_dir) {
+        error '--scapture_resume_pascall_dir is supported only by monolith mode; staged mode resumes through Nextflow -resume'
+    }
     def do_ml_model = params.enable_ml_model.toString().toBoolean()
 
     // Freeze the reference tuple layout here so downstream modules never index
@@ -214,7 +222,16 @@ workflow APA_CORE {
             }
             .groupTuple(by: 0)
             .map { sid, metas, bams, bais ->
-                def sample_meta = metas[0] + [library_id: sid]
+                if (scapture_execution_mode == 'staged' && !(sid?.toString() ==~ /[A-Za-z0-9][A-Za-z0-9._-]*/)) {
+                    error "Staged SCAPTURE requires a safe scapture_group_id (letters, digits, '.', '_' or '-'): '${sid}'"
+                }
+                def sample_ids = metas.collect { it.sample_id ?: it.library_id }
+                                      .findAll { it != null && it.toString().trim() }
+                                      .unique().sort()
+                if (scapture_execution_mode == 'staged' && sample_ids.size() != 1) {
+                    error "Staged SCAPTURE requires exactly one sample_id per scapture_group_id '${sid}'; found ${sample_ids}. Use monolith mode for mixed-sample groups."
+                }
+                def sample_meta = metas[0] + [library_id: sid, scapture_sample_ids: sample_ids]
                 tuple(sample_meta,
                       bams instanceof List ? bams : [bams],
                       bais instanceof List ? bais : [bais])
@@ -238,10 +255,19 @@ workflow APA_CORE {
             }
             .set { ch_scapture_input }
 
-        SCAPTURE_FILTER(ch_scapture_input)
-        ch_scapture_catalog  = SCAPTURE_FILTER.out.site_catalog
-        ch_scapture_quant    = SCAPTURE_FILTER.out.quant
-        ch_scapture_manifest = SCAPTURE_FILTER.out.manifest
+        if (scapture_execution_mode == 'staged') {
+            SCAPTURE_STAGED(ch_scapture_input.map { meta, bam, bai, fasta, fasta_fai, gtf, chrom_sizes, annotations, polya, has_polya_db, resume_dir, has_resume_dir ->
+                tuple(meta, bam, bai, fasta, fasta_fai, gtf, chrom_sizes, annotations, polya, has_polya_db)
+            })
+            ch_scapture_catalog  = SCAPTURE_STAGED.out.site_catalog
+            ch_scapture_quant    = SCAPTURE_STAGED.out.quant
+            ch_scapture_manifest = SCAPTURE_STAGED.out.manifest
+        } else {
+            SCAPTURE_FILTER(ch_scapture_input)
+            ch_scapture_catalog  = SCAPTURE_FILTER.out.site_catalog
+            ch_scapture_quant    = SCAPTURE_FILTER.out.quant
+            ch_scapture_manifest = SCAPTURE_FILTER.out.manifest
+        }
     } else {
         ch_scapture_catalog  = Channel.empty()
         ch_scapture_quant    = Channel.empty()
