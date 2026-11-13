@@ -14,8 +14,11 @@ The staged path runs GTF preparation, annotation, PAScall with DeepPASS,
 per-category PASmerge, combined BED12 reference, catalog conversion, and
 PASquant as separate tasks. PAScall and PASquant have their own 14 CPU, 64 GB,
 48 hour limits. A later stage failure does not force DeepPASS to run again.
-Quantification is mandatory in this mode: a missing or invalid matrix fails
-the pipeline. An explicit catalog-only mode remains future work in issue #28.
+Quantification is optional via `--scapture_catalog_only true` (issue #28): when set,
+`SCAPTURE_STAGED` skips `SCAPTURE_PASQUANT`, emits an empty `quant` channel, and
+records `quant_status=skipped_catalog_only` + `status=catalog_only` in the staged
+manifest (`SCAPTURE_MANIFEST`). By default (`--scapture_catalog_only false`),
+quantification is mandatory and a missing or invalid matrix fails the pipeline.
 Staged mode currently requires each `scapture_group_id` to contain exactly one
 `sample_id`; it fails before SCAPTURE when a group spans samples. The monolith
 path retains its existing behavior for such groups until multi-sample barcode
@@ -166,6 +169,19 @@ inputs produced byte-identical matrix output, so this full-run comparison
 does not implicate the split PASquant module itself. Exact reproducibility
 requires two independent PAScall runs with the same explicit seed; changing
 the seed policy can change peak calls and is a scientific-method change.
+
+### Phase B2 modularization & nf-core alignment (#8, #28, #29)
+
+- All 8 staged modules (`SCAPTURE_PREPARE`, `SCAPTURE_ANNOTATION`, `SCAPTURE_PASCALL`,
+  `SCAPTURE_PASMERGE`, `SCAPTURE_PASREFERENCE`, `SCAPTURE_CATALOG`,
+  `SCAPTURE_PASQUANT`, `SCAPTURE_MANIFEST`) are decoupled from pipeline-global
+  `params.*` / `publishDir` (centralized in `conf/modules.config`), expose standard
+  `ext.args` / `ext.prefix` / `when` / `stub` blocks, and pin OCI container URI
+  `ghcr.io/martings/scapture:f056f02` (with Apptainer cache override in `conf/modules.config`).
+- `--scapture_catalog_only` (`false` by default) skips `SCAPTURE_PASQUANT` cleanly
+  while preserving `site_catalog` and `manifest` (`#28`).
+- `nf-test` stub specs live under `modules/local/apa/scapture_{pascall,pasquant}/tests/main.nf.test`
+  and `subworkflows/local/scapture_staged/tests/main.nf.test`.
 
 ### Reproducible normality sampling & pinned SCAPTURE fork (#31)
 

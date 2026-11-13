@@ -54,6 +54,42 @@ class ManifestTest(unittest.TestCase):
             quant = write("quant.tsv", [["field", "value"], ["status", "failed"]])
             self.assertNotEqual(subprocess.run(args, capture_output=True).returncode, 0)
 
+    def test_catalog_only_manifest(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+
+            def write(name, rows):
+                path = root / name
+                with path.open("w", newline="") as handle:
+                    csv.writer(handle, delimiter="\t", lineterminator="\n").writerows(rows)
+                return path
+
+            duplicate = write("duplicates.tsv", [["gene_count", "original_gene_name"]])
+            pascall = write("pascall.tsv", [["metric", "value"],
+                *[[f"{cat}_{kind}", "1"] for cat in ("exonic", "intronic", "3primeExtended") for kind in ("valid", "scored")],
+                ["valid_peaks", "3"], ["scored_peaks", "3"]])
+            reference = write("reference.tsv", [["category", "integrated_rows"],
+                ["exonic", "1"], ["intronic", "0"], ["3primeExtended", "0"], ["total", "1"]])
+            catalog = write("catalog.tsv", [["metric", "value"], ["site_catalog_rows", "1"]])
+            no_file = root / "NO_FILE"
+            no_file.write_text("")
+            output = root / "manifest_catalog_only.tsv"
+            args = [sys.executable, str(HELPER), "--library-id", "lib", "--bam", "lib.bam",
+                "--gtf", "genes.gtf", "--fasta", "ref.fa", "--fai", "ref.fa.fai",
+                "--prepared-gtf", "lib.scapture.annotation.gtf", "--gene-map", "lib.gene_name_map.tsv",
+                "--duplicate-report", str(duplicate), "--pascall-metrics", str(pascall),
+                "--reference-metrics", str(reference), "--catalog-metrics", str(catalog),
+                "--quant-manifest", str(no_file), "--species", "human", "--read-length", "90",
+                "--peak-width", "400", "--normality-seed", "1",
+                "--threshold", "0.5", "--output", str(output)]
+            subprocess.run(args, check=True, capture_output=True, text=True)
+            with output.open(newline="") as handle:
+                result = dict(list(csv.reader(handle, delimiter="\t"))[1:])
+            self.assertEqual(result["status"], "catalog_only")
+            self.assertEqual(result["quant_matrix"], "skipped_catalog_only")
+            self.assertEqual(result["matrix_site_rows"], "0")
+            self.assertEqual(result["matrix_cell_columns"], "0")
+
 
 if __name__ == "__main__":
     unittest.main()

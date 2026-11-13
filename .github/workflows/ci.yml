@@ -39,7 +39,30 @@ jobs:
             -params-file tests/config/params_full.json \
             -stub-run \
             -ansi-log false
-          echo "Expected: 25 processes"
+          echo "Expected: 29 processes"
+
+      - name: Stub-run — scapture_staged
+        run: |
+          nextflow run . \
+            -profile test \
+            -params-file tests/config/params_full.json \
+            --enable_scapture true \
+            --scapture_execution_mode staged \
+            -stub-run \
+            -ansi-log false
+          echo "Expected: 40 processes"
+
+      - name: Stub-run — scapture_catalog_only (#28)
+        run: |
+          nextflow run . \
+            -profile test \
+            -params-file tests/config/params_full.json \
+            --enable_scapture true \
+            --scapture_execution_mode staged \
+            --scapture_catalog_only true \
+            -stub-run \
+            -ansi-log false
+          echo "Expected: 39 processes"
 
       - name: Stub-run — toggles off
         run: |
@@ -90,6 +113,12 @@ jobs:
       - name: Downstream Nextflow preflight (no task submission)
         run: bash tests/test_downstream_preflight.sh
 
+      - name: SCAPTURE manifest unit tests (including catalog_only)
+        run: python3 tests/test_scapture_manifest.py
+
+      - name: Issue #10 barcode identity regression tests
+        run: python3 tests/test_issue10_barcode_identity.py
+
       - name: Upload Nextflow logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -99,3 +128,39 @@ jobs:
             .nextflow.log
             work/
           retention-days: 3
+
+  nf-test:
+    name: nf-test module & subworkflow specs (stub)
+    runs-on: ubuntu-latest
+    env:
+      NXF_VER: "25.10.4"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Nextflow
+        run: |
+          curl -s https://get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+          nextflow -version
+
+      - name: Install nf-test
+        run: |
+          curl -fsSL https://github.com/askimed/nf-test/releases/download/v0.9.5/nf-test-0.9.5.tar.gz -o /tmp/nf-test.tar.gz
+          tar -xzf /tmp/nf-test.tar.gz -C /tmp
+          sudo mv /tmp/nf-test /tmp/nf-test.jar /usr/local/bin/
+          nf-test version
+
+      - name: Run nf-test stub suites
+        run: |
+          nf-test test \
+            modules/nf-core/sierra/countpeaks/tests/main.nf.test \
+            modules/local/apa/scapture_pascall/tests/main.nf.test \
+            modules/local/apa/scapture_pasquant/tests/main.nf.test \
+            subworkflows/local/scapture_staged/tests/main.nf.test

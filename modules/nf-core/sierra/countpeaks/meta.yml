@@ -1,0 +1,76 @@
+name: sierra_countpeaks
+description: Count UMI or read abundances at poly(A) peak sites from single-cell BAM alignments using Sierra::CountPeaks.
+keywords:
+  - sierra
+  - polyadenylation
+  - apa
+  - single-cell
+  - countpeaks
+tools:
+  - sierra:
+      description: Discovery and differential usage analysis of alternative polyadenylation in scRNA-seq.
+      homepage: https://github.com/martings/Sierra
+      documentation: https://github.com/martings/Sierra
+      tool_dev_url: https://github.com/martings/Sierra
+      doi: 10.1093/bioinformatics/btaa606
+      licence: ["GPL-3.0"]
+input:
+  - - meta:
+        type: map
+        description: |
+          Groovy Map containing sample/group information
+          e.g. [ id:'test', single_end:true ]
+    - bam:
+        type: file
+        description: Coordinate-sorted BAM file with CB/UB tags
+        pattern: "*.bam"
+    - bai:
+        type: file
+        description: BAM index file
+        pattern: "*.bam.bai"
+    - whitelist:
+        type: file
+        description: Text file listing one valid cell barcode per line
+        pattern: "*.txt"
+  - peak_sites:
+      type: file
+      description: Tab-delimited Sierra peak coordinates table with Chr, Start, End, Strand, Gene, Fit.start, Fit.end
+      pattern: "*.{tsv,txt}"
+  - gtf:
+      type: file
+      description: Gene annotation file in GTF format
+      pattern: "*.gtf"
+output:
+  - counts:
+      - meta:
+          type: map
+          description: Groovy Map containing sample/group information
+      - "${prefix}/matrix.mtx.gz":
+          type: file
+          description: Sparse peak-by-cell count matrix in Matrix Market format
+          pattern: "*/matrix.mtx.gz"
+      - "${prefix}/barcodes.tsv.gz":
+          type: file
+          description: Gzipped cell barcode column labels
+          pattern: "*/barcodes.tsv.gz"
+      - "${prefix}/sitenames.tsv.gz":
+          type: file
+          description: Gzipped Sierra peak site row labels
+          pattern: "*/sitenames.tsv.gz"
+  - log:
+      - meta:
+          type: map
+          description: Groovy Map containing sample/group information
+      - "${prefix}.sierra_countpeaks.log":
+          type: file
+          description: Execution log from SIERRA_COUNTPEAKS
+          pattern: "*.sierra_countpeaks.log"
+  - versions:
+      - versions.yml:
+          type: file
+          description: File containing software versions
+          pattern: "versions.yml"
+authors:
+  - "@martings"
+maintainers:
+  - "@martings"

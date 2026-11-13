@@ -43,12 +43,14 @@ done
 # Format: "name|params_file|expected_stub_processes"
 # expected_stub_processes is the number of "Succeeded : N" lines in the log.
 declare -a SCENARIOS=(
-    "full|tests/config/params_full.json|25|"
-    "full_no_bigwig|tests/config/params_full.json|23|--emit_bigwigs false"
+    "full|tests/config/params_full.json|29|"
+    "full_no_bigwig|tests/config/params_full.json|27|--emit_bigwigs false"
     "toggles_off|tests/config/params_toggles_off.json|21|"
-    "from_bam|tests/config/params_from_bam.json|25|"
-    "feedback|tests/config/params_feedback.json|25|"
-    "polya_refs|tests/config/params_polya_refs.json|26|"
+    "from_bam|tests/config/params_from_bam.json|29|"
+    "feedback|tests/config/params_feedback.json|29|"
+    "polya_refs|tests/config/params_polya_refs.json|30|"
+    "scapture_staged|tests/config/params_full.json|40|--enable_scapture true --scapture_execution_mode staged"
+    "scapture_catalog_only|tests/config/params_full.json|39|--enable_scapture true --scapture_execution_mode staged --scapture_catalog_only true"
 )
 # NOTE: Nextflow engine flags use single dash (-stub-run, -resume, -profile).
 # Double dash (--flag) is reserved for pipeline params (params.*).

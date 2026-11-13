@@ -1,0 +1,42 @@
+nextflow_process {
+
+    name "Test Process SIERRA_COUNTPEAKS"
+    script "../main.nf"
+    process "SIERRA_COUNTPEAKS"
+
+    tag "modules"
+    tag "modules_nfcore"
+    tag "sierra"
+    tag "sierra/countpeaks"
+
+    test("sierra/countpeaks - stub") {
+
+        options "-stub"
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ id:'test_stub' ],
+                    file("${projectDir}/tests/data/placeholder_input.bam", checkIfExists: true),
+                    file("${projectDir}/tests/data/scapture_dummy.bai", checkIfExists: true),
+                    file("${projectDir}/tests/data/barcodes.tsv", checkIfExists: true)
+                ]
+                input[1] = file("${projectDir}/tests/data/known_polya.tsv", checkIfExists: true)
+                input[2] = file("${projectDir}/tests/data/reference.gtf", checkIfExists: true)
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert process.out.counts },
+                { assert path(process.out.counts[0][1]).exists() },
+                { assert path(process.out.counts[0][2]).exists() },
+                { assert path(process.out.counts[0][3]).exists() },
+                { assert path(process.out.versions[0]).exists() }
+            )
+        }
+    }
+}

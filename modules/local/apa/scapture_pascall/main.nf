@@ -4,36 +4,34 @@ process SCAPTURE_PASCALL {
     label 'gpu'
 
     conda "${projectDir}/envs/scapture.yml"
-    container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-scapture.sif" : null
+    container "ghcr.io/martings/scapture:f056f02"
 
     input:
     tuple val(meta), path(bam), path(bai), path(genome_fasta), path(genome_fai), path(annotation_files), path(polya_db), val(has_polya_db)
 
     output:
-    tuple val(meta), path("${meta.library_id}.exonic.peaks.evaluated.bed"), path("${meta.library_id}.intronic.peaks.evaluated.bed"), path("${meta.library_id}.3primeExtended.peaks.evaluated.bed"), emit: evaluated
-    tuple val(meta), path("${meta.library_id}.PAScall.log"), emit: log
-    tuple val(meta), path("${meta.library_id}.scapture.pascall.metrics.tsv"), emit: metrics
+    tuple val(meta), path("${prefix}.exonic.peaks.evaluated.bed"), path("${prefix}.intronic.peaks.evaluated.bed"), path("${prefix}.3primeExtended.peaks.evaluated.bed"), emit: evaluated
+    tuple val(meta), path("${prefix}.PAScall.log"), emit: log
+    tuple val(meta), path("${prefix}.scapture.pascall.metrics.tsv"), emit: metrics
     path 'versions.yml', emit: versions
 
+    when:
+    task.ext.when == null || task.ext.when
+
     script:
-    def prefix = meta.library_id
-    def read_len = params.scapture_read_length ?: 90
-    def species = params.scapture_species ?: 'human'
-    def peak_width = params.scapture_peak_width ?: 400
-    def normality_seed = params.scapture_normality_seed == null ? 1 : params.scapture_normality_seed
+    def args           = task.ext.args != null ? task.ext.args : '-l 90 --species human -w 400 --strand forward'
+    prefix             = task.ext.prefix ?: "${meta.library_id}"
+    def normality_seed = task.ext.normality_seed != null ? task.ext.normality_seed : (meta.scapture_normality_seed != null ? meta.scapture_normality_seed : 1)
     if (!(normality_seed.toString() ==~ /[0-9]+/) || normality_seed.toString().toBigInteger() >= 2147483647) {
-        error "scapture_normality_seed must be an integer from 0 to 2147483646"
+        error "SCAPTURE_PASCALL ext.normality_seed must be an integer from 0 to 2147483646"
     }
     def db_arg = has_polya_db ? "--polyaDB ${polya_db}" : ''
-    def strand = (meta.strandedness ?: (meta.chemistry == '10xv1' ? 'reverse' : (params.scapture_strand ?: params.strandedness ?: 'forward'))).toString().toLowerCase()
-    def strand_arg = "--strand ${strand}"
     """
     set -euo pipefail
     export TMPDIR=\$(pwd)/tmp
     export MPLCONFIGDIR=\$(pwd)/tmp/mpl
     export SCAPTURE_NORMALITY_SEED=${normality_seed}
     export SCPOLASEQ_SCAPTURE_NORMALITY_SEED=${normality_seed}
-    export SCAPTURE_STRAND=${strand}
     mkdir -p "\$TMPDIR" "\$MPLCONFIGDIR"
     test -s ${bam}
     test -s ${bai}
@@ -49,12 +47,9 @@ process SCAPTURE_PASCALL {
         -a ${prefix}_annot \
         -g ${prefix}.scapture.genome.fa \
         -b ${bam} \
-        -l ${read_len} \
         -o ${prefix} \
         -p ${task.cpus ?: 1} \
-        --species ${species} \
-        -w ${peak_width} \
-        ${strand_arg} \
+        ${args} \
         ${db_arg} \
         &> ${prefix}.PAScall.log
 
@@ -107,9 +102,20 @@ process SCAPTURE_PASCALL {
     commit=\$(git -C /opt/scapture rev-parse HEAD 2>/dev/null || printf 'unknown')
     normality_r=/opt/scapture/scripts/Normality.R
     normality_sha=\$(test -r "\$normality_r" && sha256sum "\$normality_r" | cut -d' ' -f1 || printf 'unknown')
-    printf '"SCAPTURE_PASCALL":\n  scapture_commit: "%s"\n  scapture_script_sha256: "%s"\n  normality_r_sha256: "%s"\n  normality_seed: "%s"\n  r_version: "%s"\n' \
-        "\$commit" "\$(sha256sum "\$(command -v scapture)" | cut -d' ' -f1)" \
+    printf '"%s":\n  scapture_commit: "%s"\n  scapture_script_sha256: "%s"\n  normality_r_sha256: "%s"\n  normality_seed: "%s"\n  r_version: "%s"\n' \
+        "${task.process}" "\$commit" "\$(sha256sum "\$(command -v scapture)" | cut -d' ' -f1)" \
         "\$normality_sha" '${normality_seed}' \
         "\$(Rscript -e 'cat(as.character(getRversion()))')" > versions.yml
+    """
+
+    stub:
+    prefix = task.ext.prefix ?: "${meta.library_id}"
+    """
+    for cat in exonic intronic 3primeExtended; do
+        printf 'chr1\t100\t120\tpas_1\t0\t+\t100\t120\t0,0,0\t1\t20,\t0,\t10\tpositive\tAAAA\n' > ${prefix}.\${cat}.peaks.evaluated.bed
+    done
+    printf 'stub scapture -m PAScall\n' > ${prefix}.PAScall.log
+    printf 'metric\tvalue\nexonic_valid\t1\nexonic_scored\t1\nintronic_valid\t1\nintronic_scored\t1\n3primeExtended_valid\t1\n3primeExtended_scored\t1\nvalid_peaks\t3\nscored_peaks\t3\n' > ${prefix}.scapture.pascall.metrics.tsv
+    printf '"%s":\n  scapture_commit: "f056f0202e64f801c52f885c069b3e31660e02f1"\n' "${task.process}" > versions.yml
     """
 }

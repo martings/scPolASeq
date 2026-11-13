@@ -3,18 +3,21 @@ process SCAPTURE_PASREFERENCE {
     label 'process_low'
 
     conda "${projectDir}/envs/scapture.yml"
-    container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-scapture.sif" : null
+    container "ghcr.io/martings/scapture:f056f02"
 
     input:
     tuple val(meta), path(category_beds)
 
     output:
-    tuple val(meta), path("${meta.library_id}_merge.Integrated.bed"), emit: reference
-    tuple val(meta), path("${meta.library_id}_merge.reference.metrics.tsv"), emit: metrics
+    tuple val(meta), path("${prefix}_merge.Integrated.bed"), emit: reference
+    tuple val(meta), path("${prefix}_merge.reference.metrics.tsv"), emit: metrics
     path 'versions.yml', emit: versions
 
+    when:
+    task.ext.when == null || task.ext.when
+
     script:
-    def prefix = meta.library_id
+    prefix = task.ext.prefix ?: "${meta.library_id}"
     """
     set -euo pipefail
     raw=${prefix}_merge.Integrated.raw.bed
@@ -48,6 +51,14 @@ process SCAPTURE_PASREFERENCE {
         | awk 'BEGIN{OFS="\t"} {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11,\$12}' > "\$out"
     test -s "\$out"
     printf 'total\t%s\n' "\$(wc -l < "\$out")" >> ${prefix}_merge.reference.metrics.tsv
-    printf '"SCAPTURE_PASREFERENCE":\n  coreutils: "%s"\n' "\$(sort --version | head -1 | awk '{print \$NF}')" > versions.yml
+    printf '"%s":\n  coreutils: "%s"\n' "${task.process}" "\$(sort --version | head -1 | awk '{print \$NF}')" > versions.yml
+    """
+
+    stub:
+    prefix = task.ext.prefix ?: "${meta.library_id}"
+    """
+    printf 'chr1\t100\t120\tpas_1\t0\t+\t100\t120\t0,0,0\t1\t20,\t0,\n' > ${prefix}_merge.Integrated.bed
+    printf 'category\tintegrated_rows\nexonic\t1\nintronic\t1\n3primeExtended\t1\ntotal\t3\n' > ${prefix}_merge.reference.metrics.tsv
+    printf '"%s":\n  coreutils: "stub"\n' "${task.process}" > versions.yml
     """
 }
