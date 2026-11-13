@@ -1,0 +1,36 @@
+name: scapture_prepare
+description: Normalize duplicate gene names in a GTF for SCAPTURE per-gene jobs.
+keywords: [scapture, gtf, annotation]
+tools:
+  - scapture:
+      description: Single-cell poly(A) site analysis
+      homepage: https://github.com/YangLab/SCAPTURE
+input:
+  - - meta:
+        type: map
+        description: Sample metadata including library_id.
+    - gtf:
+        type: file
+        description: Source gene annotation.
+        pattern: "*.gtf"
+    - prepare_script:
+        type: file
+        description: Content-addressed GTF normalization helper.
+        pattern: prepare_scapture_gtf.py
+output:
+  - gtf:
+      type: file
+      description: SCAPTURE-specific collision-free gene annotation.
+      pattern: "*.scapture.annotation.gtf"
+  - gene_name_map:
+      type: file
+      description: Original gene name mapping.
+      pattern: "*.scapture.gene_name_map.tsv"
+  - duplicate_gene_names:
+      type: file
+      description: Duplicate original names found during preparation.
+      pattern: "*.annotation.duplicate_gene_names.tsv"
+  - versions:
+      type: file
+      description: Tool versions.
+      pattern: versions.yml

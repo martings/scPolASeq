@@ -1,0 +1,30 @@
+name: scapture_discovery
+description: Cache-separated SCAPTURE preparation, annotation, PAScall and DeepPASS stages.
+keywords: [scapture, deeppass, polyadenylation]
+components:
+  - scapture_prepare
+  - scapture_annotation
+  - scapture_pascall
+  - scapture_merge
+input:
+  - ch_input:
+      description: Unique library meta, indexed BAM, reference, annotation and optional poly(A) database.
+output:
+  - evaluated:
+      description: Three SCAPTURE evaluated BED categories, ready for PASmerge.
+  - reference:
+      description: Combined BED12 reference for PASquant.
+  - reference_metrics:
+      description: Per-category and total reference counts.
+  - merge_status:
+      description: Per-category PASmerge states.
+  - pascall_metrics:
+      description: Scored peak counts by category.
+  - gene_name_map:
+      description: Reversible gene-name mapping.
+  - duplicate_gene_names:
+      description: Duplicate source gene names.
+  - annotation_log:
+      description: Annotation log.
+  - pascall_log:
+      description: PAScall and DeepPASS log.

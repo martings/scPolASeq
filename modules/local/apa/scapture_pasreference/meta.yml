@@ -1,0 +1,23 @@
+name: scapture_pasreference
+description: Combine three SCAPTURE PASmerge categories into a sorted BED12 reference.
+keywords: [scapture, bed12, polyadenylation]
+input:
+  - - meta:
+        type: map
+        description: Library metadata with library_id.
+    - category_beds:
+        type: file
+        description: Three category Integrated.bed files, empty categories allowed.
+output:
+  - reference:
+      type: file
+      description: Nonempty sorted BED12 reference for PASquant.
+      pattern: "*_merge.Integrated.bed"
+  - metrics:
+      type: file
+      description: Category and total row counts.
+      pattern: "*_merge.reference.metrics.tsv"
+  - versions:
+      type: file
+      description: Sort tool version.
+      pattern: versions.yml

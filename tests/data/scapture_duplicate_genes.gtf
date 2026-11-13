@@ -1,0 +1,2 @@
+chr1	source	gene	1	100	.	+	.	gene_id "ENSG_A"; gene_name "DUP";
+chr1	source	gene	200	300	.	+	.	gene_id "ENSG_B"; gene_name "DUP";

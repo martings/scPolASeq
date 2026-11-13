@@ -1,0 +1,34 @@
+name: scapture_pasmerge
+description: Merge one DeepPASS-evaluated SCAPTURE peak category.
+keywords: [scapture, pasmerge, polyadenylation]
+tools:
+  - scapture:
+      description: Single-cell poly(A) site analysis
+      homepage: https://github.com/YangLab/SCAPTURE
+input:
+  - - meta:
+        type: map
+        description: Library metadata with library_id.
+    - category:
+        type: string
+        description: exonic, intronic or 3primeExtended.
+    - evaluated_bed:
+        type: file
+        description: Evaluated BED with DeepPASS labels.
+output:
+  - integrated:
+      type: file
+      description: Per-category Integrated.bed; empty only for zero scored input rows.
+      pattern: "*_merge.*.Integrated.bed"
+  - status:
+      type: file
+      description: Explicit merged or empty_input state with counts.
+      pattern: "*_merge.*.status.tsv"
+  - log:
+      type: file
+      description: PASmerge command log.
+      pattern: "*_merge.*.PASmerge.log"
+  - versions:
+      type: file
+      description: SCAPTURE commit and script fingerprint.
+      pattern: versions.yml
