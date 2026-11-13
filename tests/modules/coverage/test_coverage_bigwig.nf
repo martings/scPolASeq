@@ -1,6 +1,7 @@
 nextflow.enable.dsl = 2
 
-include { COVERAGE_TRACKS } from '../../../modules/local/coverage/coverage_tracks/main'
+include { COVERAGE_TRACKS    } from '../../../modules/local/coverage/coverage_tracks/main'
+include { BEDGRAPH_TO_BIGWIG } from '../../../modules/local/coverage/bedgraph_to_bigwig/main'
 
 params.outdir = params.outdir ?: "${launchDir}/tests/results/coverage_bigwig"
 params.publish_dir_mode = 'copy'
@@ -18,7 +19,12 @@ workflow {
     ))
     COVERAGE_TRACKS(
         bam_ch,
-        Channel.value(file(params.test_chrom_sizes)),
         Channel.value(file("${projectDir}/../../../bin/bam_to_bedgraph.py", checkIfExists: true))
     )
+    if (params.emit_bigwigs) {
+        BEDGRAPH_TO_BIGWIG(
+            COVERAGE_TRACKS.out.bedgraphs,
+            Channel.value(file(params.test_chrom_sizes))
+        )
+    }
 }

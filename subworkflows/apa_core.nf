@@ -296,8 +296,10 @@ workflow APA_CORE {
         ch_scapture_manifest = Channel.empty()
     }
 
-    def ch_track_bundle = COVERAGE_GENERATION.out.bigwigs
-        .flatMap { meta, group_level, group_id, fwd_bw, rev_bw -> [fwd_bw, rev_bw] }
+    def do_emit_bigwigs = params.emit_bigwigs == null ? true : params.emit_bigwigs.toString().toBoolean()
+    def ch_track_bundle = do_emit_bigwigs
+        ? COVERAGE_GENERATION.out.bigwigs.flatMap { meta, group_level, group_id, fwd_bw, rev_bw -> [fwd_bw, rev_bw] }
+        : COVERAGE_GENERATION.out.bedgraphs.flatMap { meta, group_level, group_id, fwd_bg, rev_bg -> [fwd_bg, rev_bg] }
 
     // Keep the reporting QC surface backward compatible; new sidecar manifests
     // are emitted separately so they can be adopted intentionally later.
@@ -305,6 +307,7 @@ workflow APA_CORE {
         .mix(ch_model_metrics)
         .mix(GROUPED_RECONSTRUCTION.out.grouping_manifest)
         .mix(ch_pas_reference_manifest)
+        .mix(COVERAGE_GENERATION.out.bigwig_status)
 
     emit:
     filtered_bam                = BARCODE_FILTERING.out.filtered_bam

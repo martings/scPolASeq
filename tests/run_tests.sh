@@ -43,11 +43,12 @@ done
 # Format: "name|params_file|expected_stub_processes"
 # expected_stub_processes is the number of "Succeeded : N" lines in the log.
 declare -a SCENARIOS=(
-    "full|tests/config/params_full.json|23"
-    "toggles_off|tests/config/params_toggles_off.json|19"
-    "from_bam|tests/config/params_from_bam.json|23"
-    "feedback|tests/config/params_feedback.json|23"
-    "polya_refs|tests/config/params_polya_refs.json|24"
+    "full|tests/config/params_full.json|25|"
+    "full_no_bigwig|tests/config/params_full.json|23|--emit_bigwigs false"
+    "toggles_off|tests/config/params_toggles_off.json|21|"
+    "from_bam|tests/config/params_from_bam.json|25|"
+    "feedback|tests/config/params_feedback.json|25|"
+    "polya_refs|tests/config/params_polya_refs.json|26|"
 )
 # NOTE: Nextflow engine flags use single dash (-stub-run, -resume, -profile).
 # Double dash (--flag) is reserved for pipeline params (params.*).
@@ -65,6 +66,7 @@ run_scenario() {
     local params_file="$2"
     local expected_procs="$3"
     local stub_flag="${4:--stub-run}"    # -stub-run or ""
+    local extra_args="${5:-}"
     local work_dir="${TEST_WORK_ROOT}/${name}_$(date +%s%N)"
 
     local mode_label="stub"
@@ -80,6 +82,7 @@ run_scenario() {
         -params-file "$params_file" \
         -work-dir "$work_dir" \
         $stub_flag \
+        $extra_args \
         -ansi-log false \
         > "$log_file" 2>&1; then
 
@@ -147,14 +150,14 @@ FAILED=0
 
 # ── 1. Workflow stub-run scenarios ────────────────────────────────────────────
 for scenario_def in "${SCENARIOS[@]}"; do
-    IFS='|' read -r name params_file expected_procs <<< "$scenario_def"
+    IFS='|' read -r name params_file expected_procs extra_args <<< "$scenario_def"
 
     # Filter to target scenario if --scenario was specified
     if [[ -n "$TARGET_SCENARIO" && "$name" != "$TARGET_SCENARIO" ]]; then
         continue
     fi
 
-    run_scenario "$name" "$params_file" "$expected_procs" "-stub-run" || FAILED=$((FAILED + 1))
+    run_scenario "$name" "$params_file" "$expected_procs" "-stub-run" "$extra_args" || FAILED=$((FAILED + 1))
 done
 
 # ── 2. Module-level tests (stub) ─────────────────────────────────────────────
