@@ -1,0 +1,3 @@
+[submodule "external/scPolASeq_downstream"]
+	path = external/scPolASeq_downstream
+	url = https://github.com/martings/scPolASeq_downstream.git
