@@ -3,8 +3,10 @@ From: mambaorg/micromamba:1.5.10-jammy
 
 %labels
     maintainer  scPolASeq
-    description "R env: r-base 4.3, Sierra (VCCRI/Sierra), Bioconductor deps"
+    description "R env: r-base 4.3, Sierra (martings/Sierra), Bioconductor deps"
     env_source  envs/r.yml
+    sierra_repo https://github.com/martings/Sierra
+    sierra_ref  84b71c475c6be3eabd59653756c2d83d165ec4e6
 
 %post
     micromamba install -y -n base \
@@ -71,8 +73,8 @@ From: mambaorg/micromamba:1.5.10-jammy
         bioconductor-deseq2 \
         bioconductor-biocfilecache && \
     micromamba clean --all -y && \
-    /opt/conda/bin/Rscript -e "remotes::install_github('VCCRI/Sierra', dependencies = FALSE, upgrade = 'never')" && \
-    /opt/conda/bin/Rscript -e "library(Sierra); cat('Sierra OK\n')"
+    /opt/conda/bin/Rscript -e "remotes::install_github('martings/Sierra', ref = '84b71c475c6be3eabd59653756c2d83d165ec4e6', dependencies = FALSE, upgrade = 'never')" && \
+    /opt/conda/bin/Rscript -e "library(Sierra); stopifnot('strandMode' %in% names(formals(CountPeaks)), 'strandMode' %in% names(formals(FindPeaks))); cat('Sierra OK\n')"
 
 %environment
     export PATH=/opt/conda/bin:$PATH

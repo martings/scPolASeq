@@ -60,11 +60,11 @@ for name in "${ENVS[@]}"; do
             ;;
         r)
             apptainer exec "${SIF_DIR}/scpolaseq-r.sif" Rscript -e \
-                'library(Sierra); cat("Sierra", as.character(packageVersion("Sierra")), "OK\n")'
+                'library(Sierra); stopifnot("strandMode" %in% names(formals(CountPeaks)), "strandMode" %in% names(formals(FindPeaks))); cat("Sierra", as.character(packageVersion("Sierra")), "OK\n")'
             ;;
         scapture)
-            apptainer exec "${SIF_DIR}/scpolaseq-scapture.sif" python -c \
-                'import tensorflow as tf, numpy, pandas, h5py; print("tensorflow", tf.__version__, "numpy", numpy.__version__, "pandas", pandas.__version__, "h5py", h5py.__version__)'
+            apptainer exec "${SIF_DIR}/scpolaseq-scapture.sif" bash -lc \
+                'python -c "import tensorflow as tf, numpy, pandas, h5py; print(\"tensorflow\", tf.__version__, \"numpy\", numpy.__version__, \"pandas\", pandas.__version__, \"h5py\", h5py.__version__)" && help_out=$(scapture --help 2>&1 || true) && echo "$help_out" | grep -q -- "--strand" && bash /opt/scapture/tests/test_strand_cli.sh'
             ;;
     esac
 done

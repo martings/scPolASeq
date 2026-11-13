@@ -8,7 +8,7 @@
  *   - manifest TSV
  *   - per-mode log files
  *
- * Reference: https://github.com/YangLab/SCAPTURE
+ * Reference: https://github.com/martings/SCAPTURE (fork of YangLab/SCAPTURE)
  *
  * NOTE on PASmerge:
  *   SCAPTURE's PASmerge module is designed to merge ONE peak category at a time
@@ -23,8 +23,6 @@ process SCAPTURE_FILTER {
 
     conda "${projectDir}/envs/scapture.yml"
     container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-scapture.sif" : null
-    // Bind-mount the patched Predict.py (TF 2.4 + pandas 1.1.5) and strandedness patches (10x v1 / reverse / unstranded).
-    containerOptions params.apptainer_cache_dir ? "--bind ${projectDir}/bin/DeepPASS_Predict.py:/opt/scapture/DeepPASS/Predict.py --bind ${projectDir}/bin/patches/scapture/scapture:/opt/scapture/scapture --bind ${projectDir}/bin/patches/scapture/scapture_callpeak:/opt/scapture/scapture_callpeak --bind ${projectDir}/bin/patches/scapture/scapture_quant:/opt/scapture/scapture_quant" : ""
 
     publishDir "${params.outdir}/scapture", mode: params.publish_dir_mode
 

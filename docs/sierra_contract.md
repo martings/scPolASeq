@@ -39,9 +39,7 @@ A separate real `SIERRA_QUANT` task ran the existing PBMC1k `cluster_5` BAM,
 index, PAS reference, annotations and GTF through the existing R SIF. It
 completed with 9,764 TSV lines; SHA-256 of its TSV and the October output was
 identical: `329fc77cf5e737fe0ea9ed1a9ee9bc8d0bb76b898db6601b7ac28dbbd029f6c4`.
-The version output reports Sierra 0.99.27 and R 4.3.3. This is one group,
-not a new nine-group run or scientific validation. The SIF is the historical
-unversioned local image; pinning/build reproducibility is tracked in #31.
+The version output reports Sierra and R runtime versions (now pinned to `martings/Sierra` with native `strandMode` support via issue #31; `bin/sierra_quant.R` delegates directly to `Sierra::CountPeaks(..., strandMode = strand_mode)`).
 
 After review fixes, the real `cluster_5` task ran again at hash `59/a19585`
 in session `1b21f9d5-e12e-4615-93c3-b05dc718d91c`, retained the exact TSV
