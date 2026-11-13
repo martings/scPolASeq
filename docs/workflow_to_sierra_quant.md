@@ -403,6 +403,7 @@ CLI arguments passed to `bin/sierra_quant.R`:
 - `--group-id`
 - `--output`
 - `--log`
+- `--versions` (optional for direct CLI use; required by the Nextflow module)
 - `--ncores`
 
 Role:

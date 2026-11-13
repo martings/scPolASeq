@@ -22,5 +22,6 @@ workflow GROUPED_RECONSTRUCTION {
 
     emit:
     grouped_bams      = GROUPED_BAM_GENERATION.out.grouped_bams      // tuple(meta, group_level, [bams], [bais])
+    grouped_bams_with_manifest = GROUPED_BAM_GENERATION.out.grouped_bams_with_manifest
     grouping_manifest = GROUPED_BAM_GENERATION.out.grouping_manifest  // path
 }
