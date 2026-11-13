@@ -14,10 +14,61 @@ include { REPORTING_SC           } from './subworkflows/local/reporting/main'
 
 workflow SCPOLASEQ {
 
-    // ── Parameter validation ──────────────────────────────────────────────────
-    if (!params.input)        error "Missing required parameter: --input"
-    if (!params.genome_fasta) error "Missing required parameter: --genome_fasta"
-    if (!params.gtf)          error "Missing required parameter: --gtf"
+    // ── Parameter validation & shared reference_root resolution ───────────────
+    // Returns true only if value is a real path (not null, not keyword like "null"/"skip"/"download")
+    def _NULL_STRINGS = ['', 'null', 'none', 'skip', 'false', 'no', '0', 'no_file', 'download', 'auto', 'true', 'yes', '1'] as Set
+    def param_is_set = { value ->
+        def text = value?.toString()?.trim()
+        return text && !(text.toLowerCase() in _NULL_STRINGS)
+    }
+    def is_local_polya_source = { value ->
+        if (!param_is_set(value)) return false
+        def lower = value.toString().trim().toLowerCase()
+        def non_local = ['download', 'auto', 'true', 'yes', '1', 'http://', 'https://', 'ftp://']
+        return !non_local.any { lower == it || lower.startsWith(it) }
+    }
+    def has_uri_scheme = { text -> text ==~ /^[A-Za-z][A-Za-z0-9+.-]*:\/\/.*/ }
+
+    def ref_root = param_is_set(params.reference_root) ? params.reference_root.toString().trim().replaceAll(/\/+$/, '') : null
+    def ref_build = param_is_set(params.reference_build) ? params.reference_build.toString().trim() : null
+    if (ref_root) {
+        file(ref_root, type: 'dir', checkIfExists: true)
+    }
+
+    def resolve_ref_path = { raw_val, rel_if_build, rel_if_flat, check_optional_auto ->
+        if (param_is_set(raw_val)) {
+            def text = raw_val.toString().trim()
+            if (!text.startsWith('/') && !has_uri_scheme(text) && ref_root) {
+                def under_root = "${ref_root}/${text}"
+                if (file(under_root).exists() || !file(text).exists()) {
+                    return under_root
+                }
+            }
+            return text
+        }
+        if (ref_root) {
+            def rel = ref_build ? rel_if_build : rel_if_flat
+            if (rel) {
+                def candidate = "${ref_root}/${rel}"
+                if (!check_optional_auto || file(candidate).exists()) {
+                    return candidate
+                }
+            }
+        }
+        return null
+    }
+
+    def eff_genome_fasta = resolve_ref_path(params.genome_fasta, ref_build ? "genomes/${ref_build}/genome.fa" : null, 'genome.fa', false)
+    def eff_gtf          = resolve_ref_path(params.gtf,          ref_build ? "genomes/${ref_build}/genes.gtf" : null, 'genes.gtf', false)
+    def eff_chrom_sizes  = resolve_ref_path(params.chrom_sizes,  ref_build ? "genomes/${ref_build}/chrom.sizes" : null, 'chrom.sizes', true)
+    def eff_star_index   = resolve_ref_path(params.star_index,   ref_build ? "indexes/${ref_build}/star_index" : null, 'star_index', true)
+    def eff_known_polya  = is_local_polya_source(params.known_polya)
+        ? resolve_ref_path(params.known_polya, null, null, false)
+        : null
+
+    if (!params.input)    error "Missing required parameter: --input"
+    if (!eff_genome_fasta) error "Missing required parameter: --genome_fasta (or --reference_root [--reference_build])"
+    if (!eff_gtf)          error "Missing required parameter: --gtf (or --reference_root [--reference_build])"
 
     // ── Container preflight (SCAPTURE) ────────────────────────────────────────
     // Containers are a deployment concern, not a runtime concern: build them
@@ -33,22 +84,14 @@ workflow SCPOLASEQ {
     }
 
     // ── Stage 0 — Input harmonization + Reference preparation ─────────────────
-    // Returns true only if value is a real path (not null, not keyword like "null"/"skip"/"download")
-    def _NULL_STRINGS = ['', 'null', 'none', 'skip', 'false', 'no', '0', 'no_file', 'download', 'auto', 'true', 'yes', '1'] as Set
-    def param_is_set = { value ->
-        def text = value?.toString()?.trim()
-        return text && !(text.toLowerCase() in _NULL_STRINGS)
-    }
-    def is_local_polya_source = { value ->
-        if (!param_is_set(value)) return false
-        def lower = value.toString().trim().toLowerCase()
-        def non_local = ['download', 'auto', 'true', 'yes', '1', 'http://', 'https://', 'ftp://']
-        return !non_local.any { lower == it || lower.startsWith(it) }
-    }
     def polya_db_source = params.polya_db ?: 'skip'
     def polyasite_source = params.polyasite ?: 'skip'
-    def polya_db_file = is_local_polya_source(polya_db_source) ? file(polya_db_source, checkIfExists: true) : file("${projectDir}/assets/NO_FILE")
-    def polyasite_file = is_local_polya_source(polyasite_source) ? file(polyasite_source, checkIfExists: true) : file("${projectDir}/assets/NO_FILE")
+    def polya_db_file = is_local_polya_source(polya_db_source)
+        ? file(resolve_ref_path(polya_db_source, null, null, false), checkIfExists: true)
+        : file("${projectDir}/assets/NO_FILE")
+    def polyasite_file = is_local_polya_source(polyasite_source)
+        ? file(resolve_ref_path(polyasite_source, null, null, false), checkIfExists: true)
+        : file("${projectDir}/assets/NO_FILE")
 
     INPUT_HARMONIZATION(
         file(params.input, checkIfExists: true),
@@ -58,14 +101,16 @@ workflow SCPOLASEQ {
     )
 
     REFERENCE_PREPARE(
-        file(params.genome_fasta, checkIfExists: true),
-        file(params.gtf,          checkIfExists: true),
-        param_is_set(params.known_polya)       ? file(params.known_polya,       checkIfExists: true) : file("${projectDir}/assets/NO_FILE"),
+        file(eff_genome_fasta, checkIfExists: true),
+        file(eff_gtf,          checkIfExists: true),
+        eff_known_polya                        ? file(eff_known_polya,          checkIfExists: true) : file("${projectDir}/assets/NO_FILE"),
         param_is_set(params.priming_blacklist) ? file(params.priming_blacklist, checkIfExists: true) : file("${projectDir}/assets/NO_FILE_PRIMING_BLACKLIST"),
         polya_db_source,
         polya_db_file,
         polyasite_source,
-        polyasite_file
+        polyasite_file,
+        eff_chrom_sizes                        ? file(eff_chrom_sizes,          checkIfExists: true) : file("${projectDir}/assets/NO_FILE"),
+        eff_star_index                         ? file(eff_star_index, type: 'dir', checkIfExists: true) : file("${projectDir}/assets/NO_FILE")
     )
 
     // ── Stage 1 — Initial alignment (STARsolo, CB/UB tag preservation) ────────

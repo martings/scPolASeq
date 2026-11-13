@@ -18,16 +18,23 @@ nextflow run main.nf \
   -work-dir /data/work/scPolASeq_pbmc1k
 ```
 
-For an existing STAR index compatible with the supplied FASTA and GTF, pass
-`--star_index /path/to/star_index`. Otherwise, the workflow builds the index.
-The old `prebuilt_star_index` option is not used.
+## Shared reference root and STAR index reuse
 
-The previously published PBMC1k index records STAR `2.7.4a`, while this
-branch's alignment-image recipe installs STAR `2.7.11b`. Reuse across those
-versions has not been validated. The Deepthought PBMC profile sets
-`star_index = null` and builds the index with the selected alignment image;
-only pass a prebuilt index after checking its reference inputs and STAR
-version against the image used for the run.
+Generic workflow defaults keep `reference_root`, `reference_build`, `genome_fasta`, `gtf`, `chrom_sizes`, `star_index`, and `known_polya` as `null` so no host-specific paths are required or embedded in the core workflow.
+
+To point a run or server profile at a shared reference directory (such as a fast SSD mount), set `--reference_root` (and optionally `--reference_build`, e.g. `GRCh38` or `GRCm38`). Any relative path passed via `--genome_fasta`, `--gtf`, `--chrom_sizes`, `--star_index`, or `--known_polya` is resolved under `--reference_root`; when `--genome_fasta` and `--gtf` are omitted with `--reference_root` + `--reference_build`, standard paths (`genomes/<build>/genome.fa`, `genomes/<build>/genes.gtf`, optional `genomes/<build>/chrom.sizes`, optional `indexes/<build>/star_index`) are resolved automatically:
+
+```bash
+nextflow run main.nf \
+  -profile apptainer \
+  --input /data/pbmc1k/samplesheet.csv \
+  --reference_root /mnt/ref \
+  --reference_build GRCh38 \
+  --known_polya databases/polya_atlas/polyasite2_GRCh38.tsv \
+  --outdir /data/results/pbmc1k
+```
+
+`PREPARE_REFERENCE_BUNDLE` rejects missing or empty inputs, validates optional `--chrom_sizes` against the FASTA, and records SHA-256 digests and tool/format versions in `reference/reference_manifest.json`. For `--star_index`, STAR `2.7.11b` uses the same `versionGenome = 2.7.4a` binary index format introduced in STAR `2.7.4a`; before reusing any prebuilt index, `PREPARE_REFERENCE_BUNDLE` checks required files (`Genome`, `SA`, `SAindex`, `genomeParameters.txt`), verifies `versionGenome` compatibility, confirms `chrNameLength.txt` matches `genome_fasta`, and records `index_sha256` in `reference_manifest.json`. Pass `--star_index null` to regenerate an index from FASTA + GTF.
 
 ## Reuse aligned BAMs
 
@@ -97,7 +104,7 @@ bash bin/download_pas_references.sh --outdir /data/references/polya_atlas
 
 `test_pbmc1k_deepthought` and `deepthought` contain host-specific paths and
 resource settings. Use them only on the Deepthought system with the staged PBMC
-inputs. The work directory and result directory should be unique to a run.
+inputs. The Deepthought host profile sets `reference_root = '/mnt/ref'` (SSD layout `genomes/<build>/`, `indexes/<build>/star_index`, `databases/polya_atlas/`). Override `--reference_root /tmp/fixture` with the same profile to test against a temporary fixture tree. The work directory and result directory should be unique to a run.
 
 ```bash
 RUN_ID=$(date +%Y%m%d%H%M%S)

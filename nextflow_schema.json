@@ -11,13 +11,35 @@
           "type": "string",
           "description": "Canonical samplesheet CSV."
         },
+        "reference_root": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Optional root directory for shared reference genomes, STAR indexes, and polyA databases (set per server profile or via --reference_root)."
+        },
+        "reference_build": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Optional genome build subdirectory under reference_root (for example GRCh38 or GRCm38)."
+        },
         "genome_fasta": {
-          "type": "string",
-          "description": "Reference genome FASTA."
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Reference genome FASTA (absolute path or relative to reference_root; auto-resolved when reference_root and reference_build are set)."
         },
         "gtf": {
-          "type": "string",
-          "description": "Reference annotation GTF."
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Reference annotation GTF (absolute path or relative to reference_root; auto-resolved when reference_root and reference_build are set)."
+        },
+        "chrom_sizes": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Optional precomputed chromosome sizes TSV (validated against genome_fasta when supplied)."
+        },
+        "star_index": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Optional prebuilt STAR index directory (validated for format and chromosome compatibility before reuse)."
         },
         "known_polya": {
           "type": "string",
@@ -57,9 +79,7 @@
         }
       },
       "required": [
-        "input",
-        "genome_fasta",
-        "gtf"
+        "input"
       ]
     },
     "workflow_options": {
