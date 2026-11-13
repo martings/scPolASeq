@@ -37,7 +37,9 @@ workflow SCAPTURE_DISCOVERY {
         .map { id, annotation_files, meta, bam, bai, fasta, fai, chrom_sizes, polya_db, has_polya_db ->
             tuple(meta, bam, bai, fasta, fai, annotation_files, polya_db, has_polya_db,
                   file("${moduleDir}/../../../bin/DeepPASS_Predict.py", checkIfExists: true),
-                  file("${moduleDir}/../../../bin/scapture_normality_profile.R", checkIfExists: true))
+                  file("${moduleDir}/../../../bin/scapture_normality_profile.R", checkIfExists: true),
+                  file("${moduleDir}/../../../bin/patches/scapture/scapture", checkIfExists: true),
+                  file("${moduleDir}/../../../bin/patches/scapture/scapture_callpeak", checkIfExists: true))
         }
     SCAPTURE_PASCALL(ch_annotated)
     SCAPTURE_MERGE(SCAPTURE_PASCALL.out.evaluated)

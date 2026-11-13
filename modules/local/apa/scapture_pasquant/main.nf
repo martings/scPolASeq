@@ -4,9 +4,10 @@ process SCAPTURE_PASQUANT {
 
     conda "${projectDir}/envs/scapture.yml"
     container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-scapture.sif" : null
+    containerOptions { params.apptainer_cache_dir ? "--bind ${scapture_script}:/opt/scapture/scapture --bind ${quant_script}:/opt/scapture/scapture_quant" : "" }
 
     input:
-    tuple val(meta), path(bam), path(bai), path(pas_reference), path(cell_annotations), path(filter_helper, stageAs: 'FilterBamByTag.source')
+    tuple val(meta), path(bam), path(bai), path(pas_reference), path(cell_annotations), path(filter_helper, stageAs: 'FilterBamByTag.source'), path(scapture_script), path(quant_script)
 
     output:
     tuple val(meta), path("${meta.library_id}.KeepCell.UMIs.tsv.gz"), emit: matrix
@@ -25,11 +26,15 @@ process SCAPTURE_PASQUANT {
         error "SCAPTURE_PASQUANT requires a safe sample_id: ${sample}"
     }
     def ncores = task.cpus ?: 1
+    def strand = (meta.strandedness ?: params.scapture_strand ?: 'forward')
+    def strand_arg = "--strand ${strand}"
     """
     set -euo pipefail
     export TMPDIR=\$(pwd)/tmp
     export MPLCONFIGDIR=\$(pwd)/tmp/mpl
     export XDG_CACHE_HOME=\$(pwd)/tmp/cache
+    export SCAPTURE_STRAND=${strand}
+    export SCAPTUREPATH=/opt/scapture/
     mkdir -p "\$TMPDIR" "\$MPLCONFIGDIR" "\$XDG_CACHE_HOME"
     test -s ${bam}
     test -s ${bai}
@@ -60,6 +65,7 @@ process SCAPTURE_PASQUANT {
         --pas ${pas_reference} \
         -o ${prefix} \
         -p ${ncores} \
+        ${strand_arg} \
         &> ${prefix}.PASquant.log
 
     matrix=${prefix}.KeepCell.UMIs.tsv.gz

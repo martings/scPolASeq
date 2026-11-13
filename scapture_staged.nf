@@ -32,6 +32,7 @@ params.scapture_read_length        = 90
 params.scapture_peak_width         = 400
 params.scapture_normality_seed      = 1
 params.scapture_deeppass_threshold  = 0.5
+params.scapture_strand             = 'forward'
 params.outdir                      = 'results'
 params.publish_dir_mode            = 'copy'
 params.apptainer_cache_dir         = null
@@ -65,7 +66,8 @@ workflow {
                 def lib_id = (row.library_id ?: row.sample_id)?.trim()
                 def smp_id = (row.sample_id ?: lib_id)?.trim()
                 if (!lib_id) error "A row in ${params.input} is missing library_id/sample_id: ${row}"
-                def meta = [library_id: lib_id, sample_id: smp_id]
+                def strand = (row.strandedness ?: params.scapture_strand ?: 'forward')?.trim()
+                def meta = [library_id: lib_id, sample_id: smp_id, strandedness: strand]
                 def bam_p = row.bam?.trim()
                 if (!bam_p) error "Missing BAM path for ${lib_id} in ${params.input}"
                 def bai_p = row.bai?.trim() ?: "${bam_p}.bai"
@@ -90,7 +92,8 @@ workflow {
         def annot_file = file(params.cell_annotations, checkIfExists: true)
         def lib_id = (params.library_id ?: params.sample_id ?: bam_file.name.replaceAll(/\.(filtered|Aligned).*/, ''))?.trim()
         def smp_id = (params.sample_id ?: lib_id)?.trim()
-        def meta = [library_id: lib_id, sample_id: smp_id]
+        def strand = (params.scapture_strand ?: 'forward')?.trim()
+        def meta = [library_id: lib_id, sample_id: smp_id, strandedness: strand]
         ch_input = Channel.of(tuple(
             meta,
             bam_file,
