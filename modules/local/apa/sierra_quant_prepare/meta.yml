@@ -1,0 +1,40 @@
+name: sierra_quant_prepare
+description: Prepare scoped cell barcode whitelist, Sierra peak sites table, and canonical site_id lookup map from scPolASeq inputs.
+keywords: [sierra, polyadenylation, whitelist, prepare]
+tools:
+  - sierra:
+      description: Sierra single-cell polyadenylation analysis
+      homepage: https://github.com/martings/Sierra
+input:
+  - - meta:
+        type: map
+        description: Library metadata including library_id.
+    - group_level:
+        type: string
+        description: cluster, cell_type, or cell.
+    - group_id:
+        type: string
+        description: Original group label used to filter cell annotations.
+    - grouped_bam:
+        type: file
+        description: Grouped BAM staged for passthrough.
+    - grouped_bai:
+        type: file
+        description: Grouped BAM index staged for passthrough.
+    - pas_reference:
+        type: file
+        description: PAS reference TSV.
+    - cell_annotations:
+        type: file
+        description: Cell annotation table.
+    - gtf:
+        type: file
+        description: Gene annotation GTF.
+output:
+  - prepared:
+      type: tuple
+      description: Prepared whitelist, peak_sites, site_id_map, and passthrough files for SIERRA_COUNTPEAKS and SIERRA_QUANT_TABLE.
+  - versions:
+      type: file
+      description: Runtime versions for preparation step.
+      pattern: "*.prepare.versions.yml"

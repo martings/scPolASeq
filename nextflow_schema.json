@@ -146,6 +146,11 @@
           "default": "monolith",
           "description": "SCAPTURE execution path. The staged mode requires --enable_scapture true and resumes each stage independently with Nextflow -resume."
         },
+        "scapture_catalog_only": {
+          "type": "boolean",
+          "default": false,
+          "description": "Staged SCAPTURE only: build evaluated BEDs, PAS reference, and normalized site catalog without running PASquant quantification."
+        },
         "scapture_normality_seed": {
           "type": "integer",
           "minimum": 0,

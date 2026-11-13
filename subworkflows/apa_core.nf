@@ -12,7 +12,7 @@ include { APA_FEATURE_PIPELINE               } from './local/apa_feature_pipelin
 include { MODEL_PIPELINE                     } from './local/model_pipeline/main'
 include { CANDIDATE_SITES_ANNOTATION_GUIDED  } from '../modules/local/apa/candidate_sites_annotation_guided/main'
 include { PAS_REFERENCE_BUILD                } from '../modules/local/apa/pas_reference_build/main'
-include { SIERRA_QUANT                       } from '../modules/local/apa/sierra_quant/main'
+include { SIERRA_QUANT                       } from './local/sierra_quant/main'
 include { PAS_SCORING                        } from '../modules/local/apa/pas_scoring/main'
 include { SCAPTURE_FILTER                    } from '../modules/local/apa/scapture/main'
 include { SCAPTURE_STAGED                    } from './local/scapture_staged/main'
@@ -192,7 +192,7 @@ workflow APA_CORE {
             }
             .set { ch_sierra_input }
 
-        SIERRA_QUANT(ch_sierra_input, file("${projectDir}/bin/sierra_quant.R"))
+        SIERRA_QUANT(ch_sierra_input)
         ch_sierra_quant = SIERRA_QUANT.out.quantified_pas
         ch_sierra_manifest = SIERRA_QUANT.out.manifest
     } else {
@@ -278,9 +278,10 @@ workflow APA_CORE {
             .set { ch_scapture_input }
 
         if (scapture_execution_mode == 'staged') {
+            def scapture_catalog_only = params.scapture_catalog_only ? params.scapture_catalog_only.toString().toBoolean() : false
             SCAPTURE_STAGED(ch_scapture_input.map { meta, bam, bai, fasta, fasta_fai, gtf, chrom_sizes, annotations, polya, has_polya_db, resume_dir, has_resume_dir ->
                 tuple(meta, bam, bai, fasta, fasta_fai, gtf, chrom_sizes, annotations, polya, has_polya_db)
-            })
+            }, scapture_catalog_only)
             ch_scapture_catalog  = SCAPTURE_STAGED.out.site_catalog
             ch_scapture_quant    = SCAPTURE_STAGED.out.quant
             ch_scapture_manifest = SCAPTURE_STAGED.out.manifest

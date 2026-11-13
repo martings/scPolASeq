@@ -3,18 +3,22 @@ process SCAPTURE_ANNOTATION {
     label 'process_high'
 
     conda "${projectDir}/envs/scapture.yml"
-    container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-scapture.sif" : null
+    container "ghcr.io/martings/scapture:f056f02"
 
     input:
     tuple val(meta), path(scapture_gtf), path(genome_fasta), path(genome_fai), path(chrom_sizes)
 
     output:
-    tuple val(meta), path("${meta.library_id}_annot.*"), emit: annotation
-    tuple val(meta), path("${meta.library_id}.annotation.log"), emit: log
+    tuple val(meta), path("${prefix}_annot.*"), emit: annotation
+    tuple val(meta), path("${prefix}.annotation.log"), emit: log
     path 'versions.yml', emit: versions
 
+    when:
+    task.ext.when == null || task.ext.when
+
     script:
-    def prefix = meta.library_id
+    def args = task.ext.args ?: '--extend 2000'
+    prefix   = task.ext.prefix ?: "${meta.library_id}"
     """
     set -euo pipefail
     export TMPDIR=\$(pwd)/tmp
@@ -32,12 +36,20 @@ process SCAPTURE_ANNOTATION {
         -g ${prefix}.scapture.genome.fa \
         --gtf ${scapture_gtf} \
         --cs ${chrom_sizes} \
-        --extend 2000 \
+        ${args} \
         &> ${prefix}.annotation.log
     test -s ${prefix}_annot.genetype.gtf
     test -s ${prefix}_annot.genetype.bed
     commit=\$(git -C /opt/scapture rev-parse HEAD 2>/dev/null || printf 'unknown')
-    printf '"SCAPTURE_ANNOTATION":\n  scapture_commit: "%s"\n  scapture_script_sha256: "%s"\n' \
-        "\$commit" "\$(sha256sum "\$(command -v scapture)" | cut -d' ' -f1)" > versions.yml
+    printf '"%s":\n  scapture_commit: "%s"\n  scapture_script_sha256: "%s"\n' \
+        "${task.process}" "\$commit" "\$(sha256sum "\$(command -v scapture)" | cut -d' ' -f1)" > versions.yml
+    """
+
+    stub:
+    prefix = task.ext.prefix ?: "${meta.library_id}"
+    """
+    touch ${prefix}_annot.genetype.gtf ${prefix}_annot.genetype.bed
+    printf 'stub scapture -m annotation\n' > ${prefix}.annotation.log
+    printf '"%s":\n  scapture_commit: "f056f0202e64f801c52f885c069b3e31660e02f1"\n' "${task.process}" > versions.yml
     """
 }

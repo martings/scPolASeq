@@ -37,12 +37,23 @@ def main():
                  "species", "read_length", "peak_width", "normality_seed",
                  "threshold", "output"):
         parser.add_argument("--" + name.replace("_", "-"), required=True)
+    parser.add_argument("--catalog-only", action="store_true")
     args = parser.parse_args()
     pascall = read_pairs(args.pascall_metrics)
     catalog = read_pairs(args.catalog_metrics)
-    quant = read_pairs(args.quant_manifest)
-    if quant.get("status") != "complete":
-        raise ValueError("PASquant manifest does not report completion")
+    quant_path = Path(args.quant_manifest)
+    is_catalog_only = args.catalog_only or quant_path.name == "NO_FILE"
+    if is_catalog_only:
+        quant = {
+            "status": "catalog_only",
+            "quant_matrix": "skipped_catalog_only",
+            "matrix_site_rows": "0",
+            "matrix_cell_columns": "0",
+        }
+    else:
+        quant = read_pairs(args.quant_manifest)
+        if quant.get("status") != "complete":
+            raise ValueError("PASquant manifest does not report completion")
     duplicate_count = max(0, sum(1 for _ in Path(args.duplicate_report).open()) - 1)
     fields = [
         ("library_id", args.library_id), ("bam", args.bam), ("gtf", args.gtf),
@@ -68,7 +79,7 @@ def main():
         ("merged_categories", str(read_reference(args.reference_metrics))),
         ("duplicate_original_gene_names", str(duplicate_count)),
         ("source", "SCAPTURE"),
-        ("status", "complete"),
+        ("status", quant["status"]),
         ("quant_matrix", quant["quant_matrix"]),
         ("matrix_site_rows", quant["matrix_site_rows"]),
         ("matrix_cell_columns", quant["matrix_cell_columns"]),

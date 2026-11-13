@@ -1,0 +1,22 @@
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - r-base=4.3
+  - r-dplyr
+  - r-doparallel
+  - r-flock
+  - r-foreach
+  - r-magrittr
+  - r-matrix
+  - r-plyr
+  - r-r.utils
+  - r-reshape2
+  - bioconductor-biocparallel
+  - bioconductor-genomicalignments
+  - bioconductor-genomicranges
+  - bioconductor-rsamtools
+  - bioconductor-rtracklayer
+  - bioconductor-s4vectors
+  # Sierra fork with native strandMode support:
+  # remotes::install_github('martings/Sierra', ref = '84b71c475c6be3eabd59653756c2d83d165ec4e6', dependencies = FALSE, upgrade = 'never')

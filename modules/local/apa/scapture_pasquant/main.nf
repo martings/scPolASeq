@@ -3,36 +3,37 @@ process SCAPTURE_PASQUANT {
     label 'process_high'
 
     conda "${projectDir}/envs/scapture.yml"
-    container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-scapture.sif" : null
+    container "ghcr.io/martings/scapture:f056f02"
 
     input:
     tuple val(meta), path(bam), path(bai), path(pas_reference), path(cell_annotations), path(filter_helper, stageAs: 'FilterBamByTag.source')
 
     output:
-    tuple val(meta), path("${meta.library_id}.KeepCell.UMIs.tsv.gz"), emit: matrix
-    tuple val(meta), path("${meta.library_id}.PASquant.metrics.tsv"), emit: metrics
-    tuple val(meta), path("${meta.library_id}.PASquant.manifest.tsv"), emit: manifest
-    tuple val(meta), path("${meta.library_id}.PASquant.log"), emit: log
+    tuple val(meta), path("${prefix}.KeepCell.UMIs.tsv.gz"), emit: matrix
+    tuple val(meta), path("${prefix}.PASquant.metrics.tsv"), emit: metrics
+    tuple val(meta), path("${prefix}.PASquant.manifest.tsv"), emit: manifest
+    tuple val(meta), path("${prefix}.PASquant.log"), emit: log
     path 'versions.yml', emit: versions
 
+    when:
+    task.ext.when == null || task.ext.when
+
     script:
-    def prefix = meta.library_id?.toString()
+    prefix     = task.ext.prefix ?: "${meta.library_id?.toString()}"
     def sample = (meta.sample_id ?: meta.library_id)?.toString()
     if (!(prefix ==~ /[A-Za-z0-9][A-Za-z0-9._-]*/)) {
-        error "SCAPTURE_PASQUANT requires a safe library_id: ${prefix}"
+        error "SCAPTURE_PASQUANT requires a safe library_id/prefix: ${prefix}"
     }
     if (!(sample ==~ /[A-Za-z0-9][A-Za-z0-9._-]*/)) {
         error "SCAPTURE_PASQUANT requires a safe sample_id: ${sample}"
     }
     def ncores = task.cpus ?: 1
-    def strand = (meta.strandedness ?: (meta.chemistry == '10xv1' ? 'reverse' : (params.scapture_strand ?: params.strandedness ?: 'forward'))).toString().toLowerCase()
-    def strand_arg = "--strand ${strand}"
+    def args   = task.ext.args != null ? task.ext.args.toString().trim() : '--strand forward'
     """
     set -euo pipefail
     export TMPDIR=\$(pwd)/tmp
     export MPLCONFIGDIR=\$(pwd)/tmp/mpl
     export XDG_CACHE_HOME=\$(pwd)/tmp/cache
-    export SCAPTURE_STRAND=${strand}
     export SCAPTUREPATH=/opt/scapture/
     mkdir -p "\$TMPDIR" "\$MPLCONFIGDIR" "\$XDG_CACHE_HOME"
     test -s ${bam}
@@ -64,7 +65,7 @@ process SCAPTURE_PASQUANT {
         --pas ${pas_reference} \
         -o ${prefix} \
         -p ${ncores} \
-        ${strand_arg} \
+        ${args} \
         &> ${prefix}.PASquant.log
 
     matrix=${prefix}.KeepCell.UMIs.tsv.gz
@@ -81,8 +82,19 @@ process SCAPTURE_PASQUANT {
         '${prefix}' '${pas_reference.name}' "\$matrix" > ${prefix}.PASquant.manifest.tsv
     awk 'NR>1 { print \$1 "\t" \$2 }' ${prefix}.PASquant.metrics.tsv >> ${prefix}.PASquant.manifest.tsv
     commit=\$(git -C /opt/scapture rev-parse HEAD 2>/dev/null || printf unknown)
-    printf '"SCAPTURE_PASQUANT":\n  scapture_commit: "%s"\n  scapture_script_sha256: "%s"\n  filter_helper_sha256: "%s"\n' \
-        "\$commit" "\$(sha256sum "\$(command -v scapture)" | cut -d' ' -f1)" \
+    printf '"%s":\n  scapture_commit: "%s"\n  scapture_script_sha256: "%s"\n  filter_helper_sha256: "%s"\n' \
+        "${task.process}" "\$commit" "\$(sha256sum "\$(command -v scapture)" | cut -d' ' -f1)" \
         "\$(sha256sum FilterBamByTag | cut -d' ' -f1)" > versions.yml
+    """
+
+    stub:
+    prefix = task.ext.prefix ?: "${meta.library_id?.toString()}"
+    """
+    printf 'gene\tAAACCCAAGAAACACT-1\npas_1\t5\n' | gzip -c > ${prefix}.KeepCell.UMIs.tsv.gz
+    printf 'metric\tvalue\nbarcodes\t1\nmatrix_site_rows\t1\nmatrix_cell_columns\t1\n' > ${prefix}.PASquant.metrics.tsv
+    printf 'field\tvalue\nlibrary_id\t%s\nstatus\tcomplete\nreference_bed\tstub.bed\nquant_matrix\t%s.KeepCell.UMIs.tsv.gz\nbarcodes\t1\nmatrix_site_rows\t1\nmatrix_cell_columns\t1\n' \
+        '${prefix}' '${prefix}' > ${prefix}.PASquant.manifest.tsv
+    printf 'stub scapture -m PASquant\n' > ${prefix}.PASquant.log
+    printf '"%s":\n  scapture_commit: "f056f0202e64f801c52f885c069b3e31660e02f1"\n' "${task.process}" > versions.yml
     """
 }

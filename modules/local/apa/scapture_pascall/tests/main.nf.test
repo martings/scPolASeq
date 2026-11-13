@@ -1,0 +1,43 @@
+nextflow_process {
+
+    name "Test Process SCAPTURE_PASCALL"
+    script "../main.nf"
+    process "SCAPTURE_PASCALL"
+
+    tag "modules"
+    tag "modules_local"
+    tag "scapture"
+    tag "scapture_pascall"
+
+    test("scapture_pascall - stub") {
+
+        options "-stub"
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ library_id:'TESTA', sample_id:'TESTA', strandedness:'reverse' ],
+                    file("${projectDir}/tests/data/placeholder_input.bam", checkIfExists: true),
+                    file("${projectDir}/tests/data/scapture_dummy.bai", checkIfExists: true),
+                    file("${projectDir}/tests/data/scapture_annotation_small.fa", checkIfExists: true),
+                    file("${projectDir}/tests/data/scapture_annotation_small.fa.fai", checkIfExists: true),
+                    [],
+                    file("${projectDir}/assets/NO_FILE", checkIfExists: true),
+                    false
+                ]
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert process.out.evaluated },
+                { assert path(process.out.evaluated[0][1]).exists() },
+                { assert path(process.out.metrics[0][1]).exists() },
+                { assert path(process.out.versions[0]).exists() }
+            )
+        }
+    }
+}

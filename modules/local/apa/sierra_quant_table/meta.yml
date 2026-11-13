@@ -1,0 +1,58 @@
+name: sierra_quant_table
+description: Convert Sierra::CountPeaks MEX counts into scPolASeq canonical per-cell PAS table, manifest, log, and group-scoped versions.
+keywords: [sierra, polyadenylation, table, adapter]
+tools:
+  - sierra:
+      description: Sierra single-cell polyadenylation analysis
+      homepage: https://github.com/martings/Sierra
+input:
+  - - meta:
+        type: map
+        description: Enriched group metadata with orig_meta, group_level, group_id, library_id, strand.
+    - matrix_mtx:
+        type: file
+        description: MatrixMarket count matrix from SIERRA_COUNTPEAKS.
+    - barcodes_tsv:
+        type: file
+        description: Gzipped barcode labels from SIERRA_COUNTPEAKS.
+    - sitenames_tsv:
+        type: file
+        description: Gzipped peak site labels from SIERRA_COUNTPEAKS.
+    - countpeaks_log:
+        type: file
+        description: Execution log from SIERRA_COUNTPEAKS.
+    - site_id_map:
+        type: file
+        description: Lookup mapping Sierra peak IDs to scPolASeq canonical site_ids.
+    - grouped_bam:
+        type: file
+        description: Grouped BAM (for manifest provenance).
+    - grouped_bai:
+        type: file
+        description: Grouped BAM index (for manifest provenance).
+    - gtf:
+        type: file
+        description: Gene annotation GTF (for manifest provenance).
+    - pas_reference:
+        type: file
+        description: PAS reference TSV (for manifest provenance).
+    - cell_annotations:
+        type: file
+        description: Cell annotation TSV (for manifest provenance).
+output:
+  - quantified_pas:
+      type: file
+      description: Per-cell PAS UMI counts with canonical site_ids.
+      pattern: "*.sierra_quant.tsv"
+  - manifest:
+      type: file
+      description: Input and group identity provenance record.
+      pattern: "*.sierra_quant.manifest.tsv"
+  - log:
+      type: file
+      description: Sierra execution log.
+      pattern: "*.sierra_quant.log"
+  - versions:
+      type: file
+      description: Group-scoped Sierra and R runtime versions.
+      pattern: "*.versions.yml"

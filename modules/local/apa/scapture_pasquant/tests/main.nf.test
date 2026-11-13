@@ -1,0 +1,41 @@
+nextflow_process {
+
+    name "Test Process SCAPTURE_PASQUANT"
+    script "../main.nf"
+    process "SCAPTURE_PASQUANT"
+
+    tag "modules"
+    tag "modules_local"
+    tag "scapture"
+    tag "scapture_pasquant"
+
+    test("scapture_pasquant - stub") {
+
+        options "-stub"
+
+        when {
+            process {
+                """
+                input[0] = [
+                    [ library_id:'TESTA', sample_id:'TESTA', strandedness:'reverse' ],
+                    file("${projectDir}/tests/data/reference.fa", checkIfExists: true),
+                    file("${projectDir}/tests/data/reference.gtf", checkIfExists: true),
+                    file("${projectDir}/tests/data/priming_blacklist.bed", checkIfExists: true),
+                    file("${projectDir}/tests/data/cell_metadata.tsv", checkIfExists: true),
+                    file("${projectDir}/bin/FilterBamByTag", checkIfExists: true)
+                ]
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert process.out.matrix },
+                { assert path(process.out.matrix[0][1]).exists() },
+                { assert path(process.out.manifest[0][1]).exists() },
+                { assert path(process.out.versions[0]).exists() }
+            )
+        }
+    }
+}

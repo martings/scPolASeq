@@ -1,0 +1,79 @@
+nextflow_workflow {
+
+    name "Test Workflow SCAPTURE_STAGED"
+    script "../main.nf"
+    workflow "SCAPTURE_STAGED"
+
+    tag "subworkflows"
+    tag "subworkflows_local"
+    tag "scapture"
+    tag "scapture_staged"
+
+    test("scapture_staged - full stub") {
+
+        options "-stub"
+
+        when {
+            workflow {
+                """
+                input[0] = Channel.of([
+                    [ library_id:'TESTA', sample_id:'TESTA', strandedness:'reverse' ],
+                    file("${projectDir}/tests/data/placeholder_input.bam", checkIfExists: true),
+                    file("${projectDir}/tests/data/scapture_dummy.bai", checkIfExists: true),
+                    file("${projectDir}/tests/data/scapture_annotation_small.fa", checkIfExists: true),
+                    file("${projectDir}/tests/data/scapture_annotation_small.fa.fai", checkIfExists: true),
+                    file("${projectDir}/tests/data/scapture_annotation_small.gtf", checkIfExists: true),
+                    file("${projectDir}/tests/data/scapture_annotation_small.chrom.sizes", checkIfExists: true),
+                    file("${projectDir}/tests/data/cell_metadata.tsv", checkIfExists: true),
+                    file("${projectDir}/assets/NO_FILE", checkIfExists: true),
+                    false
+                ])
+                input[1] = false
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.out.site_catalog },
+                { assert workflow.out.quant },
+                { assert workflow.out.manifest }
+            )
+        }
+    }
+
+    test("scapture_staged - catalog_only stub") {
+
+        options "-stub"
+
+        when {
+            workflow {
+                """
+                input[0] = Channel.of([
+                    [ library_id:'TESTA', sample_id:'TESTA', strandedness:'reverse' ],
+                    file("${projectDir}/tests/data/placeholder_input.bam", checkIfExists: true),
+                    file("${projectDir}/tests/data/scapture_dummy.bai", checkIfExists: true),
+                    file("${projectDir}/tests/data/scapture_annotation_small.fa", checkIfExists: true),
+                    file("${projectDir}/tests/data/scapture_annotation_small.fa.fai", checkIfExists: true),
+                    file("${projectDir}/tests/data/scapture_annotation_small.gtf", checkIfExists: true),
+                    file("${projectDir}/tests/data/scapture_annotation_small.chrom.sizes", checkIfExists: true),
+                    file("${projectDir}/tests/data/cell_metadata.tsv", checkIfExists: true),
+                    file("${projectDir}/assets/NO_FILE", checkIfExists: true),
+                    false
+                ])
+                input[1] = true
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert workflow.out.site_catalog },
+                { assert workflow.out.quant.size() == 0 },
+                { assert workflow.out.manifest }
+            )
+        }
+    }
+}

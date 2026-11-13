@@ -1,9 +1,32 @@
-# Sierra quantification contract (draft, issue #32)
+# Sierra quantification contract (issue #32)
 
-`SIERRA_QUANT` accepts one explicit `(meta, group_level, group_id, grouped_bam,
-grouped_bai, pas_reference, cell_annotations, gtf)` tuple plus the staged
-`bin/sierra_quant.R` script. Its output keeps the same group-scoped TSV,
-manifest and log names and adds a group-scoped `versions.yml`. Inputs are
+`SIERRA_QUANT` (`subworkflows/local/sierra_quant/main.nf`) composes an
+`nf-core`-compliant atomic module `SIERRA_COUNTPEAKS`
+(`modules/nf-core/sierra/countpeaks/main.nf`) between two thin `scPolASeq`
+local adapters:
+
+1. `SIERRA_QUANT_PREPARE` (`modules/local/apa/sierra_quant_prepare/main.nf`) — filters
+   `cell_annotations` for the scoped `(library_id, group_level, group_id)` barcode
+   whitelist and converts `pas_reference.tsv` into Sierra `peak_sites.tsv` +
+   canonical `site_id_map.tsv`.
+2. `SIERRA_COUNTPEAKS` (`modules/nf-core/sierra/countpeaks/main.nf`) — reusable atomic
+   module wrapping `Sierra::CountPeaks(..., strandMode = ...)` over standard
+   `meta` + BAM/BAI/whitelist + peak sites BED/TSV + GTF inputs, emitting standard
+   10x MEX (`matrix.mtx.gz`, `barcodes.tsv.gz`, `sitenames.tsv.gz`), log, and
+   `versions.yml`. Strandedness (`forward` -> `strandMode=1`, `reverse` ->
+   `strandMode=2`, `unstranded` -> `strandMode=0`) is configured via `ext.args`
+   (`conf/modules.config`).
+3. `SIERRA_QUANT_TABLE` (`modules/local/apa/sierra_quant_table/main.nf`) — converts the
+   MEX triplet + `site_id_map.tsv` back into the group-scoped
+   `*.sierra_quant.tsv`, `*.sierra_quant.manifest.tsv`, `*.sierra_quant.log`,
+   and `versions.yml` contract consumed by `APA_CORE`.
+
+Because `SIERRA_QUANT` fans out each `(group_level, group_id)` group into three
+process stages (`PREPARE` -> `COUNTPEAKS` -> `TABLE`), full pipeline runs with 2
+default Sierra groups execute 4 additional tasks (+4 processes) compared to the
+legacy monolithic `SIERRA_QUANT` process.
+
+The `SIERRA_QUANT` subworkflow still accepts one explicit `(meta, group_level, group_id, grouped_bam, grouped_bai, pas_reference, cell_annotations, gtf)` tuple. Inputs are
 Nextflow `path` values; the module does not construct dataset paths. The
 adapter in `APA_CORE` obtains `group_id` and BAM filename from the grouping
 manifest and checks that every manifest row has a BAM and index. It no longer
@@ -32,7 +55,12 @@ contract does not treat that as a quantification success claim. A corrupt BAM,
 fails the task. An empty scoped whitelist or zero barcode overlap produces an
 explicitly logged header-only TSV.
 
-## Validation
+## Phase B2 validation (nf-core module + local adapter split)
+
+- Real Nextflow `tests/modules/apa/test_sierra_quant.nf` run (`-profile deepthought,apptainer`, `--strandedness reverse`) on `Adult_Basal.cluster_1.grouped.bam` executed `SIERRA_QUANT_PREPARE` -> `SIERRA_COUNTPEAKS` (`ghcr.io/martings/sierra:84b71c4` / `scpolaseq-r.sif`) -> `SIERRA_QUANT_TABLE` and reproduced exact biological parity: `rows=28122`, `total_umis=48850`, `Krt14=51`, `Acta2=114`.
+- `modules/nf-core/sierra/countpeaks/tests/main.nf.test` provides `nf-test` coverage for `SIERRA_COUNTPEAKS`.
+
+## Validation (historical monolith baseline)
 
 On 2026-10-27, the `full` Nextflow stub scenario passed with 23 processes.
 A separate real `SIERRA_QUANT` task ran the existing PBMC1k `cluster_5` BAM,

@@ -4,7 +4,7 @@ keywords: [scapture, pasmerge, polyadenylation]
 tools:
   - scapture:
       description: Single-cell poly(A) site analysis
-      homepage: https://github.com/YangLab/SCAPTURE
+      homepage: https://github.com/martings/SCAPTURE
 input:
   - - meta:
         type: map
