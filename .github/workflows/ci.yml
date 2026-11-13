@@ -152,8 +152,9 @@ jobs:
 
       - name: Install nf-test
         run: |
-          curl -fsSL https://get.nf-test.com | bash
-          sudo mv nf-test /usr/local/bin/
+          curl -fsSL https://github.com/askimed/nf-test/releases/download/v0.9.5/nf-test-0.9.5.tar.gz -o /tmp/nf-test.tar.gz
+          tar -xzf /tmp/nf-test.tar.gz -C /tmp
+          sudo mv /tmp/nf-test /tmp/nf-test.jar /usr/local/bin/
           nf-test version
 
       - name: Run nf-test stub suites
