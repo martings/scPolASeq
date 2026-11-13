@@ -1,9 +1,10 @@
 # SCAPTURE discovery split: status and real-data gate
 
-This branch introduces `SCAPTURE_DISCOVERY` as a separate DSL2 subworkflow. It
-is not wired into `APA_CORE` yet. `SCAPTURE_FILTER` remains the production path
-until PASmerge, PASquant, catalog conversion, and a real `-resume` equivalence
-test are complete. A stub run cannot establish this equivalence.
+This branch introduces `SCAPTURE_DISCOVERY` as a separate DSL2 subworkflow and
+connects it through the opt-in `--scapture_execution_mode staged` path in
+`APA_CORE`. `SCAPTURE_FILTER` remains the default production path while the
+complete staged PBMC1k run and its `-resume` equivalence gate are pending. A
+stub run cannot establish this equivalence.
 
 ## Stage contracts
 
@@ -38,7 +39,7 @@ log; the other categories still have to pass validation.
   3primeExtended scored rows. The source task and published output are read-only
   evidence, not a replacement for a fresh split run.
 
-Before enabling the subworkflow in `APA_CORE`, run the split on the same frozen
+Before promoting the opt-in staged path to the default, run the split on the same frozen
 inputs and compare evaluated BED row counts and content hashes, the normalized
 catalog, PASquant matrix, and manifest. Deliberately fail a downstream stage,
 then rerun with the same `-work-dir` and `-resume`; verify the PAScall task hash
@@ -106,3 +107,71 @@ PBMC1k rerun produced combined reference hash `7b/f51bf2`, with SHA256 still
 `80afa97bdfe64f0b01f1200905ccbe97036f91087f86bace9a0e37614724e45d`;
 the next explicit `-resume ba59fd49-47ff-492c-949c-71c2b7d43e69` cached
 all four PASmerge/reference tasks, including `7b/f51bf2`.
+
+## Bounded real PASquant gate (#28)
+
+`tests/scapture_quant_historical.nf` takes a completed SCAPTURE task directory
+and runs the catalog normalizer and PASquant as separate processes on frozen
+PBMC1k inputs. Its final gate can intentionally fail after PASquant. It does
+not run PAScall/DeepPASS or change the historical output directory. The
+historical source is session `c3d2f281-2d73-4d34-99c6-cc876610548a`, task
+`85/5407a938ac61cb168479ca6cc8a528`.
+
+The catalog was computed in Apptainer with 21,906 rows and SHA256
+`1621066b0cd864a589b45f7d882ff20cbbae594e5a537bb5adbf00a22d507dc4`,
+identical to the historical published catalog. The first PASquant attempt
+completed the actual SCAPTURE command and wrote a 101,386-site by 1,139-cell
+matrix. Its compressed SHA256 was
+`b16c11fe3e71f8a85a475a4c5535f9035930106b0f51cdce5aa54fdba79cafa9`;
+the uncompressed content SHA256 was
+`882ff8ef36b6abf7333a00fdd34379b2e642587aae996e2af7ae20f8d7ba1e95`.
+Both matched the historical monolith byte for byte. This is a real scientific
+equivalence result, but the Nextflow task failed **after** SCAPTURE completed:
+an AWK metric-writing statement expanded a newline into its program string.
+The module was corrected to emit metrics with `print` and a final production
+run is required to establish a successful Nextflow task and cache reuse.
+A stub cannot satisfy this gate.
+
+### PASquant execution and resume evidence (2026-10-27 UTC)
+
+Nextflow 25.10.4 used the validated
+`/scratch/cache/apptainer/scpolaseq-scapture.sif` (SCAPTURE checkout
+`8845e84aa1b1f7c66759074437fe4df774f89318`). The test work directory was
+`/tmp/scpolaseq_pasquant_20261027_work`, independent of the historical work
+and publication directories. For this test, `-resume` takes the **session UUID**
+`e8c8637d-60ad-49cc-b6f0-e80385801dc8`; task hashes are used only to
+inspect which processes were reused.
+
+```bash
+nextflow run tests/scapture_quant_historical.nf \
+  -profile deepthought,apptainer \
+  --scapture_task_dir /scratch/work/scPolASeq_runs/pbmc1k_20261024_replicate/85/5407a938ac61cb168479ca6cc8a528 \
+  --scapture_test_fail_after_quant true \
+  --outdir /tmp/scpolaseq_pasquant_20261027_out \
+  --apptainer_cache_dir /scratch/cache/apptainer \
+  -work-dir /tmp/scpolaseq_pasquant_20261027_work \
+  -resume e8c8637d-60ad-49cc-b6f0-e80385801dc8
+```
+
+After PASquant completed at task `60/5c5bd1` with exit 0, the deliberately
+failing `SCAPTURE_TEST_GATE` exited 42 at `06/ee25b8`. Changing only
+`--scapture_test_fail_after_quant false` and rerunning the command with the
+same `-resume` UUID completed in 5.8 seconds: `SCAPTURE_CATALOG` `9d/4fee47`
+was cached, `SCAPTURE_PASQUANT` `60/5c5bd1` was cached, and the gate completed
+at `4b/ab93a6`. The final matrix gzip SHA256 was
+`b16c11fe3e71f8a85a475a4c5535f9035930106b0f51cdce5aa54fdba79cafa9`,
+identical to the historical published matrix. The PASquant manifest reports
+`status=complete`, 1,139 barcodes, 101,386 site rows, and 1,139 cell columns.
+
+A later fix preserved an explicitly supplied DeepPASS threshold of zero. A
+catalog-only real-input run with `--scapture_deeppass_threshold 0` completed
+at `ab/a71f72` and recorded `deeppass_threshold=0.0` with 99,024 catalog
+rows. Under the default 0.5 threshold, the final catalog task `36/f0a4d5`
+produced 21,906 rows and the historical SHA256 above; PASquant still resumed
+from `60/5c5bd1`. An invalid `--scapture_test_sample_id bad/name` was
+rejected before PASquant launched, exercising the filename/shell guard.
+
+This proves the split catalog and PASquant stages on frozen PBMC1k inputs,
+including scientific equality and reuse after a later failure. It does not
+prove the staged top-level `APA_CORE` orchestration, multi-sample grouping, or
+portable nf-core module compliance; those remain separate integration gates.

@@ -1,0 +1,56 @@
+name: scapture_manifest
+description: Aggregate staged SCAPTURE provenance and QC into a library manifest.
+keywords: [scapture, provenance, polyadenylation]
+tools:
+  - scapture:
+      description: Single-cell poly(A) site analysis
+      homepage: https://github.com/YangLab/SCAPTURE
+input:
+  - - meta:
+        type: map
+        description: Library metadata with a safe library_id.
+    - bam:
+        type: file
+        description: Filtered BAM used for SCAPTURE discovery.
+    - gtf:
+        type: file
+        description: Input gene annotation.
+    - fasta:
+        type: file
+        description: Genome FASTA.
+    - fai:
+        type: file
+        description: FASTA index.
+    - prepared_gtf:
+        type: file
+        description: SCAPTURE-compatible GTF.
+    - gene_map:
+        type: file
+        description: Gene-name mapping report.
+    - duplicate_report:
+        type: file
+        description: Duplicate gene-name report.
+    - pascall_metrics:
+        type: file
+        description: PAScall and DeepPASS peak counts.
+    - reference_metrics:
+        type: file
+        description: PASmerge category counts.
+    - catalog_metrics:
+        type: file
+        description: Site catalog row count and threshold.
+    - quant_manifest:
+        type: file
+        description: Completed PASquant status and dimensions.
+    - manifest_helper:
+        type: file
+        description: Staged, hash-tracked manifest builder.
+output:
+  - manifest:
+      type: file
+      description: Library-level SCAPTURE provenance and metrics TSV.
+      pattern: '*.scapture.manifest.tsv'
+  - versions:
+      type: file
+      description: Python version and manifest helper fingerprint.
+      pattern: versions.yml

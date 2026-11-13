@@ -196,8 +196,8 @@ if (!file.exists(mat_file)) {
 
 log("CountPeaks complete, reading MEX output")
 sm       <- readMM(mat_file)
-barcodes <- fread(barcode_file, header = FALSE)$V1
-features <- fread(feature_file, header = FALSE)$V1
+barcodes <- fread(barcode_file, sep = "\n", header = FALSE)$V1
+features <- fread(feature_file, sep = "\n", header = FALSE)$V1
 rownames(sm) <- features
 colnames(sm) <- barcodes
 log("Matrix loaded: ", nrow(sm), " peaks x ", ncol(sm), " cells")

@@ -1,15 +1,16 @@
 process SCAPTURE_PASCALL {
     tag "${meta.library_id}"
     label 'process_high'
+    label 'gpu'
 
     conda "${projectDir}/envs/scapture.yml"
     container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-scapture.sif" : null
-    // The patched predictor is a staged input, so changing its content changes
-    // the PAScall task hash. The bind must point at this staged path.
-    containerOptions { params.apptainer_cache_dir ? "--bind ${predict_script}:/opt/scapture/DeepPASS/Predict.py" : "" }
+    // The patched predictor and strandedness scripts are staged inputs.
+    // The binds must point at these staged paths.
+    containerOptions { params.apptainer_cache_dir ? "--bind ${predict_script}:/opt/scapture/DeepPASS/Predict.py --bind ${scapture_script}:/opt/scapture/scapture --bind ${callpeak_script}:/opt/scapture/scapture_callpeak" : "" }
 
     input:
-    tuple val(meta), path(bam), path(bai), path(genome_fasta), path(genome_fai), path(annotation_files), path(polya_db), val(has_polya_db), path(predict_script)
+    tuple val(meta), path(bam), path(bai), path(genome_fasta), path(genome_fai), path(annotation_files), path(polya_db), val(has_polya_db), path(predict_script), path(normality_profile), path(scapture_script), path(callpeak_script)
 
     output:
     tuple val(meta), path("${meta.library_id}.exonic.peaks.evaluated.bed"), path("${meta.library_id}.intronic.peaks.evaluated.bed"), path("${meta.library_id}.3primeExtended.peaks.evaluated.bed"), emit: evaluated
@@ -22,11 +23,20 @@ process SCAPTURE_PASCALL {
     def read_len = params.scapture_read_length ?: 90
     def species = params.scapture_species ?: 'human'
     def peak_width = params.scapture_peak_width ?: 400
+    def normality_seed = params.scapture_normality_seed == null ? 1 : params.scapture_normality_seed
+    if (!(normality_seed.toString() ==~ /[0-9]+/) || normality_seed.toString().toBigInteger() >= 2147483647) {
+        error "scapture_normality_seed must be an integer from 0 to 2147483646"
+    }
     def db_arg = has_polya_db ? "--polyaDB ${polya_db}" : ''
+    def strand = (meta.strandedness ?: params.scapture_strand ?: 'forward')
+    def strand_arg = "--strand ${strand}"
     """
     set -euo pipefail
     export TMPDIR=\$(pwd)/tmp
     export MPLCONFIGDIR=\$(pwd)/tmp/mpl
+    export R_PROFILE_USER=\$(pwd)/${normality_profile}
+    export SCPOLASEQ_SCAPTURE_NORMALITY_SEED=${normality_seed}
+    export SCAPTURE_STRAND=${strand}
     mkdir -p "\$TMPDIR" "\$MPLCONFIGDIR"
     test -s ${bam}
     test -s ${bai}
@@ -47,6 +57,7 @@ process SCAPTURE_PASCALL {
         -p ${task.cpus ?: 1} \
         --species ${species} \
         -w ${peak_width} \
+        ${strand_arg} \
         ${db_arg} \
         &> ${prefix}.PAScall.log
 
@@ -97,7 +108,9 @@ process SCAPTURE_PASCALL {
         echo 'INFO: 3primeExtended category absent from PAScall output' >> ${prefix}.PAScall.log
     fi
     commit=\$(git -C /opt/scapture rev-parse HEAD 2>/dev/null || printf 'unknown')
-    printf '"SCAPTURE_PASCALL":\n  scapture_commit: "%s"\n  scapture_script_sha256: "%s"\n' \
-        "\$commit" "\$(sha256sum "\$(command -v scapture)" | cut -d' ' -f1)" > versions.yml
+    printf '"SCAPTURE_PASCALL":\n  scapture_commit: "%s"\n  scapture_script_sha256: "%s"\n  normality_profile_sha256: "%s"\n  normality_seed: "%s"\n  r_version: "%s"\n' \
+        "\$commit" "\$(sha256sum "\$(command -v scapture)" | cut -d' ' -f1)" \
+        "\$(sha256sum ${normality_profile} | cut -d' ' -f1)" '${normality_seed}' \
+        "\$(Rscript -e 'cat(as.character(getRversion()))')" > versions.yml
     """
 }
