@@ -28,7 +28,7 @@ process SCAPTURE_PASCALL {
         error "scapture_normality_seed must be an integer from 0 to 2147483646"
     }
     def db_arg = has_polya_db ? "--polyaDB ${polya_db}" : ''
-    def strand = (meta.strandedness ?: params.scapture_strand ?: 'forward')
+    def strand = (meta.strandedness ?: (meta.chemistry == '10xv1' ? 'reverse' : (params.scapture_strand ?: params.strandedness ?: 'forward'))).toString().toLowerCase()
     def strand_arg = "--strand ${strand}"
     """
     set -euo pipefail

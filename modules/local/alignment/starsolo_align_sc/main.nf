@@ -32,9 +32,11 @@ process STARSOLO_ALIGN_SC {
     def cbLen        = meta.chemistry == '10xv1' ? 14 : 16
     def umiStart     = cbLen + 1
     def umiLen       = (meta.chemistry == '10xv1' || meta.chemistry == '10xv2' || protocol_mode == '10x_5p') ? 10 : 12
+    def rawStrand    = (meta.strandedness ?: (meta.chemistry == '10xv1' ? 'reverse' : (params.strandedness ?: 'forward'))).toString().toLowerCase()
+    def soloStrand   = rawStrand == 'reverse' ? 'Reverse' : (rawStrand == 'unstranded' ? 'Unstranded' : 'Forward')
     def soloTypeArgs = protocol_mode.startsWith('10x') ?
-        "--soloType CB_UMI_Simple --soloCBstart 1 --soloCBlen ${cbLen} --soloUMIstart ${umiStart} --soloUMIlen ${umiLen} --soloCellFilter CellRanger2.2" :
-        "--soloType CB_UMI_Simple"
+        "--soloType CB_UMI_Simple --soloCBstart 1 --soloCBlen ${cbLen} --soloUMIstart ${umiStart} --soloUMIlen ${umiLen} --soloStrand ${soloStrand} --soloCellFilter CellRanger2.2" :
+        "--soloType CB_UMI_Simple --soloStrand ${soloStrand}"
     """
     ${warning}
     command -v STAR >/dev/null 2>&1 || { echo 'STAR executable unavailable' >&2; exit 127; }
