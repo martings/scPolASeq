@@ -92,6 +92,18 @@
           ],
           "default": "10x_3p"
         },
+        "strandedness": {
+          "type": ["string", "null"],
+          "enum": ["forward", "reverse", "unstranded", null],
+          "default": null,
+          "description": "Library strandedness override (forward, reverse, or unstranded). When null, inferred from chemistry (reverse for 10xv1, forward otherwise)."
+        },
+        "scapture_strand": {
+          "type": ["string", "null"],
+          "enum": ["forward", "reverse", "unstranded", null],
+          "default": null,
+          "description": "Optional SCAPTURE-specific strandedness override; falls back to strandedness / chemistry inference."
+        },
         "enable_internal_clustering": {
           "type": "boolean",
           "default": true

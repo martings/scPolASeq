@@ -23,9 +23,8 @@ process SCAPTURE_FILTER {
 
     conda "${projectDir}/envs/scapture.yml"
     container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-scapture.sif" : null
-    // Bind-mount the patched Predict.py to fix TF 2.4 + pandas 1.1.5 incompatibility.
-    // tf.convert_to_tensor cannot handle a pandas object-dtype Series of numpy arrays.
-    containerOptions params.apptainer_cache_dir ? "--bind ${projectDir}/bin/DeepPASS_Predict.py:/opt/scapture/DeepPASS/Predict.py" : ""
+    // Bind-mount the patched Predict.py (TF 2.4 + pandas 1.1.5) and strandedness patches (10x v1 / reverse / unstranded).
+    containerOptions params.apptainer_cache_dir ? "--bind ${projectDir}/bin/DeepPASS_Predict.py:/opt/scapture/DeepPASS/Predict.py --bind ${projectDir}/bin/patches/scapture/scapture:/opt/scapture/scapture --bind ${projectDir}/bin/patches/scapture/scapture_callpeak:/opt/scapture/scapture_callpeak --bind ${projectDir}/bin/patches/scapture/scapture_quant:/opt/scapture/scapture_quant" : ""
 
     publishDir "${params.outdir}/scapture", mode: params.publish_dir_mode
 
@@ -50,11 +49,15 @@ process SCAPTURE_FILTER {
     def score_thr  = params.scapture_deeppass_threshold  ?: 0.5
     def db_arg     = has_polya_db ? "--polyaDB ${polyaDB}" : ""
     def has_resume = has_resume_pascall_dir
+    def strand     = (meta.strandedness ?: (meta.chemistry == '10xv1' ? 'reverse' : (params.scapture_strand ?: params.strandedness ?: 'forward'))).toString().toLowerCase()
+    def strand_arg = "--strand ${strand}"
     """
     set -euo pipefail
 
     export TMPDIR=\$(pwd)/tmp
     export MPLCONFIGDIR=\$(pwd)/tmp/mpl
+    export SCAPTURE_STRAND=${strand}
+    export SCAPTUREPATH=/opt/scapture/
     mkdir -p "\$TMPDIR" "\$MPLCONFIGDIR"
 
     # FilterBamByTag is a Drop-seq tool missing from the container.
@@ -228,6 +231,7 @@ process SCAPTURE_FILTER {
             -p ${ncores} \\
             --species ${species} \\
             -w ${peak_width} \\
+            ${strand_arg} \\
             ${db_arg} \\
             &> ${prefix}.PAScall.log
     fi
@@ -394,6 +398,7 @@ process SCAPTURE_FILTER {
         --pas ${prefix}_merge.Integrated.bed \\
         -o ${prefix} \\
         -p ${ncores} \\
+        ${strand_arg} \\
         &> ${prefix}.PASquant.log || true
 
     # ---------------------------------------------------------------------

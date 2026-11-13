@@ -38,6 +38,7 @@ process SIERRA_QUANT {
     def quotedLibraryId = "'" + meta.library_id.toString().replace("'", "'\"'\"'") + "'"
     def quotedGroupLevel = "'" + group_level.toString().replace("'", "'\"'\"'") + "'"
     def ncores = task.cpus ?: 1
+    def strandedness = (meta.strandedness ?: (meta.chemistry == '10xv1' ? 'reverse' : (params.strandedness ?: 'forward'))).toString().toLowerCase()
     """
     test -s ${grouped_bam} && test -s ${grouped_bai} || { echo 'Sierra BAM/index missing or empty' >&2; exit 1; }
     test -s ${pas_reference} && test -s ${cell_annotations} && test -s ${gtf} || { echo 'Sierra reference/annotations missing or empty' >&2; exit 1; }
@@ -52,7 +53,8 @@ process SIERRA_QUANT {
         --output            ${prefix}.sierra_quant.tsv \\
         --log               ${prefix}.sierra_quant.log \\
         --versions          ${prefix}.versions.yml \\
-        --ncores            ${ncores}
+        --ncores            ${ncores} \\
+        --strandedness      ${strandedness}
 
     printf "field\\tvalue\\n"                                    > ${prefix}.sierra_quant.manifest.tsv
     printf "grouped_bam\\t${grouped_bam.name}\\n"              >> ${prefix}.sierra_quant.manifest.tsv
@@ -60,6 +62,7 @@ process SIERRA_QUANT {
     printf "gtf\\t${gtf.name}\\n"                              >> ${prefix}.sierra_quant.manifest.tsv
     printf "pas_reference\\t${pas_reference.name}\\n"          >> ${prefix}.sierra_quant.manifest.tsv
     printf "cell_annotations\\t${cell_annotations.name}\\n"    >> ${prefix}.sierra_quant.manifest.tsv
+    printf "strandedness\\t${strandedness}\\n"                  >> ${prefix}.sierra_quant.manifest.tsv
     printf "quant_source\\tSierra::CountPeaks\\n"              >> ${prefix}.sierra_quant.manifest.tsv
     printf 'group_id\\t%s\\n' ${quotedGroupId}                >> ${prefix}.sierra_quant.manifest.tsv
     test -s ${prefix}.sierra_quant.tsv && test -s ${prefix}.versions.yml || { echo 'Sierra outputs missing or empty' >&2; exit 1; }

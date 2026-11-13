@@ -26,7 +26,7 @@ process SCAPTURE_PASQUANT {
         error "SCAPTURE_PASQUANT requires a safe sample_id: ${sample}"
     }
     def ncores = task.cpus ?: 1
-    def strand = (meta.strandedness ?: params.scapture_strand ?: 'forward')
+    def strand = (meta.strandedness ?: (meta.chemistry == '10xv1' ? 'reverse' : (params.scapture_strand ?: params.strandedness ?: 'forward'))).toString().toLowerCase()
     def strand_arg = "--strand ${strand}"
     """
     set -euo pipefail

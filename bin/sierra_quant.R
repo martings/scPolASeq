@@ -5,6 +5,7 @@ suppressPackageStartupMessages({
     library(Sierra)
     library(Matrix)
     library(Rsamtools)
+    library(foreach)
 })
 
 option_list <- list(
@@ -18,7 +19,9 @@ option_list <- list(
     make_option("--output",            type = "character", help = "Output TSV path"),
     make_option("--log",               type = "character", help = "Log file path"),
     make_option("--versions",          type = "character", help = "YAML runtime version output"),
-    make_option("--ncores",            type = "integer",   default = 1L)
+    make_option("--ncores",            type = "integer",   default = 1L),
+    make_option("--strandedness",      type = "character", default = "forward", help = "Library strandedness: forward, reverse, or unstranded (default: forward)"),
+    make_option("--strand-mode",       type = "integer",   default = NULL,      help = "Bioconductor strandMode integer: 1 (forward), 2 (reverse), 0 (unstranded)")
 )
 opt <- parse_args(OptionParser(option_list = option_list))
 
@@ -161,20 +164,155 @@ sierra_to_site_id <- setNames(pas_ref$site_id, sierra_names)
 peak_file <- tempfile(fileext = ".tsv")
 write.table(peak_df, peak_file, sep = "\t", quote = FALSE, col.names = TRUE, row.names = TRUE)
 
+# ── Resolve strandedness / strandMode ─────────────────────────────────────────
+strand_mode <- if (!is.null(opt$`strand-mode`)) {
+    as.integer(opt$`strand-mode`)
+} else {
+    switch(tolower(opt$strandedness),
+        "reverse"    = 2L,
+        "unstranded" = 0L,
+        1L # default forward
+    )
+}
+log("Strandedness configured: ", opt$strandedness, " (Bioconductor strandMode: ", strand_mode, ")")
+
+# ── Extensible Sierra::CountPeaks implementation with strandMode support ──────
+CountPeaks_with_strandMode <- function (peak.sites.file, gtf.file, bamfile, whitelist.file,
+    output.dir, countUMI = TRUE, ncores = 1, chr.names = NULL,
+    filter.chr = FALSE, gene.symbol.ref = "gene_name", CBtag = "CB",
+    UMItag = "UB", strandMode = 1L)
+{
+    lock <- tempfile()
+    whitelist.bc <- read.table(whitelist.file, stringsAsFactors = FALSE)
+    whitelist.bc <- whitelist.bc[, 1]
+    n.bcs <- length(whitelist.bc)
+    message("There are ", n.bcs, " whitelist barcodes.")
+    n.columns <- n.bcs + 1
+    genes.ref <- Sierra:::make_reference(gtf_file = gtf.file, chr.names = chr.names,
+        filter.chr = filter.chr, gene.symbol.ref = gene.symbol.ref)
+    chr.names <- as.character(unique(genes.ref$chr))
+    n.genes <- nrow(genes.ref)
+    peak.sites <- read.table(peak.sites.file, header = T, sep = "\t",
+        quote = "", stringsAsFactors = FALSE)
+    n.total.sites <- nrow(peak.sites)
+    message("There are ", n.total.sites, " sites")
+    message("Doing counting for each site (strandMode = ", strandMode, ")...")
+    system.name <- Sys.info()["sysname"]
+    new_cl <- FALSE
+    if (system.name == "Windows") {
+        new_cl <- TRUE
+        cluster <- parallel::makePSOCKcluster(rep("localhost", ncores))
+        doParallel::registerDoParallel(cluster)
+    } else {
+        doParallel::registerDoParallel(cores = ncores)
+    }
+    mat.to.write <- foreach::foreach(each.chr = chr.names, .combine = "rbind",
+        .packages = c("magrittr")) %dopar% {
+        mat.per.chr <- c()
+        message("Processing chr: ", each.chr)
+        for (strand in c(1, -1)) {
+            message(" and strand ", strand)
+            if (strandMode == 2L) {
+                # Reverse stranded (10x v1, 10x 5' SE): cDNA read is sense
+                isMinusStrand <- if (strand == 1) TRUE else FALSE
+                flag_param <- Rsamtools::scanBamFlag(isMinusStrand = isMinusStrand)
+            } else if (strandMode == 0L) {
+                # Unstranded: accept reads from either strand
+                flag_param <- Rsamtools::scanBamFlag()
+            } else {
+                # Forward stranded (default): cDNA read is antisense
+                isMinusStrand <- if (strand == 1) FALSE else TRUE
+                flag_param <- Rsamtools::scanBamFlag(isMinusStrand = isMinusStrand)
+            }
+            peak.sites.chr <- dplyr::filter(peak.sites, Chr ==
+                each.chr & Strand == strand) %>% dplyr::select(Gene,
+                Chr, Fit.start, Fit.end, Strand)
+            peak.sites.chr$Fit.start <- as.integer(peak.sites.chr$Fit.start)
+            peak.sites.chr$Fit.end <- as.integer(peak.sites.chr$Fit.end)
+            peak.sites.chr <- dplyr::filter(peak.sites.chr, Fit.start <
+                Fit.end)
+            if (nrow(peak.sites.chr) == 0) {
+                next
+            }
+            which <- GenomicRanges::GRanges(seqnames = each.chr,
+                ranges = IRanges::IRanges(1, max(peak.sites.chr$Fit.end)))
+            param <- Rsamtools::ScanBamParam(tag = c(CBtag, UMItag),
+                which = which, flag = flag_param)
+            aln <- GenomicAlignments::readGAlignments(bamfile,
+                param = param)
+            nobarcodes <- which(unlist(is.na(GenomicRanges::mcols(aln)[CBtag])))
+            noUMI <- which(unlist(is.na(GenomicRanges::mcols(aln)[UMItag])))
+            to.remove <- dplyr::union(nobarcodes, noUMI)
+            if (length(to.remove) > 0) {
+                aln <- aln[-to.remove]
+            }
+            whitelist.pos <- which(unlist(GenomicRanges::mcols(aln)[CBtag]) %in%
+                whitelist.bc)
+            aln <- aln[whitelist.pos]
+            if (length(aln) == 0) {
+                next
+            }
+            if (countUMI) {
+                GenomicRanges::mcols(aln)$CB_UB <- paste0(unlist(GenomicRanges::mcols(aln)[CBtag]),
+                  "_", unlist(GenomicRanges::mcols(aln)[UMItag]))
+                uniqUMIs <- which(!duplicated(GenomicRanges::mcols(aln)$CB_UB))
+                aln <- aln[uniqUMIs]
+            }
+            aln <- GenomicRanges::split(aln, unlist(GenomicRanges::mcols(aln)[CBtag]))
+            polyA.GR <- GenomicRanges::GRanges(seqnames = peak.sites.chr$Chr,
+                IRanges::IRanges(start = peak.sites.chr$Fit.start,
+                  end = as.integer(peak.sites.chr$Fit.end)))
+            n.polyA <- length(polyA.GR)
+            barcodes.gene <- names(aln)
+            res <- sapply(barcodes.gene, function(x) GenomicRanges::countOverlaps(polyA.GR,
+                aln[[x]]))
+            res.mat <- matrix(0L, nrow = n.polyA, ncol = n.bcs)
+            res.mat[, match(barcodes.gene, whitelist.bc)] <- res
+            mat.per.strand <- Matrix::Matrix(res.mat, sparse = TRUE)
+            polyA.ids <- paste0(peak.sites.chr$Gene, ":", peak.sites.chr$Chr,
+                ":", peak.sites.chr$Fit.start, "-", peak.sites.chr$Fit.end,
+                ":", peak.sites.chr$Strand)
+            rownames(mat.per.strand) <- polyA.ids
+            if (is.null(mat.per.chr)) {
+                mat.per.chr <- mat.per.strand
+            } else {
+                mat.per.chr <- rbind(mat.per.chr, mat.per.strand)
+            }
+        }
+        return(mat.per.chr)
+    }
+    if (new_cl) {
+        parallel::stopCluster(cluster)
+    }
+    if (!dir.exists(output.dir)) {
+        dir.create(output.dir)
+    }
+    Matrix::writeMM(mat.to.write, file = paste0(output.dir, "/matrix.mtx"))
+    write.table(whitelist.bc, file = paste0(output.dir, "/barcodes.tsv"),
+        quote = FALSE, row.names = FALSE, col.names = FALSE)
+    write.table(rownames(mat.to.write), file = paste0(output.dir,
+        "/sitenames.tsv"), quote = FALSE, row.names = FALSE,
+        col.names = FALSE)
+    R.utils::gzip(paste0(output.dir, "/matrix.mtx"), overwrite = TRUE)
+    R.utils::gzip(paste0(output.dir, "/barcodes.tsv"), overwrite = TRUE)
+    R.utils::gzip(paste0(output.dir, "/sitenames.tsv"), overwrite = TRUE)
+}
+
 # ── Run Sierra::CountPeaks ────────────────────────────────────────────────────
 out_dir <- paste0(opt$output, "_sierra_mex")
 dir.create(out_dir, showWarnings = FALSE)
 
-log("Running Sierra::CountPeaks on: ", opt$bam)
+log("Running Sierra::CountPeaks (strandMode = ", strand_mode, ") on: ", opt$bam)
 tryCatch(
-    Sierra::CountPeaks(
+    CountPeaks_with_strandMode(
         peak.sites.file = peak_file,
         gtf.file        = opt$gtf,
         bamfile         = opt$bam,
         whitelist.file  = whitelist_file,
         output.dir      = out_dir,
         countUMI        = TRUE,
-        ncores          = opt$ncores
+        ncores          = opt$ncores,
+        strandMode      = strand_mode
     ),
     error = function(e) {
         log("ERROR: CountPeaks failed: ", conditionMessage(e))
