@@ -63,12 +63,13 @@ directory containing the SIF images.
 For Conda execution, use `-profile conda` (and the relevant machine profile).
 The Conda environment files are module-specific so Nextflow creates only the
 environments required by scheduled processes. SCAPTURE's historical lockfile
-is preserved as provenance. The checked-in `scpolaseq-scapture.def` is not yet
-proven to reproduce the working SIF: it clones SCAPTURE without a commit pin
-and applies a text-anchored patch. The old Python 3.7 lock also has an
-incompatible NumPy/pandas ABI. The smoke checks above validate the existing
-working SIFs' package imports and versions; they do not validate a fresh
-rebuild, execute a DeepPASS prediction, or demonstrate GPU use.
+is preserved as provenance. The checked-in `scpolaseq-r.def`, `scpolaseq-scapture.def`, and `envs/r.yml`
+now pin `martings/Sierra` (`84b71c475c6be3eabd59653756c2d83d165ec4e6`) and
+`martings/SCAPTURE` (`f056f0202e64f801c52f885c069b3e31660e02f1`) with native
+strandedness, TF 2.4 DeepPASS compatibility, and `SCAPTURE_NORMALITY_SEED`
+support baked into the images without runtime `--bind` monkey-patches (issue
+`#31`). Rebuilt SIFs must still pass `containers/validate.sh` and pipeline/real
+parity checks before promotion.
 
 ## Docker and Nextflow status
 

@@ -34,9 +34,7 @@ workflow SCAPTURE_STAGED {
         .join(ch_bams, failOnDuplicate: true, failOnMismatch: true)
         .map { library_id, reference, meta, bam, bai, annotations ->
             tuple(meta, bam, bai, reference, annotations,
-                  file("${moduleDir}/../../../bin/FilterBamByTag", checkIfExists: true),
-                  file("${moduleDir}/../../../bin/patches/scapture/scapture", checkIfExists: true),
-                  file("${moduleDir}/../../../bin/patches/scapture/scapture_quant", checkIfExists: true))
+                  file("${moduleDir}/../../../bin/FilterBamByTag", checkIfExists: true))
         }
     SCAPTURE_PASQUANT(ch_quant)
 

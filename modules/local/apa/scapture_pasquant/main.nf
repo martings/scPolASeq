@@ -4,10 +4,9 @@ process SCAPTURE_PASQUANT {
 
     conda "${projectDir}/envs/scapture.yml"
     container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-scapture.sif" : null
-    containerOptions { params.apptainer_cache_dir ? "--bind ${scapture_script}:/opt/scapture/scapture --bind ${quant_script}:/opt/scapture/scapture_quant" : "" }
 
     input:
-    tuple val(meta), path(bam), path(bai), path(pas_reference), path(cell_annotations), path(filter_helper, stageAs: 'FilterBamByTag.source'), path(scapture_script), path(quant_script)
+    tuple val(meta), path(bam), path(bai), path(pas_reference), path(cell_annotations), path(filter_helper, stageAs: 'FilterBamByTag.source')
 
     output:
     tuple val(meta), path("${meta.library_id}.KeepCell.UMIs.tsv.gz"), emit: matrix

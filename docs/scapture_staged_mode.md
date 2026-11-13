@@ -167,19 +167,16 @@ does not implicate the split PASquant module itself. Exact reproducibility
 requires two independent PAScall runs with the same explicit seed; changing
 the seed policy can change peak calls and is a scientific-method change.
 
-### Reproducible normality sampling
+### Reproducible normality sampling & pinned SCAPTURE fork (#31)
 
 The staged PAScall now sets `--scapture_normality_seed` (default `1`, allowed
-integer range `0` to `2147483646`). Its staged
-`bin/scapture_normality_profile.R` is loaded through `R_PROFILE_USER` only
-when Rscript runs SCAPTURE's `Normality.R`. It combines the base seed with the
-stable basename of the transcript peak input, then calls `set.seed()` before
-the original SCAPTURE script starts. This makes each transcript's random
-stream independent of GNU Parallel scheduling and works with Apptainer or
-Conda without editing the upstream source. Monolith mode retains upstream's
-unseeded behavior. The profile is a declared Nextflow
-input, and the seed appears in the task script and `versions.yml`; changing
-either invalidates the PAScall task hash.
+integer range `0` to `2147483646`) and exports `SCAPTURE_NORMALITY_SEED`
+(plus `SCPOLASEQ_SCAPTURE_NORMALITY_SEED`). As of `#31`, this seed logic,
+the TF 2.4 `DeepPASS/Predict.py` fix, and native `--strand` support are baked
+directly into the pinned `martings/SCAPTURE` fork inside `scpolaseq-scapture.sif`,
+removing runtime `--bind` monkey-patches (`DeepPASS_Predict.py`,
+`scapture_normality_profile.R`, `bin/patches/scapture/*`). Historical runs below
+predate `#31` and used runtime `--bind` and `R_PROFILE_USER`.
 
 With one synthetic coverage/peak fixture, the original `Normality.R` produced
 different p-values on two invocations without the profile; with base seed `1`,

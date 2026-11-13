@@ -3,8 +3,9 @@ From: mambaorg/micromamba:1.5.10-jammy
 
 %labels
     maintainer  scPolASeq
-    description "SCAPTURE de novo PAS detection (YangLab/SCAPTURE + TF 2.4 / DeepPASS)"
-    source      https://github.com/YangLab/SCAPTURE
+    description "SCAPTURE de novo PAS detection (martings/SCAPTURE + TF 2.4 / DeepPASS)"
+    source      https://github.com/martings/SCAPTURE
+    scapture_ref f056f0202e64f801c52f885c069b3e31660e02f1
 
 %post
     export DEBIAN_FRONTEND=noninteractive
@@ -50,8 +51,9 @@ From: mambaorg/micromamba:1.5.10-jammy
     # Install after conda so pip doesn't downgrade numpy.
     /opt/conda/bin/pip install --no-cache-dir "tensorflow==2.4.1"
 
-    # Install SCAPTURE from GitHub (collection of shell+python scripts)
-    git clone --depth 1 https://github.com/YangLab/SCAPTURE.git /opt/scapture
+    # Install pinned martings/SCAPTURE fork (includes native --strand, TF 2.4 Predict.py fix, and Normality seeding)
+    git clone https://github.com/martings/SCAPTURE.git /opt/scapture && \
+    git -C /opt/scapture checkout --detach f056f0202e64f801c52f885c069b3e31660e02f1
     chmod +x \
         /opt/scapture/scapture \
         /opt/scapture/scapture_annotation \
@@ -61,22 +63,8 @@ From: mambaorg/micromamba:1.5.10-jammy
         /opt/scapture/scapture_quant
     find /opt/scapture/scripts -maxdepth 2 \( -name "*.py" -o -name "*.sh" \) \
         2>/dev/null | xargs -r chmod +x
-
-    # Fix DeepPASS Predict.py for TF 2.4 + pandas 1.1.5 incompatibility:
-    # tf.convert_to_tensor cannot convert a pandas object-dtype Series of numpy
-    # arrays directly.  Stack into a contiguous numpy array first.
-    python3 - << 'PYEOF'
-with open('/opt/scapture/DeepPASS/Predict.py', 'r') as f:
-    code = f.read()
-old = '    seq = tf.convert_to_tensor(data["seq"].apply(lambda x:np.array([ NT_dict[i] for i in x],dtype=np.float32)))'
-new = ('    seq_list = [np.array([NT_dict.get(i, np.array([0,0,0,0])) for i in x], dtype=np.float32)\n'
-       '                for x in data["seq"]]\n'
-       '    seq = tf.convert_to_tensor(np.array(seq_list, dtype=np.float32))')
-assert old in code, "Predict.py patch anchor not found -- upstream may have changed"
-with open('/opt/scapture/DeepPASS/Predict.py', 'w') as f:
-    f.write(code.replace(old, new))
-print('DeepPASS Predict.py patched OK')
-PYEOF
+    find /opt/scapture/tests -maxdepth 2 -name "*.sh" \
+        2>/dev/null | xargs -r chmod +x
 
 %environment
     export PATH=/opt/scapture:/opt/conda/bin:$PATH

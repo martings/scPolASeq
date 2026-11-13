@@ -5,12 +5,9 @@ process SCAPTURE_PASCALL {
 
     conda "${projectDir}/envs/scapture.yml"
     container params.apptainer_cache_dir ? "${params.apptainer_cache_dir}/scpolaseq-scapture.sif" : null
-    // The patched predictor and strandedness scripts are staged inputs.
-    // The binds must point at these staged paths.
-    containerOptions { params.apptainer_cache_dir ? "--bind ${predict_script}:/opt/scapture/DeepPASS/Predict.py --bind ${scapture_script}:/opt/scapture/scapture --bind ${callpeak_script}:/opt/scapture/scapture_callpeak" : "" }
 
     input:
-    tuple val(meta), path(bam), path(bai), path(genome_fasta), path(genome_fai), path(annotation_files), path(polya_db), val(has_polya_db), path(predict_script), path(normality_profile), path(scapture_script), path(callpeak_script)
+    tuple val(meta), path(bam), path(bai), path(genome_fasta), path(genome_fai), path(annotation_files), path(polya_db), val(has_polya_db)
 
     output:
     tuple val(meta), path("${meta.library_id}.exonic.peaks.evaluated.bed"), path("${meta.library_id}.intronic.peaks.evaluated.bed"), path("${meta.library_id}.3primeExtended.peaks.evaluated.bed"), emit: evaluated
@@ -34,7 +31,7 @@ process SCAPTURE_PASCALL {
     set -euo pipefail
     export TMPDIR=\$(pwd)/tmp
     export MPLCONFIGDIR=\$(pwd)/tmp/mpl
-    export R_PROFILE_USER=\$(pwd)/${normality_profile}
+    export SCAPTURE_NORMALITY_SEED=${normality_seed}
     export SCPOLASEQ_SCAPTURE_NORMALITY_SEED=${normality_seed}
     export SCAPTURE_STRAND=${strand}
     mkdir -p "\$TMPDIR" "\$MPLCONFIGDIR"
@@ -108,9 +105,11 @@ process SCAPTURE_PASCALL {
         echo 'INFO: 3primeExtended category absent from PAScall output' >> ${prefix}.PAScall.log
     fi
     commit=\$(git -C /opt/scapture rev-parse HEAD 2>/dev/null || printf 'unknown')
-    printf '"SCAPTURE_PASCALL":\n  scapture_commit: "%s"\n  scapture_script_sha256: "%s"\n  normality_profile_sha256: "%s"\n  normality_seed: "%s"\n  r_version: "%s"\n' \
+    normality_r=/opt/scapture/scripts/Normality.R
+    normality_sha=\$(test -r "\$normality_r" && sha256sum "\$normality_r" | cut -d' ' -f1 || printf 'unknown')
+    printf '"SCAPTURE_PASCALL":\n  scapture_commit: "%s"\n  scapture_script_sha256: "%s"\n  normality_r_sha256: "%s"\n  normality_seed: "%s"\n  r_version: "%s"\n' \
         "\$commit" "\$(sha256sum "\$(command -v scapture)" | cut -d' ' -f1)" \
-        "\$(sha256sum ${normality_profile} | cut -d' ' -f1)" '${normality_seed}' \
+        "\$normality_sha" '${normality_seed}' \
         "\$(Rscript -e 'cat(as.character(getRversion()))')" > versions.yml
     """
 }

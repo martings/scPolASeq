@@ -4,7 +4,7 @@ keywords: [sierra, polyadenylation, single-cell, quantification]
 tools:
   - sierra:
       description: Sierra single-cell polyadenylation analysis
-      homepage: https://github.com/VCCRI/Sierra
+      homepage: https://github.com/martings/Sierra
 input:
   - - meta:
         type: map

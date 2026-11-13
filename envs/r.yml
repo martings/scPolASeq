@@ -14,3 +14,5 @@ dependencies:
   - bioconductor-genomicalignments
   - bioconductor-biocparallel
   - bioconductor-s4vectors
+  # Install pinned fork when provisioning conda directly:
+  # Rscript -e "remotes::install_github('martings/Sierra', ref = '84b71c475c6be3eabd59653756c2d83d165ec4e6', dependencies = FALSE, upgrade = 'never')"
