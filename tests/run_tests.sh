@@ -165,10 +165,17 @@ for module_def in "${MODULE_TESTS[@]}"; do
     run_module_test "$name" "$nf_file" || FAILED=$((FAILED + 1))
 done
 
-if python tests/test_scapture_manifest.py; then
+if python3 tests/test_scapture_manifest.py; then
     pass "SCAPTURE manifest contract"
 else
     fail "SCAPTURE manifest contract"
+    FAILED=$((FAILED + 1))
+fi
+
+if python3 tests/test_issue10_barcode_identity.py; then
+    pass "Issue #10 barcode identity regression tests"
+else
+    fail "Issue #10 barcode identity regression tests"
     FAILED=$((FAILED + 1))
 fi
 
