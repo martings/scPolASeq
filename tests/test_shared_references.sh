@@ -159,14 +159,33 @@ conda.enabled = false
 params {
     apptainer_cache_dir = null
 }
+executor {
+    name = 'local'
+    cpus = 2
+    memory = '4 GB'
+}
 process {
     cpus = 1
     memory = '2 GB'
     time = '1 h'
+    resourceLimits = [ cpus: 2, memory: '4 GB', time: '1 h' ]
 }
 EOF
 
-nextflow run "$REPO_DIR" \
+run_nf_checked() {
+    local label="$1"
+    shift
+    local log_file="$TMP_ROOT/nf_${label}.log"
+    if ! "$@" >"$log_file" 2>&1; then
+        echo "FAIL: ${label} failed:" >&2
+        cat "$log_file" >&2
+        return 1
+    fi
+    echo "PASS: ${label}"
+}
+
+run_nf_checked "Nextflow generic --reference_root + --reference_build stub-run" \
+    nextflow run "$REPO_DIR" \
     -profile test \
     -c "$TMP_ROOT/ci_resources.config" \
     --input "$REPO_DIR/tests/data/samplesheet.csv" \
@@ -177,21 +196,21 @@ nextflow run "$REPO_DIR" \
     --known_polya databases/polya_atlas/polyasite2_GRCh38.tsv \
     --outdir "$TMP_ROOT/nf_generic_out" \
     -work-dir "$TMP_ROOT/nf_generic_work" \
-    -stub-run -ansi-log false >/dev/null
-echo "PASS: Nextflow generic --reference_root + --reference_build stub-run"
+    -stub-run -ansi-log false
 
-nextflow run "$REPO_DIR" \
+run_nf_checked "Nextflow test_pbmc1k_deepthought overridden with --reference_root fixture" \
+    nextflow run "$REPO_DIR" \
     -profile test_pbmc1k_deepthought \
     -c "$TMP_ROOT/ci_resources.config" \
     --input "$REPO_DIR/tests/data/samplesheet.csv" \
     --reference_root "$FIXTURE" \
     --outdir "$TMP_ROOT/nf_profile_out" \
     -work-dir "$TMP_ROOT/nf_profile_work" \
-    -stub-run -ansi-log false >/dev/null
-echo "PASS: Nextflow test_pbmc1k_deepthought overridden with --reference_root fixture"
+    -stub-run -ansi-log false
 
 # 4. Real (non-stub) Nextflow PREPARE_REFERENCE_BUNDLE execution against fixture prebuilt index
-nextflow run "$REPO_DIR/tests/modules/reference/test_prepare_reference_real.nf" \
+run_nf_checked "Real Nextflow PREPARE_REFERENCE_BUNDLE run" \
+    nextflow run "$REPO_DIR/tests/modules/reference/test_prepare_reference_real.nf" \
     -profile test \
     -c "$TMP_ROOT/ci_resources.config" \
     --fixture "$FIXTURE" \
@@ -199,7 +218,7 @@ nextflow run "$REPO_DIR/tests/modules/reference/test_prepare_reference_real.nf" 
     --reference_build GRCh38 \
     --outdir "$TMP_ROOT/nf_real_out" \
     -work-dir "$TMP_ROOT/nf_real_work" \
-    -ansi-log false >/dev/null
+    -ansi-log false
 
 python3 - "$TMP_ROOT/nf_real_out/reference/reference_manifest.json" "$FIXTURE" <<'EOF'
 import json, sys
