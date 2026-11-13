@@ -3,7 +3,7 @@ From: mambaorg/micromamba:1.5.10-jammy
 
 %labels
     maintainer  scPolASeq
-    description "Python env: pysam, pandas, numpy, scikit-learn"
+    description "Python env: pysam, pandas, numpy, scikit-learn, UCSC bedGraphToBigWig"
     env_source  envs/python.yml
 
 %post
@@ -13,7 +13,8 @@ From: mambaorg/micromamba:1.5.10-jammy
         pysam=0.22.1 \
         pandas=2.2.3 \
         "numpy>=1.26" \
-        "scikit-learn>=1.4" && \
+        "scikit-learn>=1.4" \
+        ucsc-bedgraphtobigwig=482 && \
     micromamba clean --all -y
 
 %environment

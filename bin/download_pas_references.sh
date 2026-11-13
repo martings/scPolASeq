@@ -15,9 +15,10 @@
 #
 # Usage:
 #   bash bin/download_pas_references.sh [--outdir <dir>] [--skip-existing]
+#   bash bin/download_pas_references.sh --help
 #
-# Defaults:
-#   --outdir /scratch/data/polya_atlas
+# Default output:
+#   ${XDG_DATA_HOME:-$HOME/.local/share}/scpolaseq/references/polya_atlas
 #
 # The script also writes a summary report (<outdir>/pas_references_summary.tsv)
 # and prints column headers + first 3 data rows of each downloaded file to
@@ -26,7 +27,7 @@
 set -euo pipefail
 
 # ── Defaults ──────────────────────────────────────────────────────────────────
-OUTDIR="/scratch/data/polya_atlas"
+OUTDIR="${SCPOLASEQ_REFERENCE_DIR:-${XDG_DATA_HOME:-${HOME}/.local/share}/scpolaseq/references/polya_atlas}"
 SKIP_EXISTING=0
 
 # ── Sources ───────────────────────────────────────────────────────────────────
@@ -37,6 +38,10 @@ POLYADB41_URL="https://exon.apps.wistar.org/polya_db/v4/download/4.1/HumanPas.zi
 # ── Argument parsing ──────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        -h|--help)
+            sed -n '2,24p' "$0" | sed 's/^#\s\{0,1\}//'
+            exit 0
+            ;;
         --outdir)      OUTDIR="$2";      shift 2 ;;
         --skip-existing) SKIP_EXISTING=1; shift   ;;
         *) echo "Unknown option: $1" >&2; exit 1  ;;
@@ -330,5 +335,5 @@ echo "  Bulk, broad coverage:                         $PA2_NORM"
 [[ -f "$PDB_NORM" ]] && \
 echo "  Curated (highest precision, lower recall):    $PDB_NORM"
 echo ""
-echo "  Update params.known_polya in nextflow.config or test_pbmc1k_deepthought.config"
+echo "  Set params.known_polya (for example via --known_polya) to the downloaded file"
 echo "  to point to the desired file."

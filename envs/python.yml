@@ -8,3 +8,4 @@ dependencies:
   - pandas=2.2.3
   - numpy>=1.26
   - scikit-learn>=1.4
+  - ucsc-bedgraphtobigwig=482

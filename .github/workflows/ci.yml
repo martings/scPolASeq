@@ -14,6 +14,8 @@ jobs:
   stub-run:
     name: Stub-run all scenarios
     runs-on: ubuntu-latest
+    env:
+      NXF_VER: "25.10.4"
 
     steps:
       - uses: actions/checkout@v4
@@ -69,6 +71,15 @@ jobs:
           nextflow run tests/modules/apa/test_pas_reference_build.nf \
             -stub \
             -ansi-log false
+
+      - name: Production STAR failures fail closed
+        run: bash tests/test_star_fail_closed.sh
+
+      - name: BigWig outputs fail closed
+        run: bash tests/test_coverage_bigwig_fail_closed.sh
+
+      - name: Python SIF validation contract (synthetic, mocked Apptainer)
+        run: bash tests/test_container_python_bigwig_validation.sh
 
       - name: Upload Nextflow logs on failure
         if: failure()

@@ -2,83 +2,116 @@
 
 ## Full run from FASTQ
 
+Use a host profile that matches the machine and one supported runtime profile.
+The generic PBMC profile contains no staged paths; provide all inputs and
+references for the host where the run will execute.
+
 ```bash
-nextflow run . -profile docker -params-file params/full.json --input samplesheet.csv --genome_fasta genome.fa --gtf genes.gtf
+nextflow run main.nf \
+  -profile apptainer,test_pbmc1k \
+  --input /data/pbmc1k/samplesheet.csv \
+  --genome_fasta /data/references/GRCh38/genome.fa \
+  --gtf /data/references/GRCh38/genes.gtf \
+  --known_polya /data/references/polyasite2_GRCh38.tsv \
+  --apptainer_cache_dir /data/apptainer/scpolaseq \
+  --outdir /data/results/pbmc1k \
+  -work-dir /data/work/scPolASeq_pbmc1k
 ```
+
+For an existing STAR index compatible with the supplied FASTA and GTF, pass
+`--star_index /path/to/star_index`. Otherwise, the workflow builds the index.
+The old `prebuilt_star_index` option is not used.
+
+The previously published PBMC1k index records STAR `2.7.4a`, while this
+branch's alignment-image recipe installs STAR `2.7.11b`. Reuse across those
+versions has not been validated. The Deepthought PBMC profile sets
+`star_index = null` and builds the index with the selected alignment image;
+only pass a prebuilt index after checking its reference inputs and STAR
+version against the image used for the run.
 
 ## Reuse aligned BAMs
 
+Use `--run_mode from_bam` with the samplesheet and cell metadata required by
+that mode. Add the same host and runtime profiles used for the full run.
+
 ```bash
-nextflow run . -profile slurm,singularity --run_mode from_bam --input samplesheet.csv --cell_metadata cell_metadata.tsv
+nextflow run main.nf \
+  -profile apptainer \
+  --run_mode from_bam \
+  --input /data/project/samplesheet.csv \
+  --cell_metadata /data/project/cell_metadata.tsv \
+  --outdir /data/results/from_bam
 ```
 
 ## Feedback mode after relabeling
 
 ```bash
-nextflow run . -profile slurm,singularity --run_mode feedback --input samplesheet.csv --cell_metadata relabeled_cells.tsv
+nextflow run main.nf \
+  -profile apptainer \
+  --run_mode feedback \
+  --input /data/project/samplesheet.csv \
+  --cell_metadata /data/project/relabeled_cells.tsv \
+  --outdir /data/results/feedback
 ```
 
-## Dual PAS reference mode
+Confirm required inputs for each mode in `nextflow_schema.json` and the
+workflow's parameter validation before launching.
 
-Use the curated PolyA_DB source for precision, the PolyASite v3 source for
-recall, or both together. When both optional sources are set, the pipeline
-downloads missing built-in archives, normalizes both tables, and collapses sites
-within `--pas_reference_merge_distance` bp. When only one source is set, that
-source is normalized and used directly.
+## PolyA reference downloads
+
+The workflow accepts PolyA_DB and PolyASite references as local files, URLs,
+or the value `download`. When both sources are set, it downloads missing
+archives, normalizes them, and merges nearby sites according to
+`--pas_reference_merge_distance`. A single configured source is normalized
+and used directly. Downloaded archives are cached under `<outdir>/reference_cache`
+by default, or under `--pas_reference_cache_dir` when supplied.
 
 ```bash
-nextflow run . \
-  --input samplesheet.csv \
-  --genome_fasta genome.fa \
-  --gtf genes.gtf \
+nextflow run main.nf \
+  -profile apptainer \
+  --input /data/project/samplesheet.csv \
+  --genome_fasta /data/references/GRCh38/genome.fa \
+  --gtf /data/references/GRCh38/genes.gtf \
   --polya_db download \
-  --polyasite download
+  --polyasite download \
+  --pas_reference_cache_dir /data/cache/pas \
+  --outdir /data/results/pas_references
 ```
 
-Downloaded archives are cached under `<outdir>/reference_cache` by default, or
-under `--pas_reference_cache_dir` when supplied.
+For a single source, use `--polya_db download --polyasite skip`, or set one
+parameter to a local path/URL and the other to `skip`.
 
-Single-source examples:
+## Standalone PolyA reference helper
+
+The helper script can download and normalize the built-in PolyA_DB and
+PolyASite references. It stores the cache under the user's XDG data directory
+by default; use `--outdir` to select another destination. Set the resulting
+file through `--known_polya` when launching the pipeline.
 
 ```bash
-nextflow run . --polya_db download --polyasite skip
-nextflow run . --polya_db skip --polyasite /data/atlas.clusters.3.0.GRCh38.GENCODE_42.bed.gz
+bash bin/download_pas_references.sh --help
+bash bin/download_pas_references.sh --outdir /data/references/polya_atlas
 ```
 
-## pbmc1k MVP validation run (deepthought)
+## PBMC 1k staged profile on Deepthought
 
-The PBMC 1k v3 (10x Genomics healthy donor) dataset is the canonical test for
-the MVP stack on deepthought. Data, reference (GRCh38 + Gencode v44), and the
-PolyASite 2.0 atlas are staged under `/scratch/data/`.
-
-The STAR genome index from previous runs is cached; use `-resume` to skip the
-~30 min genome generation step.
+`test_pbmc1k_deepthought` and `deepthought` contain host-specific paths and
+resource settings. Use them only on the Deepthought system with the staged PBMC
+inputs. The work directory and result directory should be unique to a run.
 
 ```bash
-cd /scratch/work/scPolASeq
-
-RUNDIR=/scratch/work/scPolASeq_runs/pbmc1k_$(date +%Y%m%d%H%M%S)
+RUN_ID=$(date +%Y%m%d%H%M%S)
+RUNDIR="/scratch/work/scPolASeq_runs/pbmc1k_${RUN_ID}"
+OUTDIR="/scratch/results/scPolASeq/pbmc1k_${RUN_ID}"
 
 nextflow run main.nf \
   -profile deepthought,apptainer,test_pbmc1k_deepthought \
   -work-dir "$RUNDIR" \
-  --outdir /scratch/results/scPolASeq/pbmc1k \
-  -resume
+  --outdir "$OUTDIR" \
+  --apptainer_cache_dir /scratch/cache/apptainer
 ```
 
-### What to check after the run
-
-| File | What to verify |
-|---|---|
-| `alignment/pbmc_1k_v3_L00*.Aligned.sortedByCoord.out.bam` | Non-zero size; `samtools flagstat` shows >80% aligned |
-| `labels/group_map.tsv` | Multiple cluster/cell_type rows, not just one fake barcode |
-| `coverage/cluster/*.bedGraph` | Non-empty; `wc -l` >1000 lines |
-| `apa_calls/apa_events.tsv` | Header + at least some significant events |
-| `apa_calls/pdui_usage_matrix.tsv` | Non-empty matrix |
-| `pas_reference/pas_reference.tsv` | Should have many more rows than site_catalog |
-| `report/scpolaseq_report.html` | Renders without error |
-
-### Known non-fatal warnings
-
-- `Failed to render execution report/timeline` — R not installed; HTML reports skipped
-- `SIERRA_QUANT` and `PAS_SCORING` are disabled in this profile (scaffold stubs)
+The corresponding staged inputs are in `conf/test_pbmc1k_deepthought.config`.
+Inspect the task trace and required output files after completion; a successful
+Nextflow exit alone does not establish scientific QC or reproduce published
+APA findings.
