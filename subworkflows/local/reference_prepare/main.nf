@@ -12,11 +12,12 @@ workflow REFERENCE_PREPARE {
     polya_db_file
     polyasite
     polyasite_file
+    chrom_sizes
+    prebuilt_star_index
 
     main:
-    def ch_prebuilt_index = params.star_index
-        ? file(params.star_index, checkIfExists: true)
-        : file("${projectDir}/assets/NO_FILE")
+    def ch_prebuilt_index = prebuilt_star_index
+    def ch_chrom_sizes = chrom_sizes
 
     def polya_skip_values = ['skip', 'none', 'null', 'false', 'no', '0', '']
     def polya_db_source = polya_db?.toString()?.trim() ?: 'skip'
@@ -41,7 +42,7 @@ workflow REFERENCE_PREPARE {
         ch_polya_reference_manifest = Channel.empty()
     }
 
-    PREPARE_REFERENCE_BUNDLE(genome_fasta, gtf, ch_effective_known_polya, priming_blacklist, ch_prebuilt_index)
+    PREPARE_REFERENCE_BUNDLE(genome_fasta, gtf, ch_effective_known_polya, priming_blacklist, ch_prebuilt_index, ch_chrom_sizes)
     BUILD_TERMINAL_EXON_CATALOG(PREPARE_REFERENCE_BUNDLE.out.gtf)
 
     PREPARE_REFERENCE_BUNDLE.out.reference_meta

@@ -12,7 +12,8 @@ process PREPARE_REFERENCE_BUNDLE {
     path gtf
     path known_polya
     path priming_blacklist
-    path prebuilt_star_index   // directory or NO_FILE sentinel
+    path prebuilt_star_index, stageAs: 'prebuilt_star_index_in'   // directory or NO_FILE sentinel
+    path chrom_sizes                                             // optional chrom.sizes or NO_FILE sentinel
 
     output:
     tuple val("primary"), path("star_index"), path("reference.annotation.gtf"), path("reference.genome.fa"), path("reference.genome.fa.fai"), path("reference.chrom.sizes"), path("known_polya.reference.tsv"), path("priming_blacklist.reference.bed"), emit: reference_meta
@@ -22,13 +23,28 @@ process PREPARE_REFERENCE_BUNDLE {
     path "reference.genome.fa.fai", emit: fasta_fai
 
     script:
-    def use_prebuilt = prebuilt_star_index.name != 'NO_FILE'
+    def use_prebuilt = !prebuilt_star_index.name.startsWith('NO_FILE')
+    def staged_prebuilt = use_prebuilt ? 'prebuilt_star_index_in' : prebuilt_star_index
+    def ref_root_arg = params.reference_root ? "--reference-root \"${params.reference_root}\"" : ''
+    def ref_build_arg = params.reference_build ? "--reference-build \"${params.reference_build}\"" : ''
+    def star_mode = use_prebuilt ? 'prebuilt' : 'generated'
+    def bundle_script = file("${moduleDir}/../../../../bin/prepare_reference_bundle.py")
     """
-    python3 ${projectDir}/bin/prepare_reference_bundle.py \\
+    STAR_BIN_VERSION="unknown"
+    if ${use_prebuilt} && command -v STAR >/dev/null 2>&1; then
+        STAR_BIN_VERSION="\$(STAR --version 2>/dev/null | head -n 1 || echo unknown)"
+    fi
+
+    python3 ${bundle_script} \\
         --genome-fasta ${genome_fasta} \\
         --gtf ${gtf} \\
         --known-polya ${known_polya} \\
         --priming-blacklist ${priming_blacklist} \\
+        --chrom-sizes ${chrom_sizes} \\
+        --prebuilt-star-index ${staged_prebuilt} \\
+        --star-binary-version "\${STAR_BIN_VERSION}" \\
+        ${ref_root_arg} \\
+        ${ref_build_arg} \\
         --out-fasta reference.genome.fa \\
         --out-gtf reference.annotation.gtf \\
         --out-fai reference.genome.fa.fai \\
@@ -44,11 +60,11 @@ process PREPARE_REFERENCE_BUNDLE {
         # content-identical files so downstream cache hashes remain stable).
         # Hard links fail when the source and destination are on different
         # filesystems, so fall back to a regular copy in that case.
-        if cp -rl ${prebuilt_star_index}/. star_index/ 2>/dev/null; then
+        if cp -rl ${staged_prebuilt}/. star_index/ 2>/dev/null; then
             echo "Prebuilt STAR index staged via hard-links."
         else
             echo "Hard-link staging failed (likely cross-device); falling back to regular copy." >&2
-            cp -r ${prebuilt_star_index}/. star_index/ || \
+            cp -r ${staged_prebuilt}/. star_index/ || \
                 { echo "ERROR: Failed to stage prebuilt STAR index." >&2; exit 1; }
         fi
     else
@@ -61,9 +77,17 @@ process PREPARE_REFERENCE_BUNDLE {
             --genomeFastaFiles reference.genome.fa \\
             --sjdbGTFfile reference.annotation.gtf ||
             { echo 'STAR index generation failed' >&2; exit 1; }
+        STAR_BIN_VERSION="\$(STAR --version 2>/dev/null | head -n 1 || echo unknown)"
     fi
     test -s star_index/SA && test -s star_index/Genome ||
         { echo 'STAR index is incomplete' >&2; exit 1; }
+
+    python3 ${bundle_script} \\
+        --finalize-star-index star_index \\
+        --star-index-mode ${star_mode} \\
+        --star-index-source ${prebuilt_star_index} \\
+        --star-binary-version "\${STAR_BIN_VERSION}" \\
+        --out-manifest reference_manifest.json
     """
 
     stub:

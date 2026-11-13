@@ -12,6 +12,7 @@ workflow {
         Channel.value(file("${launchDir}/tests/data/reference.gtf")),
         Channel.value(file("${launchDir}/assets/NO_FILE")),
         Channel.value(file("${launchDir}/assets/NO_FILE")),
+        Channel.value(file("${launchDir}/assets/NO_FILE")),
         Channel.value(file("${launchDir}/assets/NO_FILE"))
     )
 }
