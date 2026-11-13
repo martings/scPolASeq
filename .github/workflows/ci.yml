@@ -39,7 +39,7 @@ jobs:
             -params-file tests/config/params_full.json \
             -stub-run \
             -ansi-log false
-          echo "Expected: 22 processes"
+          echo "Expected: 25 processes"
 
       - name: Stub-run — toggles off
         run: |
@@ -48,7 +48,7 @@ jobs:
             -params-file tests/config/params_toggles_off.json \
             -stub-run \
             -ansi-log false
-          echo "Expected: 18 processes"
+          echo "Expected: 21 processes"
 
       - name: Stub-run — from_bam
         run: |
